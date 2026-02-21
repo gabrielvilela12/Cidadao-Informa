@@ -1,0 +1,5 @@
+{
+  "name": "HackGov PCD",
+  "description": "Portal de acessibilidade urbana para cidadãos e gestão governamental.",
+  "requestFramePermissions": ["geolocation"]
+}

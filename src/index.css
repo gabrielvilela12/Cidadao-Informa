@@ -1,0 +1,63 @@
+@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* 
+  ADVANCED A11Y GLOBAL MODIFIERS
+*/
+
+/* Text Spacing */
+.a11y-spacing-medium {
+  line-height: 1.8 !important;
+  letter-spacing: 0.05em !important;
+}
+
+.a11y-spacing-medium p,
+.a11y-spacing-medium h1,
+.a11y-spacing-medium h2,
+.a11y-spacing-medium h3,
+.a11y-spacing-medium span,
+.a11y-spacing-medium div {
+  line-height: 1.8 !important;
+  letter-spacing: 0.05em !important;
+}
+
+.a11y-spacing-wide {
+  line-height: 2 !important;
+  letter-spacing: 0.1em !important;
+}
+
+.a11y-spacing-wide p,
+.a11y-spacing-wide h1,
+.a11y-spacing-wide h2,
+.a11y-spacing-wide h3,
+.a11y-spacing-wide span,
+.a11y-spacing-wide div {
+  line-height: 2 !important;
+  letter-spacing: 0.1em !important;
+}
+
+/* Reduced Motion */
+.a11y-reduced-motion *, 
+.a11y-reduced-motion *::before, 
+.a11y-reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* High-Visibility Focus */
+.a11y-high-focus *:focus {
+  outline: 4px solid #3b82f6 !important;
+  outline-offset: 2px !important;
+}
+
+/* Simplified Mode */
+/* Elements that opt-in with 'hide-in-simplified' will vanish */
+.a11y-simplified .hide-in-simplified {
+  display: none !important;
+}
