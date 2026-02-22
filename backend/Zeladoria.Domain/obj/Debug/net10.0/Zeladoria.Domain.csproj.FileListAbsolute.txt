@@ -1,0 +1,12 @@
+C:\Users\Gabriel\Downloads\Projeto-Fiap-main\backend\Zeladoria.Domain\bin\Debug\net10.0\Zeladoria.Domain.deps.json
+C:\Users\Gabriel\Downloads\Projeto-Fiap-main\backend\Zeladoria.Domain\bin\Debug\net10.0\Zeladoria.Domain.dll
+C:\Users\Gabriel\Downloads\Projeto-Fiap-main\backend\Zeladoria.Domain\bin\Debug\net10.0\Zeladoria.Domain.pdb
+C:\Users\Gabriel\Downloads\Projeto-Fiap-main\backend\Zeladoria.Domain\obj\Debug\net10.0\Zeladoria.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Gabriel\Downloads\Projeto-Fiap-main\backend\Zeladoria.Domain\obj\Debug\net10.0\Zeladoria.Domain.AssemblyInfoInputs.cache
+C:\Users\Gabriel\Downloads\Projeto-Fiap-main\backend\Zeladoria.Domain\obj\Debug\net10.0\Zeladoria.Domain.AssemblyInfo.cs
+C:\Users\Gabriel\Downloads\Projeto-Fiap-main\backend\Zeladoria.Domain\obj\Debug\net10.0\Zeladoria.Domain.csproj.CoreCompileInputs.cache
+C:\Users\Gabriel\Downloads\Projeto-Fiap-main\backend\Zeladoria.Domain\obj\Debug\net10.0\Zeladoria.Domain.sourcelink.json
+C:\Users\Gabriel\Downloads\Projeto-Fiap-main\backend\Zeladoria.Domain\obj\Debug\net10.0\Zeladoria.Domain.dll
+C:\Users\Gabriel\Downloads\Projeto-Fiap-main\backend\Zeladoria.Domain\obj\Debug\net10.0\refint\Zeladoria.Domain.dll
+C:\Users\Gabriel\Downloads\Projeto-Fiap-main\backend\Zeladoria.Domain\obj\Debug\net10.0\Zeladoria.Domain.pdb
+C:\Users\Gabriel\Downloads\Projeto-Fiap-main\backend\Zeladoria.Domain\obj\Debug\net10.0\ref\Zeladoria.Domain.dll

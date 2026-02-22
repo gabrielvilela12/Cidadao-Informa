@@ -1,69 +1,110 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
 
+/**
+ * Definição dos papéis (roles) suportados pela aplicação.
+ */
 type UserRole = 'citizen' | 'admin';
 
+/**
+ * Representação do Usuário autenticado na aplicação.
+ */
 interface AppUser {
   id: string;
   cpf: string;
   full_name: string;
+  email: string;
+  created_at?: string;
 }
 
+/**
+ * Interface que define o contrato do Contexto Principal da Aplicação.
+ * Centraliza estados como autenticação, dados do usuário e UI (menu mobile).
+ */
 interface AppContextType {
   role: UserRole;
   setRole: (role: UserRole) => void;
   isAuthenticated: boolean;
   user: AppUser | null;
-  logout: () => Promise<void>;
+  loginSuccess: (token: string, user: AppUser, role: UserRole) => void;
+  logout: () => void;
+  isMobileMenuOpen: boolean;
+  toggleMobileMenu: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+/**
+ * Provedor de Contexto Global da Aplicação (AppProvider).
+ * Deve ser instanciado no nível mais alto da árvore de componentes.
+ * 
+ * Gerencia o ciclo de vida da sessão do usuário recuperando os tokens armazenados
+ * localmente (`localStorage`) no momento de montagem da aplicação.
+ * 
+ * @param children Elementos React filhos que terão acesso a este contexto.
+ */
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [role, setRoleState] = useState<UserRole>('citizen');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const toggleMobileMenu = () => setIsMobileMenuOpen(prev => !prev);
 
   useEffect(() => {
-    // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      handleSession(session);
+    const validateSession = async () => {
+      const token = localStorage.getItem('zeladoria_token');
+      const savedUser = localStorage.getItem('zeladoria_user');
+      const savedRole = localStorage.getItem('zeladoria_role');
+
+      if (token && savedUser) {
+        try {
+          // Bate no backend para confirmar se o usuário e o token ainda são válidos
+          const { api } = await import('../services/api');
+          const userData = await api.getMe();
+
+          setUser({
+            id: userData.userId,
+            cpf: userData.cpf,
+            full_name: userData.name,
+            email: userData.email,
+            created_at: userData.createdAt
+          });
+          setRoleState((userData.role as UserRole) || savedRole || 'citizen');
+          setIsAuthenticated(true);
+        } catch (error) {
+          // Se o backend recusou o token (ex: user deletado apagado), força o logout
+          console.warn("Sessão inválida, limpando cache...", error);
+          localStorage.removeItem('zeladoria_token');
+          localStorage.removeItem('zeladoria_user');
+          localStorage.removeItem('zeladoria_role');
+          setIsAuthenticated(false);
+          setUser(null);
+        }
+      }
       setLoading(false);
-    });
+    };
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      handleSession(session);
-    });
-
-    return () => subscription.unsubscribe();
+    validateSession();
   }, []);
 
-  const handleSession = (session: any) => {
-    if (session && session.user) {
-      const meta = session.user.user_metadata || {};
-
-      setUser({
-        id: session.user.id,
-        cpf: meta.cpf || '',
-        full_name: meta.full_name || 'Usuário',
-      });
-      // Currently enforcing citizen role based on metadata, but keeping the setter local for testing both panels
-      setRoleState(meta.role === 'admin' ? 'admin' : 'citizen');
-      setIsAuthenticated(true);
-    } else {
-      setUser(null);
-      setIsAuthenticated(false);
-    }
+  const loginSuccess = (token: string, user: AppUser, role: UserRole) => {
+    localStorage.setItem('zeladoria_token', token);
+    localStorage.setItem('zeladoria_user', JSON.stringify(user));
+    localStorage.setItem('zeladoria_role', role);
+    setUser(user);
+    setRoleState(role);
+    setIsAuthenticated(true);
   };
 
   const setRole = (newRole: UserRole) => {
     setRoleState(newRole);
   };
 
-  const logout = async () => {
-    await supabase.auth.signOut();
+  const logout = () => {
+    localStorage.removeItem('zeladoria_token');
+    localStorage.removeItem('zeladoria_user');
+    localStorage.removeItem('zeladoria_role');
     setIsAuthenticated(false);
     setUser(null);
   };
@@ -77,7 +118,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AppContext.Provider value={{ role, setRole, isAuthenticated, user, logout }}>
+    <AppContext.Provider value={{ role, setRole, isAuthenticated, user, loginSuccess, logout, isMobileMenuOpen, toggleMobileMenu }}>
       {children}
     </AppContext.Provider>
   );

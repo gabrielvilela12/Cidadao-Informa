@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { Header } from '../components/Header';
-import { ArrowLeft, Clock, MapPin, User, FileText, CheckCircle, AlertCircle, Calendar } from 'lucide-react';
+import { ArrowLeft, Clock, MapPin, User, FileText, CheckCircle, AlertCircle, Calendar, Image as ImageIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { StatusBadge } from './CitizenDashboard';
 import { useProtocols } from '../hooks/useProtocols';
@@ -100,6 +100,23 @@ export function ProtocolDetails() {
                                 {(protocol as any).description || 'O cidadão relatou um problema de sinalização e danos na via que afeta a mobilidade e o tráfego local. O problema foi identificado em vistoria prévia e requer atenção imediata para restauração da rota acessível.'}
                             </p>
                         </div>
+
+                        {/* Photos */}
+                        {protocol.image_urls && protocol.image_urls.length > 0 && (
+                            <div className="bg-[#1a242f] border border-[#283039] rounded-xl p-6">
+                                <h3 className="text-white text-lg font-bold mb-4 flex items-center gap-2">
+                                    <ImageIcon size={20} className="text-blue-500" />
+                                    Fotos Anexadas
+                                </h3>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    {protocol.image_urls.map((url: string, index: number) => (
+                                        <a key={index} href={url} target="_blank" rel="noopener noreferrer" className="block w-full aspect-video rounded-lg overflow-hidden border border-slate-700 hover:border-blue-500 transition-colors bg-[#111418]">
+                                            <img src={url} alt={`Evidência ${index + 1}`} className="w-full h-full object-cover" />
+                                        </a>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                     </div>
 

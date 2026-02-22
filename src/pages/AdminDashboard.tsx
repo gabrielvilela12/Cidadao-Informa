@@ -3,6 +3,7 @@ import { useProtocols } from '../hooks/useProtocols';
 import { Download, Calendar, Inbox, Timer, AlertCircle, CheckCircle, MoreHorizontal, Eye } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Area, AreaChart } from 'recharts';
 import { StatusBadge } from './CitizenDashboard';
+import { exportToCSV } from '../utils/exportUtils';
 
 
 
@@ -28,8 +29,8 @@ export function AdminDashboard() {
   const { protocols, loading } = useProtocols('admin');
 
   const totalCount = protocols.length;
-  const delayedCount = protocols.filter(p => p.status === 'Atrasado').length;
-  const resolvedCount = protocols.filter(p => p.status === 'Concluído').length;
+  const delayedCount = protocols.filter(p => p.status === 'Closed' || p.status === 'Atrasado').length; // Assuming 'Closed' indicates delayed for now, normally computed by dates
+  const resolvedCount = protocols.filter(p => p.status === 'Resolved').length;
   const resolutionRate = totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 0;
 
   const categories = ['Física', 'Visual', 'Auditiva', 'Outros'];
@@ -39,7 +40,7 @@ export function AdminDashboard() {
   }).filter(c => c.value > 0);
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#101922] p-6 md:p-8 lg:p-10">
+    <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#101922] p-4 sm:p-6 md:p-8 lg:p-10">
       <header className="flex flex-wrap justify-between items-end gap-4 mb-8">
         <div className="flex flex-col gap-1">
           <h2 className="text-white text-3xl font-bold leading-tight tracking-tight">Visão Geral Executiva</h2>
@@ -51,10 +52,10 @@ export function AdminDashboard() {
             <span>Últimos 30 dias</span>
             <ChevronDown size={18} className="ml-2" />
           </div>
-          <Link to="/admin/relatorios" className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition-colors shadow-lg shadow-blue-600/20">
+          <button onClick={() => exportToCSV(protocols, 'dashboard_data.csv')} className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition-colors shadow-lg shadow-blue-600/20">
             <Download size={18} />
             <span>Exportar Dados</span>
-          </Link>
+          </button>
         </div>
       </header>
 

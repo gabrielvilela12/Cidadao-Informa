@@ -1,0 +1,39 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "Zeladoria.Application/1.0.0": {
+        "dependencies": {
+          "Zeladoria.Domain": "1.0.0"
+        },
+        "runtime": {
+          "Zeladoria.Application.dll": {}
+        }
+      },
+      "Zeladoria.Domain/1.0.0": {
+        "runtime": {
+          "Zeladoria.Domain.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Zeladoria.Application/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Zeladoria.Domain/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

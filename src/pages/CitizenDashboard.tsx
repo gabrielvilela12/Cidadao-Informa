@@ -10,9 +10,9 @@ export function CitizenDashboard() {
   const { user } = useApp();
   const { protocols, loading } = useProtocols('citizen');
 
-  const openCount = protocols.filter(p => p.status === 'Aberto').length;
-  const analysisCount = protocols.filter(p => p.status === 'Em Análise').length;
-  const completedCount = protocols.filter(p => p.status === 'Concluído').length;
+  const openCount = protocols.filter(p => p.status === 'Open').length;
+  const analysisCount = protocols.filter(p => p.status === 'InProgress').length;
+  const completedCount = protocols.filter(p => p.status === 'Resolved' || p.status === 'Closed').length;
 
   const todayStr = new Intl.DateTimeFormat('pt-BR', {
     weekday: 'long',
@@ -29,7 +29,7 @@ export function CitizenDashboard() {
     <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#101922]">
       <Header title={`Olá, ${firstName}`} subtitle={formattedDate} />
 
-      <div className="p-8 max-w-7xl mx-auto w-full flex flex-col gap-8">
+      <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 md:gap-8">
         {/* Quick Stats */}
         <section aria-label="Resumo de Solicitações">
           <div className="flex items-center justify-between mb-4">
@@ -127,9 +127,9 @@ export function CitizenDashboard() {
           </div>
         </div>
 
-        <footer className="mt-8 border-t border-slate-800 pt-6 pb-2 text-center text-xs text-slate-500">
+        <footer className="mt-8 border-t border-slate-800 pt-6 pb-2 text-center text-[10px] sm:text-xs text-slate-500">
           <p>© 2023 HackGov PCD. Todos os direitos reservados. Portal de Acessibilidade Governamental.</p>
-          <div className="flex justify-center gap-4 mt-2">
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mt-2">
             <a className="hover:text-blue-500 transition-colors" href="#">Termos de Uso</a>
             <a className="hover:text-blue-500 transition-colors" href="#">Política de Privacidade</a>
             <a className="hover:text-blue-500 transition-colors" href="#">Acessibilidade</a>
@@ -173,16 +173,18 @@ function QuickLink({ icon: Icon, label, to = "#" }: any) {
 
 export function StatusBadge({ status }: { status: string }) {
   const styles: any = {
-    'Aberto': 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-    'Em Análise': 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-    'Concluído': 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+    'Open': 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+    'InProgress': 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+    'Resolved': 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+    'Closed': 'bg-slate-500/20 text-slate-300 border-slate-500/30',
     'Atrasado': 'bg-red-500/20 text-red-300 border-red-500/30',
   };
 
   const dotColors: any = {
-    'Aberto': 'bg-blue-500',
-    'Em Análise': 'bg-amber-500',
-    'Concluído': 'bg-emerald-500',
+    'Open': 'bg-blue-500',
+    'InProgress': 'bg-amber-500',
+    'Resolved': 'bg-emerald-500',
+    'Closed': 'bg-slate-500',
     'Atrasado': 'bg-red-500',
   };
 

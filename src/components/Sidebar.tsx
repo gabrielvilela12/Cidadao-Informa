@@ -1,9 +1,9 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, Briefcase, User, LogOut, Settings, BarChart3, List, AlertTriangle, Accessibility as A11yIcon } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, Briefcase, User, LogOut, Settings, BarChart3, List, AlertTriangle, Accessibility as A11yIcon, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export function Sidebar() {
-  const { role, setRole, logout, user } = useApp();
+  const { role, setRole, logout, user, isMobileMenuOpen, toggleMobileMenu } = useApp();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -31,67 +31,101 @@ export function Sidebar() {
   const links = role === 'citizen' ? citizenLinks : adminLinks;
 
   return (
-    <aside className="w-72 bg-[#111418] border-r border-slate-800 flex flex-col h-screen fixed left-0 top-0 z-50">
-      <div className="p-6 pb-2">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="bg-blue-500/20 p-2 rounded-lg text-blue-500">
-            <MapIcon size={24} />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold leading-tight text-white">HackGov PCD</h1>
-            <p className="text-[#9dabb9] text-sm">{role === 'citizen' ? 'Portal do Cidadão' : 'Portal do Servidor'}</p>
-          </div>
-        </div>
+    <>
+      {/* Mobile Backdrop */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={toggleMobileMenu}
+        />
+      )}
 
-        <nav className="flex flex-col gap-2">
-          {links.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              end
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                  : 'text-slate-400 hover:bg-[#283039] hover:text-white'
-                }`
-              }
-            >
-              <link.icon size={20} />
-              <span className="font-medium">{link.label}</span>
-            </NavLink>
-          ))}
-        </nav>
-      </div>
-
-      <div className="mt-auto p-6 border-t border-slate-800">
-        <button
-          onClick={() => setRole(role === 'citizen' ? 'admin' : 'citizen')}
-          className="w-full mb-4 flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors"
-        >
-          Trocar para {role === 'citizen' ? 'Servidor' : 'Cidadão'}
-        </button>
-
-        <a className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-[#283039] hover:text-white transition-all mb-2" href="#">
-          <User size={20} />
-          <span className="font-medium">Perfil</span>
-        </a>
-
-        <div className="flex items-center gap-3 px-4 pt-4">
-          <div
-            className="aspect-square bg-cover rounded-full size-10 border-2 border-blue-600"
-            style={{ backgroundImage: `url(${role === 'citizen' ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuAsRG8TpK0sJgZKQoOrjWThkXl7_7XgGCi9kQijq2eba-7TxB8H-UeR3Z-Jt64iTiHkxc8qh2k5_9pGW56GrUsiRU-C8JMI-vlhq3g8IcdvHlY_aUq7FJjDmbhnH7M5fffR_e4pRZHEl9FqRR2LUFBcR9UlpQjO8fpP003R9WTkDfYhh5S_0zR3E4i4AUEktjtrisgjdBaRr6cnAgzrSnTNQW90hO8XMbITrk4oNH8L3ZmqsuMdIBxX0pJU9A9GC573qUoc4-0hJXQ' : 'https://lh3.googleusercontent.com/aida-public/AB6AXuBl3kervDGjs-N_PW2749Jo1ar89mbYawBP5fKzA590bLoOzrmDFK5ZxRvvLvqaqBn1dWv3MKOfcdpIj4N97velGs7_aCSuhVeadHijr2aJT7rzpS_zLi1Chxw-5COcQBeTf-0YOewG4-SunIRbA5VBX8-g7-6kI1S4lHiBKs6JQlfwnxChXvjAjw_YxyBP55McPLMVGjrLnLSz3HYqDBPnQAyX0Oe6w7GCbXxZT9SYQuMwOH3G-YQTCQweY4jZbvR0h9a2mBLnClI'})` }}
-          />
-          <div className="flex flex-col">
-            <p className="text-sm font-bold text-white whitespace-nowrap overflow-hidden text-ellipsis w-40">{user?.full_name || 'Usuário'}</p>
+      {/* Sidebar */}
+      <aside className={`w-72 bg-[#111418] border-r border-slate-800 flex flex-col h-screen fixed left-0 top-0 z-50 transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+        <div className="p-6 pb-2">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-500/20 p-2 rounded-lg text-blue-500">
+                <MapIcon size={24} />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold leading-tight text-white">HackGov PCD</h1>
+                <p className="text-[#9dabb9] text-sm">{role === 'citizen' ? 'Portal do Cidadão' : 'Portal do Servidor'}</p>
+              </div>
+            </div>
+            {/* Close Button for Mobile */}
             <button
-              onClick={handleLogout}
-              className="text-xs text-slate-500 hover:text-blue-600 text-left"
+              onClick={toggleMobileMenu}
+              className="md:hidden text-slate-400 hover:text-white p-2 rounded-lg hover:bg-[#283039] transition-colors"
             >
-              Sair
+              <X size={20} />
             </button>
           </div>
+
+          <nav className="flex flex-col gap-2">
+            {links.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                end
+                onClick={() => {
+                  if (isMobileMenuOpen) toggleMobileMenu();
+                }}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                    : 'text-slate-400 hover:bg-[#283039] hover:text-white'
+                  }`
+                }
+              >
+                <link.icon size={20} />
+                <span className="font-medium">{link.label}</span>
+              </NavLink>
+            ))}
+          </nav>
         </div>
-      </div>
-    </aside>
+
+        <div className="mt-auto p-6 border-t border-slate-800">
+          <button
+            onClick={() => setRole(role === 'citizen' ? 'admin' : 'citizen')}
+            className="w-full mb-4 flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors"
+          >
+            Trocar para {role === 'citizen' ? 'Servidor' : 'Cidadão'}
+          </button>
+
+          <NavLink
+            to="/perfil"
+            onClick={() => {
+              if (isMobileMenuOpen) toggleMobileMenu();
+            }}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-3 rounded-lg transition-all mb-2 ${isActive
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                : 'text-slate-400 hover:bg-[#283039] hover:text-white'
+              }`
+            }
+          >
+            <User size={20} />
+            <span className="font-medium">Perfil</span>
+          </NavLink>
+
+          <div className="flex items-center gap-3 px-4 pt-4">
+            <div
+              className="aspect-square bg-cover rounded-full size-10 border-2 border-blue-600 shrink-0"
+              style={{ backgroundImage: `url(${role === 'citizen' ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuAsRG8TpK0sJgZKQoOrjWThkXl7_7XgGCi9kQijq2eba-7TxB8H-UeR3Z-Jt64iTiHkxc8qh2k5_9pGW56GrUsiRU-C8JMI-vlhq3g8IcdvHlY_aUq7FJjDmbhnH7M5fffR_e4pRZHEl9FqRR2LUFBcR9UlpQjO8fpP003R9WTkDfYhh5S_0zR3E4i4AUEktjtrisgjdBaRr6cnAgzrSnTNQW90hO8XMbITrk4oNH8L3ZmqsuMdIBxX0pJU9A9GC573qUoc4-0hJXQ' : 'https://lh3.googleusercontent.com/aida-public/AB6AXuBl3kervDGjs-N_PW2749Jo1ar89mbYawBP5fKzA590bLoOzrmDFK5ZxRvvLvqaqBn1dWv3MKOfcdpIj4N97velGs7_aCSuhVeadHijr2aJT7rzpS_zLi1Chxw-5COcQBeTf-0YOewG4-SunIRbA5VBX8-g7-6kI1S4lHiBKs6JQlfwnxChXvjAjw_YxyBP55McPLMVGjrLnLSz3HYqDBPnQAyX0Oe6w7GCbXxZT9SYQuMwOH3G-YQTCQweY4jZbvR0h9a2mBLnClI'})` }}
+            />
+            <div className="flex flex-col min-w-0 flex-1">
+              <p className="text-sm font-bold text-white truncate w-full">{user?.full_name || 'Usuário'}</p>
+              <button
+                onClick={handleLogout}
+                className="text-xs text-slate-500 hover:text-blue-600 text-left"
+              >
+                Sair
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </>
   );
 }

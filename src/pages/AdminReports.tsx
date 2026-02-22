@@ -1,6 +1,7 @@
 import { Header } from '../components/Header';
 import { Download, Calendar, Filter, FileText, PieChart as PieChartIcon, BarChart3, TrendingUp } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { exportToCSV } from '../utils/exportUtils';
 
 const CATEGORY_DATA = [
     { name: 'Infraestrutura', value: 850, color: '#137fec' },
@@ -43,9 +44,9 @@ export function AdminReports() {
                             <span>Todas Lotações</span>
                         </button>
                     </div>
-                    <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg transition-colors shadow-lg shadow-blue-600/20 whitespace-nowrap font-bold">
+                    <button onClick={() => exportToCSV(CATEGORY_DATA, 'relatorio_consolidado.csv')} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg transition-colors shadow-lg shadow-blue-600/20 whitespace-nowrap font-bold">
                         <Download size={18} />
-                        <span>Exportar Relatório Consolidado (PDF)</span>
+                        <span>Exportar Relatório Consolidado (.CSV)</span>
                     </button>
                 </div>
 

@@ -74,10 +74,26 @@ export function Accessibility() {
                                 <Type className="text-blue-500" size={24} />
                                 Tamanho da Fonte
                             </h2>
-                            <div className="flex flex-col gap-3">
-                                <OptionButton label="Padrão" desc="Tamanho de texto original recomendado" active={fontSize === 'normal'} onClick={() => setFontSize('normal')} />
-                                <OptionButton label="Grande" desc="Aumenta todos os textos em 12%" active={fontSize === 'large'} onClick={() => setFontSize('large')} />
-                                <OptionButton label="Extra Grande" desc="Aumenta todos os textos em 25%" active={fontSize === 'extra-large'} onClick={() => setFontSize('extra-large')} />
+                            <p className="text-sm text-slate-400 mb-2">Ajuste o tamanho de todos os textos da aplicação: <span className="text-white font-bold">{fontSize}%</span></p>
+
+                            <div className="bg-[#111418] border border-slate-800 rounded-xl p-6 flex flex-col gap-4">
+                                <div className="flex items-center gap-6">
+                                    <span className="text-slate-400 font-medium text-lg">A</span>
+                                    <input
+                                        type="range"
+                                        min="100"
+                                        max="200"
+                                        step="5"
+                                        value={fontSize}
+                                        onChange={(e) => setFontSize(Number(e.target.value))}
+                                        className="flex-1 accent-blue-500 h-2.5 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                                    />
+                                    <span className="text-slate-200 font-bold text-3xl">A</span>
+                                </div>
+                                <div className="flex justify-between text-sm text-slate-500 font-medium px-1">
+                                    <span>Padrão (100%)</span>
+                                    <span>Máximo (200%)</span>
+                                </div>
                             </div>
                         </motion.div>
 
@@ -208,8 +224,8 @@ function OptionButton({ label, desc, active, onClick, icon }: any) {
         <button
             onClick={onClick}
             className={`flex items-center gap-4 w-full p-4 rounded-xl border text-left transition-all ${active
-                    ? 'bg-blue-500/10 border-blue-500'
-                    : 'bg-[#111418] border-slate-800 hover:border-slate-600'
+                ? 'bg-blue-500/10 border-blue-500'
+                : 'bg-[#111418] border-slate-800 hover:border-slate-600'
                 }`}
         >
             <div className={`flex items-center justify-center min-w-5 h-5 rounded-full border-2 ${active ? 'border-blue-500' : 'border-slate-600'}`}>
@@ -230,8 +246,8 @@ function CardButton({ label, desc, active, onClick }: any) {
         <button
             onClick={onClick}
             className={`flex flex-col items-center justify-center p-5 rounded-xl border text-center transition-all h-full ${active
-                    ? 'bg-blue-500 border-blue-500 text-white shadow-lg shadow-blue-500/20'
-                    : 'bg-[#111418] border-slate-700 text-slate-300 hover:bg-[#283039]'
+                ? 'bg-blue-500 border-blue-500 text-white shadow-lg shadow-blue-500/20'
+                : 'bg-[#111418] border-slate-700 text-slate-300 hover:bg-[#283039]'
                 }`}
         >
             <span className="font-bold mb-1">{label}</span>
@@ -245,8 +261,8 @@ function ToggleButton({ label, active, onClick }: any) {
         <button
             onClick={onClick}
             className={`flex items-center justify-between w-full p-4 rounded-xl border text-left transition-all ${active
-                    ? 'bg-blue-500/10 border-blue-500'
-                    : 'bg-[#111418] border-slate-800 hover:border-slate-600'
+                ? 'bg-blue-500/10 border-blue-500'
+                : 'bg-[#111418] border-slate-800 hover:border-slate-600'
                 }`}
         >
             <span className={`font-semibold flex items-center gap-2 ${active ? 'text-blue-400' : 'text-slate-200'}`}>

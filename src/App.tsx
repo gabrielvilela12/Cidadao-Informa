@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { AppProvider, useApp } from './context/AppContext';
@@ -17,9 +12,20 @@ import { AdminRequestsQueue } from './pages/AdminRequestsQueue';
 import { AdminReports } from './pages/AdminReports';
 import { ProtocolDetails } from './pages/ProtocolDetails';
 import { Login } from './pages/Login';
+import { Profile } from './pages/Profile';
 import { Accessibility } from './pages/Accessibility';
 import { A11yProvider } from './context/A11yContext';
 
+/**
+ * Componente principal de roteamento e layout da aplicação.
+ * Responsável por gerenciar a navegação baseada no estado de autenticação e no perfil (role) do usuário.
+ * 
+ * - Se o usuário não estiver autenticado, restringe o acesso apenas à rota `/login`.
+ * - Se autenticado, renderiza o layout principal com a `Sidebar` e o conteúdo específico das rotas.
+ * - Trata o direcionamento padrão (Citizens para `/` e Admins para `/admin`).
+ * 
+ * @returns O layout e as rotas mapeadas de acordo com as permissões do usuário em sessão.
+ */
 function AppContent() {
   const { role, isAuthenticated } = useApp();
 
@@ -35,7 +41,7 @@ function AppContent() {
   return (
     <div className="flex min-h-screen bg-[#101922] text-white font-sans">
       <Sidebar />
-      <main className="flex-1 ml-72 flex flex-col h-screen overflow-hidden">
+      <main className="flex-1 ml-0 md:ml-72 flex flex-col h-screen overflow-hidden transition-all duration-300">
         <Routes>
           {/* Default Route when authenticated */}
           <Route path="/login" element={<Navigate to={role === 'citizen' ? '/' : '/admin'} replace />} />
@@ -53,6 +59,7 @@ function AppContent() {
           <Route path="/admin/relatorios" element={<AdminReports />} />
 
           {/* Shared Routes */}
+          <Route path="/perfil" element={<Profile />} />
           <Route path="/protocolo/:id" element={<ProtocolDetails />} />
           <Route path="/acessibilidade" element={<Accessibility />} />
 
@@ -64,6 +71,12 @@ function AppContent() {
   );
 }
 
+/**
+ * Ponto de entrada (Entrypoint) do React para a aplicação Zeladoria Pública.
+ * Engloba a aplicação com os provedores de contexto necessários (Acessibilidade, Aplicação global e Roteador).
+ * 
+ * @returns O componente App que provê os contextos e renderiza o conteúdo principal.
+ */
 export default function App() {
   return (
     <A11yProvider>
