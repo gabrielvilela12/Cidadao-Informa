@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Zeladoria Pública
 
 Um sistema de zeladoria urbana focado na gestão e reporte de incidentes nas cidades, conectando cidadãos e a administração pública.
@@ -58,3 +59,10 @@ A aplicação possui um sistema de login integrado ao **Supabase**. Dependendo d
 ## 👨‍💻 Autor
 
 Feito com dedicação para a otimização da zeladoria pública.
+=======
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
+>>>>>>> b294b06c3aaee6ed3b6fcfc4aee82bb826897ef2

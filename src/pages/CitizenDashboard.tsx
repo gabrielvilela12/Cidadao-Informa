@@ -101,8 +101,8 @@ export function CitizenDashboard() {
                       </td>
                     </tr>
                   )}
-                  {!loading && protocols.slice(0, 4).map((p) => (
-                    <tr key={p.id} className="hover:bg-slate-800/30 transition-colors">
+                  {!loading && protocols.slice(0, 4).map((p, index) => (
+                    <tr key={`${p.id}-${index}`} className="hover:bg-slate-800/30 transition-colors">
                       <td className="px-6 py-4 font-mono text-slate-300">{p.id}</td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
