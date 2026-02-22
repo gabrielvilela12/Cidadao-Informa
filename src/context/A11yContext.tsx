@@ -1,13 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-type FontSize = 'normal' | 'large' | 'extra-large';
-type Theme = 'dark' | 'light' | 'high-contrast';
+export type Theme = 'dark' | 'light' | 'high-contrast';
 type ColorblindMode = 'none' | 'protanopia' | 'deuteranopia' | 'tritanopia';
 type TextSpacing = 'normal' | 'medium' | 'wide';
 
 interface A11yContextType {
-    fontSize: FontSize;
-    setFontSize: (size: FontSize) => void;
+    fontSize: number;
+    setFontSize: (size: number) => void;
     theme: Theme;
     setTheme: (theme: Theme) => void;
     colorblindMode: ColorblindMode;
@@ -25,9 +24,10 @@ interface A11yContextType {
 const A11yContext = createContext<A11yContextType | undefined>(undefined);
 
 export function A11yProvider({ children }: { children: React.ReactNode }) {
-    const [fontSize, setFontSizeState] = useState<FontSize>(() =>
-        (localStorage.getItem('a11y-fontSize') as FontSize) || 'normal'
-    );
+    const [fontSize, setFontSizeState] = useState<number>(() => {
+        const stored = localStorage.getItem('a11y-fontSize');
+        return stored ? parseInt(stored, 10) : 100;
+    });
     const [theme, setThemeState] = useState<Theme>(() =>
         (localStorage.getItem('a11y-theme') as Theme) || 'dark'
     );
@@ -47,9 +47,9 @@ export function A11yProvider({ children }: { children: React.ReactNode }) {
         localStorage.getItem('a11y-simplifiedMode') === 'true'
     );
 
-    const setFontSize = (size: FontSize) => {
+    const setFontSize = (size: number) => {
         setFontSizeState(size);
-        localStorage.setItem('a11y-fontSize', size);
+        localStorage.setItem('a11y-fontSize', size.toString());
     };
 
     const setTheme = (t: Theme) => {
@@ -86,31 +86,30 @@ export function A11yProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         const root = document.documentElement;
 
-        // 1. Font Size
+        // 1. Font Size (Percentage of base 16px)
         root.classList.remove('text-base', 'text-lg', 'text-xl');
-        if (fontSize === 'normal') root.style.fontSize = '16px';
-        if (fontSize === 'large') root.style.fontSize = '18px';
-        if (fontSize === 'extra-large') root.style.fontSize = '20px';
+        root.style.fontSize = `${(fontSize / 100) * 16}px`;
 
         // 2. Theme (High Contrast and Light Inversion)
-        // We remove our custom classes first
         root.classList.remove('theme-light', 'theme-high-contrast');
-        root.style.filter = 'none';
+
+        let currentFilter = '';
 
         if (theme === 'light') {
             root.classList.add('theme-light');
-            // A quick holistic invert for dark-designed tailwind applications
-            root.style.filter = 'invert(1) hue-rotate(180deg)';
+            // Improved light theme filter: adjusts brightness and contrast for a better look
+            currentFilter = 'invert(1) hue-rotate(180deg) brightness(1.05) contrast(0.95)';
         } else if (theme === 'high-contrast') {
             root.classList.add('theme-high-contrast');
         }
 
         // 3. Colorblind Modes SVG Filter
         if (colorblindMode !== 'none') {
-            // Append colorblind filter to whatever theming filter exists
             const cbFilter = `url(#${colorblindMode})`;
-            root.style.filter = root.style.filter === 'none' ? cbFilter : `${root.style.filter} ${cbFilter}`;
+            currentFilter = currentFilter ? `${currentFilter} ${cbFilter}` : cbFilter;
         }
+
+        root.style.filter = currentFilter || 'none';
 
         // 4. Text Spacing
         root.classList.remove('a11y-spacing-medium', 'a11y-spacing-wide');

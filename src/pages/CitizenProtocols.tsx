@@ -1,11 +1,30 @@
+import { useState, useMemo } from 'react';
 import { Header } from '../components/Header';
 import { useProtocols } from '../hooks/useProtocols';
-import { Search, Filter, Eye, List as ListIcon } from 'lucide-react';
+import { Search, Filter, Eye, List as ListIcon, ChevronDown } from 'lucide-react';
 import { StatusBadge } from './CitizenDashboard';
 import { Link } from 'react-router-dom';
 
 export function CitizenProtocols() {
     const { protocols, loading } = useProtocols('citizen');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+
+    const filteredProtocols = useMemo(() => {
+        return protocols.filter(p => {
+            const matchesSearch = searchTerm === '' ||
+                p.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                p.service?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                p.address?.toLowerCase().includes(searchTerm.toLowerCase());
+
+            const matchesStatus = statusFilter === 'all' ||
+                p.status === statusFilter ||
+                (statusFilter === 'Closed' && p.status === 'Atrasado');
+
+            return matchesSearch && matchesStatus;
+        });
+    }, [protocols, searchTerm, statusFilter]);
+
     return (
         <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#101922]">
             <Header title="Meus Protocolos" subtitle="Acompanhe suas solicitações" />
@@ -16,14 +35,31 @@ export function CitizenProtocols() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                         <input
                             type="text"
-                            placeholder="Buscar por protocolo ou serviço..."
+                            placeholder="Buscar por protocolo, serviço ou endereço..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full bg-[#1b2631] border border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-colors"
                         />
                     </div>
-                    <button className="flex items-center gap-2 bg-[#1b2631] border border-slate-700 text-slate-300 hover:text-white px-4 py-2.5 rounded-lg transition-colors">
-                        <Filter size={18} />
-                        <span>Filtrar</span>
-                    </button>
+                    <div className="relative w-full md:w-auto">
+                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                            <Filter size={18} className="text-slate-400" />
+                        </div>
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="w-full md:w-auto appearance-none bg-[#1b2631] border border-slate-700 text-slate-300 hover:text-white pl-10 pr-10 py-2.5 rounded-lg transition-colors focus:outline-none focus:border-blue-500 cursor-pointer"
+                        >
+                            <option value="all">Todos os Status</option>
+                            <option value="Open">Aberto</option>
+                            <option value="InProgress">Em Análise</option>
+                            <option value="Resolved">Concluído</option>
+                            <option value="Closed">Fechado/Atraso</option>
+                        </select>
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <ChevronDown size={18} className="text-slate-400" />
+                        </div>
+                    </div>
                 </div>
 
                 <div className="bg-[#1b2631] border border-slate-700 rounded-xl overflow-hidden flex flex-col">
@@ -53,7 +89,7 @@ export function CitizenProtocols() {
                                         </td>
                                     </tr>
                                 )}
-                                {!loading && protocols.map((p) => (
+                                {!loading && filteredProtocols.map((p) => (
                                     <tr key={p.id} className="hover:bg-slate-800/30 transition-colors">
                                         <td className="px-6 py-4 font-mono text-slate-300">{p.id}</td>
                                         <td className="px-6 py-4">
@@ -73,10 +109,10 @@ export function CitizenProtocols() {
                                         </td>
                                     </tr>
                                 ))}
-                                {!loading && protocols.length === 0 && (
+                                {!loading && filteredProtocols.length === 0 && (
                                     <tr>
                                         <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                                            Nenhum protocolo encontrado.
+                                            Nenhum protocolo encontrado com os filtros atuais.
                                         </td>
                                     </tr>
                                 )}

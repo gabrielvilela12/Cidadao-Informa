@@ -41,8 +41,8 @@
 }
 
 /* Reduced Motion */
-.a11y-reduced-motion *, 
-.a11y-reduced-motion *::before, 
+.a11y-reduced-motion *,
+.a11y-reduced-motion *::before,
 .a11y-reduced-motion *::after {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
@@ -60,4 +60,25 @@
 /* Elements that opt-in with 'hide-in-simplified' will vanish */
 .a11y-simplified .hide-in-simplified {
   display: none !important;
+}
+
+/* 
+  LIGHT THEME IMPROVEMENTS (Filter-based)
+*/
+.theme-light {
+  /* Slightly adjust contrast and brightness to make the inverted dark mode look like a cleaner light mode */
+  filter: invert(1) hue-rotate(180deg) brightness(1.05) contrast(0.95) !important;
+}
+
+/* Re-invert media, images, and maps so they look normal in light mode */
+.theme-light img,
+.theme-light video,
+.theme-light svg,
+.theme-light .leaflet-container {
+  filter: invert(1) hue-rotate(180deg) !important;
+}
+
+/* Exceptions for icons that are SVG but should remain adapting to text color */
+.theme-light .lucide {
+  filter: none !important;
 }

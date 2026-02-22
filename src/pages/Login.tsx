@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { MapIcon, User, Shield, Key, FileText, Loader2, ArrowRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { api } from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function Login() {
-    const { setRole } = useApp();
+    const { setRole, loginSuccess } = useApp();
     const navigate = useNavigate();
 
     const [isRegistering, setIsRegistering] = useState(false);
@@ -40,16 +40,18 @@ export function Login() {
 
         const cleanCpf = sanitizeCPF(cpf);
 
-        if (isRegistering && cleanCpf.length !== 11) {
+        if (cleanCpf.length !== 11) {
             setErrorDesc('O CPF deve ter 11 dígitos.');
             setLoading(false);
             return;
         }
 
-        if (!email || !email.includes('@')) {
-            setErrorDesc('Por favor, informe um e-mail válido.');
-            setLoading(false);
-            return;
+        if (isRegistering) {
+            if (!email || !email.includes('@')) {
+                setErrorDesc('Por favor, informe um e-mail válido.');
+                setLoading(false);
+                return;
+            }
         }
 
         if (password.length < 6) {
@@ -66,41 +68,21 @@ export function Login() {
                     return;
                 }
 
-                const { error } = await supabase.auth.signUp({
-                    email: email,
-                    password: password,
-                    options: {
-                        data: {
-                            cpf: cleanCpf,
-                            full_name: name,
-                            role: 'citizen'
-                        }
-                    }
-                });
-
-                if (error) throw error;
-
-                // Supabase auto-logs-in if email confirmation is off, AppContext will trigger redirect.
+                const data = await api.register(name, email, cleanCpf, password);
+                loginSuccess(data.token, { id: data.userId, cpf: data.cpf, full_name: data.name, email: data.email, created_at: data.createdAt }, data.role as 'citizen');
+                navigate('/dashboard');
             } else {
-                const { error } = await supabase.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
-
-                if (error) throw error;
-                // AppContext handles the session
+                const data = await api.login(cleanCpf, password);
+                loginSuccess(data.token, { id: data.userId, cpf: data.cpf, full_name: data.name, email: data.email, created_at: data.createdAt }, data.role as 'citizen' | 'admin');
+                if (data.role === 'admin') {
+                    navigate('/admin');
+                } else {
+                    navigate('/dashboard');
+                }
             }
         } catch (err: any) {
             console.error(err);
-            if (err.message?.includes('Invalid login credentials')) {
-                setErrorDesc('Email ou senha inválidos.');
-            } else if (err.message?.includes('User already registered') || err.status === 422) {
-                setErrorDesc('Já existe uma conta com este E-mail.');
-            } else if (err.message?.includes('Email not confirmed')) {
-                setErrorDesc('E-mail não confirmado. Verifique a caixa de entrada ou desative a confirmação no painel do Supabase.');
-            } else {
-                setErrorDesc('Erro na autenticação. Tente novamente.');
-            }
+            setErrorDesc(err.message || 'Erro na autenticação. Tente novamente.');
         } finally {
             setLoading(false);
         }
@@ -171,18 +153,18 @@ export function Login() {
                                 </div>
 
                                 <div className="flex flex-col gap-1.5">
-                                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider pl-1">CPF</label>
+                                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider pl-1">E-mail</label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                                             <User size={18} className="text-slate-500" />
                                         </div>
                                         <input
-                                            type="text"
+                                            type="email"
                                             required
-                                            value={cpf}
-                                            onChange={(e) => setCpf(formatCPF(e.target.value))}
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
                                             className="w-full bg-[#1c2632] border border-slate-700 text-white rounded-xl py-3 pl-11 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
-                                            placeholder="000.000.000-00"
+                                            placeholder="seu@email.com"
                                         />
                                     </div>
                                 </div>
@@ -190,18 +172,18 @@ export function Login() {
                         )}
 
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider pl-1">E-mail</label>
+                            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider pl-1">CPF</label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                                     <User size={18} className="text-slate-500" />
                                 </div>
                                 <input
-                                    type="email"
+                                    type="text"
                                     required
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    value={cpf}
+                                    onChange={(e) => setCpf(formatCPF(e.target.value))}
                                     className="w-full bg-[#1c2632] border border-slate-700 text-white rounded-xl py-3 pl-11 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
-                                    placeholder="seu@email.com"
+                                    placeholder="000.000.000-00"
                                 />
                             </div>
                         </div>
