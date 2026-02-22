@@ -26,17 +26,26 @@ public class ProtocolRepository : IProtocolRepository
 
     public async Task<IEnumerable<Protocol>> GetAllAsync()
     {
-        return await _context.Protocols.ToListAsync();
+        return await _context.Protocols
+            .Include(p => p.User)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync();
     }
 
     public async Task<Protocol?> GetByIdAsync(string id)
     {
-        return await _context.Protocols.FindAsync(id);
+        return await _context.Protocols
+            .Include(p => p.User)
+            .FirstOrDefaultAsync(p => p.Id == id);
     }
 
     public async Task<IEnumerable<Protocol>> GetByUserIdAsync(string userId)
     {
-        return await _context.Protocols.Where(p => p.UserId == userId).ToListAsync();
+        return await _context.Protocols
+            .Include(p => p.User)
+            .Where(p => p.UserId == userId)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync();
     }
 
     public async Task UpdateAsync(Protocol protocol)

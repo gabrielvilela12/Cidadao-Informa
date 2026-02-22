@@ -153,7 +153,7 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      <div className="rounded-xl bg-[#1a242f] border border-[#283039] overflow-hidden mb-6">
+      <div className="rounded-xl bg-[#1a242f] border border-[#283039] mb-6">
         <div className="p-6 border-b border-[#283039] flex justify-between items-center">
           <h3 className="text-white text-lg font-bold">Solicitações Recentes</h3>
           <Link to="/admin/solicitacoes" className="text-blue-600 text-sm font-semibold hover:text-blue-500 transition-colors">Ver todas</Link>
@@ -178,8 +178,8 @@ export function AdminDashboard() {
                   </td>
                 </tr>
               )}
-              {!loading && protocols.slice(0, 5).map((p) => (
-                <tr key={p.id} className="hover:bg-[#283039]/50 transition-colors">
+              {!loading && protocols.slice(0, 5).map((p, index) => (
+                <tr key={`${p.id}-${index}`} className="hover:bg-[#283039]/50 transition-colors border-b border-[#283039]">
                   <td className="py-4 px-6 text-sm text-[#9dabb9] font-mono">{p.id}</td>
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-3">
