@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "fOk9VX3dBb8=",
+  "dgSpecHash": "5TAs7fvIfyc=",
   "success": true,
-  "projectFilePath": "C:\\Users\\Gabriel\\Downloads\\Projeto-Fiap-main\\backend\\Zeladoria.API\\Zeladoria.API.csproj",
+  "projectFilePath": "C:\\Users\\Gabriel\\source\\repos\\1 - Projetos 2026\\Sistema Bancário Simples\\Sistema Bancário Simples\\Projeto-Fiap-main\\backend\\Zeladoria.API\\Zeladoria.API.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Gabriel\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\Gabriel\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\10.0.3\\microsoft.aspnetcore.authentication.jwtbearer.10.0.3.nupkg.sha512",

@@ -14,11 +14,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Gabriel\\Downloads\\Projeto-Fiap-main\\backend\\Zeladoria.Domain\\Zeladoria.Domain.csproj",
+      "projectUniqueName": "C:\\Users\\Gabriel\\source\\repos\\1 - Projetos 2026\\Sistema Bancário Simples\\Sistema Bancário Simples\\Projeto-Fiap-main\\backend\\Zeladoria.Domain\\Zeladoria.Domain.csproj",
       "projectName": "Zeladoria.Domain",
-      "projectPath": "C:\\Users\\Gabriel\\Downloads\\Projeto-Fiap-main\\backend\\Zeladoria.Domain\\Zeladoria.Domain.csproj",
+      "projectPath": "C:\\Users\\Gabriel\\source\\repos\\1 - Projetos 2026\\Sistema Bancário Simples\\Sistema Bancário Simples\\Projeto-Fiap-main\\backend\\Zeladoria.Domain\\Zeladoria.Domain.csproj",
       "packagesPath": "C:\\Users\\Gabriel\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Gabriel\\Downloads\\Projeto-Fiap-main\\backend\\Zeladoria.Domain\\obj\\",
+      "outputPath": "C:\\Users\\Gabriel\\source\\repos\\1 - Projetos 2026\\Sistema Bancário Simples\\Sistema Bancário Simples\\Projeto-Fiap-main\\backend\\Zeladoria.Domain\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

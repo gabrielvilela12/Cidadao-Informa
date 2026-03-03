@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "Izi78nOuN5Q=",
+  "dgSpecHash": "iNHesQ3c/bM=",
   "success": true,
-  "projectFilePath": "C:\\Users\\Gabriel\\Downloads\\Projeto-Fiap-main\\backend\\Zeladoria.Infrastructure\\Zeladoria.Infrastructure.csproj",
+  "projectFilePath": "C:\\Users\\Gabriel\\source\\repos\\1 - Projetos 2026\\Sistema Bancário Simples\\Sistema Bancário Simples\\Projeto-Fiap-main\\backend\\Zeladoria.Infrastructure\\Zeladoria.Infrastructure.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Gabriel\\.nuget\\packages\\microsoft.entityframeworkcore\\10.0.3\\microsoft.entityframeworkcore.10.0.3.nupkg.sha512",
     "C:\\Users\\Gabriel\\.nuget\\packages\\microsoft.entityframeworkcore.abstractions\\10.0.3\\microsoft.entityframeworkcore.abstractions.10.0.3.nupkg.sha512",
