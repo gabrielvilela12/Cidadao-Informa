@@ -1,4 +1,14 @@
-export type Status = 'Aberto' | 'Em Análise' | 'Concluído' | 'Atrasado';
+export type Status =
+  // Valores do banco (português)
+  | 'Aberto'
+  | 'Em Análise'
+  | 'Concluído'
+  | 'Atrasado'
+  // Valores legados usados nas páginas (inglês)
+  | 'Open'
+  | 'InProgress'
+  | 'Resolved'
+  | 'Closed';
 
 export interface Protocol {
   id: string;
