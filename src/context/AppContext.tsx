@@ -54,12 +54,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const validateSession = async () => {
       const token = localStorage.getItem('zeladoria_token');
-      const savedUser = localStorage.getItem('zeladoria_user');
-      const savedRole = localStorage.getItem('zeladoria_role');
+      const savedRole = localStorage.getItem('zeladoria_role') as UserRole | null;
 
-      if (token && savedUser) {
+      if (token) {
         try {
-          // Bate no backend para confirmar se o usuário e o token ainda são válidos
+          // Valida a sessão via Supabase (funciona em produção e local)
           const { api } = await import('../services/api');
           const userData = await api.getMe();
 
@@ -73,7 +72,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setRoleState((userData.role as UserRole) || savedRole || 'citizen');
           setIsAuthenticated(true);
         } catch (error) {
-          // Se o backend recusou o token (ex: user deletado apagado), força o logout
+          // Sessão inválida: limpa o cache local
           console.warn("Sessão inválida, limpando cache...", error);
           localStorage.removeItem('zeladoria_token');
           localStorage.removeItem('zeladoria_user');
