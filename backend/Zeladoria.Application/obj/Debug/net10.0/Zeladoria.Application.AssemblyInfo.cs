@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Zeladoria.Application")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+840fba44e3f53c6e5679c8b3d72dc4eaa3c3f35e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+064b808f7206b4a4531e0a1c4d18992701eaf08e")]
 [assembly: System.Reflection.AssemblyProductAttribute("Zeladoria.Application")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Zeladoria.Application")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

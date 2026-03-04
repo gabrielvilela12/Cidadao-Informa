@@ -1,141 +1,271 @@
-const API_URL = 'http://localhost:5206/api';
+import bcrypt from 'bcryptjs';
+import { supabase } from './supabase';
+
+// ─── Tipos internos ────────────────────────────────────────────────────────────
+
+interface DbUser {
+    id: string;
+    full_name: string;
+    email: string;
+    cpf: string;
+    role: string;
+    password_hash: string;
+    created_at: string;
+}
+
+interface DbProtocol {
+    id: string;
+    category: string;
+    description: string;
+    address: string;
+    status: string;
+    user_id: string;
+    requester: string;
+    created_at: string;
+}
+
+// ─── Utilitários de sessão ─────────────────────────────────────────────────────
 
 /**
- * Módulo de comunicação com a API backend da Zeladoria Pública.
- * Abstrai as requisições HTTP (fetch) e o tratamento padrão de erros (ProblemDetails/ASP.NET).
+ * Gera um token de sessão simples (Base64) contendo os dados do usuário.
+ * Não é um JWT assinado — serve apenas para persistir a sessão no localStorage.
+ */
+function createSessionToken(user: DbUser): string {
+    const payload = {
+        userId: user.id,
+        cpf: user.cpf,
+        role: user.role,
+        name: user.full_name,
+        email: user.email,
+        createdAt: user.created_at,
+        iat: Date.now()
+    };
+    return btoa(JSON.stringify(payload));
+}
+
+/**
+ * Decodifica o token de sessão armazenado no localStorage.
+ */
+function decodeSessionToken(token: string): any {
+    try {
+        return JSON.parse(atob(token));
+    } catch {
+        return null;
+    }
+}
+
+// ─── Módulo de API ────────────────────────────────────────────────────────────
+
+/**
+ * Módulo de comunicação com o Supabase (banco de dados PostgreSQL).
+ * Substitui as chamadas ao backend .NET local para funcionar em produção.
  */
 export const api = {
+
     // AUTHENTICATION
 
     /**
-     * Autentica o usuário na plataforma usando CPF e Senha.
-     * 
-     * @param cpf O CPF do usuário (apenas números ou formatado, desde que o backend suporte).
-     * @param password Senha de acesso.
-     * @returns A resposta da API contendo o token JWT e os dados do usuário.
-     * @throws Erro tratado extraído do ProblemDetails do backend.
+     * Autentica o usuário usando CPF e Senha (verificação bcrypt).
      */
     async login(cpf: string, password: string) {
-        const res = await fetch(`${API_URL}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cpf, password })
-        });
-        if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
+        const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('cpf', cpf)
+            .single();
 
-            if (err.errors) {
-                const firstErrorKey = Object.keys(err.errors)[0];
-                const firstErrorMsg = err.errors[firstErrorKey][0];
-                throw new Error(firstErrorMsg);
-            }
-
-            const errorMessage = err.error || err.Error || err.message || err.detail || 'Erro ao fazer login';
-            throw new Error(errorMessage);
+        if (error || !data) {
+            throw new Error('CPF ou senha inválidos.');
         }
-        return res.json();
+
+        const user = data as DbUser;
+        const isValid = await bcrypt.compare(password, user.password_hash);
+
+        if (!isValid) {
+            throw new Error('CPF ou senha inválidos.');
+        }
+
+        const token = createSessionToken(user);
+
+        return {
+            token,
+            userId: user.id,
+            name: user.full_name,
+            email: user.email,
+            cpf: user.cpf,
+            role: user.role,
+            createdAt: user.created_at
+        };
     },
 
     /**
-     * Registra um novo cidadão no sistema.
-     * 
-     * @param name Nome completo.
-     * @param email Endereço de e-mail.
-     * @param cpf CPF válido do cidadão.
-     * @param password Senha segura.
-     * @returns A resposta da API indicando sucesso ou erro na criação do usuário.
+     * Registra um novo cidadão no sistema com senha hasheada via bcrypt.
      */
     async register(name: string, email: string, cpf: string, password: string) {
-        const res = await fetch(`${API_URL}/auth/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, cpf, password })
-        });
-        if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
+        // Verificar duplicidade de CPF
+        const { data: existingCpf } = await supabase
+            .from('users')
+            .select('id')
+            .eq('cpf', cpf)
+            .maybeSingle();
 
-            // Check for ASP.NET problem details (validation errors)
-            if (err.errors) {
-                const firstErrorKey = Object.keys(err.errors)[0];
-                const firstErrorMsg = err.errors[firstErrorKey][0];
-                throw new Error(firstErrorMsg);
-            }
-
-            const errorMessage = err.error || err.Error || err.message || err.detail || 'Erro ao cadastrar usuário';
-            throw new Error(errorMessage);
+        if (existingCpf) {
+            throw new Error('Já existe uma conta cadastrada com este CPF.');
         }
-        return res.json();
+
+        // Verificar duplicidade de e-mail
+        const normalizedEmail = email.trim().toLowerCase();
+        const { data: existingEmail } = await supabase
+            .from('users')
+            .select('id')
+            .eq('email', normalizedEmail)
+            .maybeSingle();
+
+        if (existingEmail) {
+            throw new Error('Já existe uma conta cadastrada com este E-mail.');
+        }
+
+        // Hash da senha com bcrypt (custo 10 é padrão seguro)
+        const passwordHash = await bcrypt.hash(password, 10);
+
+        const newUser = {
+            id: crypto.randomUUID(),
+            full_name: name,
+            email: normalizedEmail,
+            cpf,
+            role: 'citizen',
+            password_hash: passwordHash,
+            created_at: new Date().toISOString()
+        };
+
+        const { data, error } = await supabase
+            .from('users')
+            .insert(newUser)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Supabase insert error:', error);
+            throw new Error('Erro ao cadastrar usuário. Tente novamente.');
+        }
+
+        const user = data as DbUser;
+        const token = createSessionToken(user);
+
+        return {
+            token,
+            userId: user.id,
+            name: user.full_name,
+            email: user.email,
+            cpf: user.cpf,
+            role: user.role,
+            createdAt: user.created_at
+        };
     },
 
     /**
-     * Bate no endpoint /me para recuperar os dados reais do usuário baseado no Token.
-     * Serve para validar se o usuário ainda existe no banco após um reload da página.
-     * 
-     * @returns Dados atualizados do usuário.
-     * @throws Erro 401 caso o Token seja inválido ou usuário tenha sido removido.
+     * Recupera os dados do usuário autenticado via token de sessão no localStorage.
      */
     async getMe() {
-        const res = await fetch(`${API_URL}/auth/me`, this.getAuthHeader());
-        if (!res.ok) {
-            throw new Error('Sessão inválida ou expirada.');
+        const token = localStorage.getItem('zeladoria_token');
+        if (!token) throw new Error('Sessão inválida ou expirada.');
+
+        const payload = decodeSessionToken(token);
+        if (!payload || !payload.userId) throw new Error('Sessão inválida ou expirada.');
+
+        // Confirma que o usuário ainda existe no banco
+        const { data, error } = await supabase
+            .from('users')
+            .select('id, full_name, email, cpf, role, created_at')
+            .eq('id', payload.userId)
+            .single();
+
+        if (error || !data) {
+            throw new Error('Usuário não encontrado. Sessão encerrada.');
         }
-        return res.json();
+
+        const user = data as Omit<DbUser, 'password_hash'>;
+
+        return {
+            userId: user.id,
+            name: user.full_name,
+            email: user.email,
+            cpf: user.cpf,
+            role: user.role,
+            createdAt: user.created_at
+        };
     },
 
     // PROTOCOLS
 
     /**
-     * Recupera a lista de protocolos (solicitações de zeladoria).
-     * Pode ser filtrada opcionalmente pelo ID de um usuário específico (para o cidadão).
-     * Administradores geralmente não passam o ID para reaver a lista global.
-     * 
-     * @param userId (Opcional) O ID do usuário para o qual os protocolos serão filtrados.
-     * @returns Uma lista de protocolos mapeados para a estrutura esperada pelo frontend.
+     * Recupera a lista de protocolos, opcionalmente filtrada por usuário.
      */
     async getProtocols(userId?: string) {
-        const url = userId ? `${API_URL}/protocols?userId=${userId}` : `${API_URL}/protocols`;
-        const res = await fetch(url, this.getAuthHeader());
-        if (!res.ok) throw new Error('Erro ao buscar protocolos');
-        const data = await res.json();
+        let query = supabase
+            .from('protocols')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-        // Map backend properties to frontend expected format
-        return data.map((item: any) => ({
+        if (userId) {
+            query = query.eq('user_id', userId);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+            console.error('Supabase getProtocols error:', error);
+            throw new Error('Erro ao buscar protocolos');
+        }
+
+        return (data as DbProtocol[]).map((item) => ({
             ...item,
-            id: item.id || item.Id,
-            requester: item.userName || item.UserName || 'Usuário',
-            date: item.createdAt ? new Date(item.createdAt).toLocaleDateString('pt-BR') : 'Data não informada',
-            status: item.status || item.Status || 'Aberto',
-            category: item.category || item.Category || 'Outros',
-            description: item.description || item.Description,
-            address: item.address || item.Address
+            id: item.id,
+            service: item.category || 'Outros',
+            requester: item.requester || 'Usuário',
+            date: item.created_at
+                ? new Date(item.created_at).toLocaleDateString('pt-BR')
+                : 'Data não informada',
+            status: (item.status || 'Aberto') as 'Aberto' | 'Em Análise' | 'Concluído' | 'Atrasado',
+            category: item.category || 'Outros',
+            description: item.description,
+            address: item.address
         }));
     },
 
     /**
-     * Cria um novo protocolo/solicitação (ex: Buraco na rua, Lâmpada queimada).
-     * 
-     * @param data Objeto contendo os dados do protocolo (categoria, descrição, endereço, etc).
-     * @returns O objeto do protocolo criado na base de dados.
+     * Cria um novo protocolo/solicitação.
      */
     async createProtocol(data: any) {
-        const res = await fetch(`${API_URL}/protocols`, {
-            method: 'POST',
-            ...this.getAuthHeader('application/json'),
-            body: JSON.stringify(data)
-        });
-        if (!res.ok) throw new Error('Erro ao criar protocolo');
-        return res.json();
+        const token = localStorage.getItem('zeladoria_token');
+        const payload = token ? decodeSessionToken(token) : null;
+
+        const protocol = {
+            id: crypto.randomUUID(),
+            category: data.category,
+            description: data.description,
+            address: data.address,
+            status: data.status || 'Aberto',
+            user_id: data.userId || payload?.userId,
+            requester: data.requester || payload?.name || 'Usuário',
+            created_at: new Date().toISOString()
+        };
+
+        const { data: result, error } = await supabase
+            .from('protocols')
+            .insert(protocol)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Supabase createProtocol error:', error);
+            throw new Error('Erro ao criar protocolo');
+        }
+
+        return result;
     },
 
-    // UTILS
-
-    /**
-     * Função utilitária interna para compor os cabeçalhos de autenticação das requisições privadas.
-     * Recupera o token JWT ativo armazenado no LocalStorage.
-     * 
-     * @param contentType (Opcional) Define o cabeçalho 'Content-Type'. Útil para POST/PUT com JSON.
-     * @returns O objeto de cabeçalho (Headers) formatado para uso na chamada `fetch`.
-     */
+    // UTILS (mantido para compatibilidade com código existente)
     getAuthHeader(contentType?: string) {
         const token = localStorage.getItem('zeladoria_token');
         const headers: HeadersInit = {
