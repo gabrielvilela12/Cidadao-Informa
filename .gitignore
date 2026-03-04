@@ -1,13 +1,41 @@
+# =============================================================
+# .gitignore — Projeto HackGov PCD
+# =============================================================
+
+# ── Dependências ──────────────────────────────────────────────
 node_modules/
+
+# ── Build do frontend ─────────────────────────────────────────
 build/
 dist/
+dist-ssr/
 coverage/
-.DS_Store
-*.log
-.env*
-!.env.example
 
-# SQLite Database
+# ── Build do backend .NET (gerado automaticamente, não commitar)
+**/bin/
+**/obj/
+
+# ── Variáveis de ambiente (NÃO commitar credenciais) ─────────
+.env*
+
+# ── Banco de dados SQLite ─────────────────────────────────────
 *.db
 *.db-shm
 *.db-wal
+
+# ── Logs ──────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ── IDEs ──────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.suo
+*.user
+
+# ── OS ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── TypeScript ────────────────────────────────────────────────
+*.tsbuildinfo
