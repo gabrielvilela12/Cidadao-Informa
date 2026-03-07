@@ -1,4 +1,4 @@
-import { MapPin, Search as SearchIcon, List as ListIcon, Bell as BellIcon, User as UserIcon, ChevronDown, Map as MapIconLucide, Info, Share2, X, Navigation, Plus, Minus, Layers as LayersIcon, AlertTriangle as WarningIcon, HardHat as ConstructionIcon, Check as CheckIcon, Bus as BusIcon, Loader2, Menu } from 'lucide-react';
+import { MapPin, Search as SearchIcon, ChevronDown, SlidersHorizontal, Info, Share2, X, Navigation, Plus, Minus, Layers as LayersIcon, Loader2, Menu } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
@@ -56,6 +56,7 @@ function CustomZoomControl({ map }: { map: L.Map | null }) {
   );
 }
 
+
 export function CitizenMap() {
   const [selectedIncident, setSelectedIncident] = useState<any>(null);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
@@ -68,9 +69,9 @@ export function CitizenMap() {
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  const { protocols, loading } = useProtocols('all');
+  const { protocols, loading } = useProtocols('citizen');
   const [activeCategories, setActiveCategories] = useState<string[]>(['Física', 'Visual', 'Auditiva', 'Outros']);
-  const [activeStatuses, setactiveStatuses] = useState<string[]>(['Open', 'InProgress', 'Resolved', 'Closed', 'Atrasado']);
+  const [activeStatuses, setactiveStatuses] = useState<string[]>(['Aberto', 'Em Análise', 'Concluído', 'Atrasado']);
 
   const filteredProtocols = protocols.filter(p => activeCategories.includes(p.category || 'Outros') && activeStatuses.includes(p.status));
 
@@ -158,104 +159,129 @@ export function CitizenMap() {
         </MapContainer>
       </div>
 
-      {/* Map Controls */}
+      {/* Map Controls - Right side (zoom only) */}
       <div className="absolute top-20 md:top-4 right-4 flex flex-col gap-2 z-10">
         <button className="bg-[#1c2127]/90 backdrop-blur-sm border border-slate-700 text-white p-2 rounded-lg shadow-lg hover:bg-[#283039] transition-colors" title="Minha localização">
           <Navigation size={20} />
-        </button>
-        <button onClick={() => setShowFilters(!showFilters)} className={`bg-[#1c2127]/90 backdrop-blur-sm border ${showFilters ? 'border-blue-500 text-blue-500' : 'border-slate-700 text-white'} p-2 rounded-lg shadow-lg hover:bg-[#283039] transition-colors`} title="Camadas">
-          <LayersIcon size={20} />
         </button>
         <div className="mt-2 hidden md:block" />
         <div className="hidden md:block">
           <CustomZoomControl map={mapInstance} />
         </div>
-
-        {/* Floating Filters Panel */}
-        <AnimatePresence>
-          {showFilters && (
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="absolute top-24 right-0 w-64 bg-[#111418]/95 backdrop-blur-md border border-slate-700 shadow-2xl rounded-xl p-4 z-20 flex flex-col gap-3"
-            >
-              <h3 className="text-sm font-bold text-white border-b border-slate-700 pb-2 mb-2">Filtros de Mapa</h3>
-              <FilterGroup
-                title="Categoria"
-                items={[
-                  { label: 'Física', value: 'Física' },
-                  { label: 'Visual', value: 'Visual' },
-                  { label: 'Auditiva', value: 'Auditiva' },
-                  { label: 'Outros', value: 'Outros' }
-                ]}
-                selectedItems={activeCategories}
-                onChange={(val) => {
-                  setActiveCategories(prev => prev.includes(val) ? prev.filter(p => p !== val) : [...prev, val]);
-                }}
-              />
-              <FilterGroup
-                title="Status"
-                items={[
-                  { label: 'Aberto', value: 'Open' },
-                  { label: 'Em Análise', value: 'InProgress' },
-                  { label: 'Resolvido', value: 'Resolved' }
-                ]}
-                selectedItems={activeStatuses}
-                onChange={(val) => {
-                  setactiveStatuses(prev => prev.includes(val) ? prev.filter(p => p !== val) : [...prev, val]);
-                }}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
-      {/* Mobile Menu Toggle & Floating Search Bar */}
-      <div className="absolute top-4 left-4 right-16 md:right-auto z-10 md:w-80 flex flex-col gap-4 pointer-events-none">
+      {/* Top bar: Mobile menu + Filtros button + Search */}
+      <div className="absolute top-4 left-4 right-16 md:right-auto z-10 flex flex-col gap-3 pointer-events-none">
 
-        {/* Mobile menu button */}
-        <div className="pointer-events-auto md:hidden">
+        {/* Row 1: Mobile menu + Filtros + Search */}
+        <div className="flex items-center gap-2 pointer-events-auto">
+
+          {/* Mobile menu button */}
           <button
             onClick={toggleMobileMenu}
-            className="flex items-center justify-center size-12 rounded-xl bg-[#1c2127]/90 backdrop-blur-md border border-slate-700 text-slate-300 hover:text-white shadow-lg transition-colors"
+            className="md:hidden flex items-center justify-center size-10 rounded-xl bg-[#1c2127]/90 backdrop-blur-md border border-slate-700 text-slate-300 hover:text-white shadow-lg transition-colors shrink-0"
           >
-            <Menu size={24} />
+            <Menu size={20} />
           </button>
-        </div>
 
-        <div className="bg-[#1c2127]/90 backdrop-blur-sm border border-slate-700 rounded-lg shadow-lg p-3 flex items-center gap-3 relative pointer-events-auto">
-          <SearchIcon className="text-slate-400" size={20} />
-          <input
-            className="bg-transparent border-none focus:ring-0 text-white placeholder-slate-400 text-sm w-full p-0"
-            placeholder="Buscar no mapa (ex: Águas Claras)"
-            type="text"
-            onChange={(e) => handleAddressSearch(e.target.value)}
-          />
-          {isSearchingAddress && (
-            <Loader2 size={16} className="text-blue-500 animate-spin shrink-0" />
-          )}
+          {/* Filtros button */}
+          <div className="relative">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-3 h-10 rounded-xl border text-sm font-semibold shadow-lg transition-all backdrop-blur-sm ${showFilters
+                ? 'bg-blue-600 border-blue-500 text-white'
+                : 'bg-[#1c2127]/90 border-slate-700 text-slate-200 hover:bg-[#283039]'
+                }`}
+            >
+              <SlidersHorizontal size={15} />
+              Filtros
+              {/* Badge: number of active filters */}
+              {(() => {
+                const total = activeCategories.length + activeStatuses.length;
+                const max = 4 + 4;
+                return total < max ? (
+                  <span className="flex items-center justify-center size-5 rounded-full bg-blue-500 text-white text-[10px] font-bold">
+                    {max - total}
+                  </span>
+                ) : null;
+              })()}
+            </button>
 
-          {/* Suggestions Dropdown */}
-          {addressSuggestions.length > 0 && (
-            <div className="absolute top-full mt-2 left-0 right-0 bg-[#1c2632] border border-slate-700 rounded-lg shadow-xl overflow-hidden divide-y divide-slate-800/50">
-              {addressSuggestions.map((sug, i) => (
-                <button
-                  key={i}
-                  onClick={() => selectAddress(sug)}
-                  className="w-full text-left px-4 py-3 hover:bg-[#283039] transition-colors text-sm text-slate-200 flex items-start gap-3"
+            {/* Filters Dropdown */}
+            <AnimatePresence>
+              {showFilters && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-12 left-0 w-64 bg-[#111418]/97 backdrop-blur-md border border-slate-700 shadow-2xl rounded-xl p-4 z-20 flex flex-col gap-3"
                 >
-                  <SearchIcon size={16} className="text-slate-500 mt-0.5 shrink-0" />
-                  <span className="line-clamp-2">{sug.display_name}</span>
-                </button>
-              ))}
-            </div>
-          )}
+                  <div className="flex items-center justify-between border-b border-slate-700 pb-2 mb-1">
+                    <h3 className="text-sm font-bold text-white">Filtros do Mapa</h3>
+                    <button onClick={() => setShowFilters(false)} className="text-slate-500 hover:text-white transition-colors">
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <FilterGroup
+                    title="Categoria"
+                    items={[
+                      { label: 'Física', value: 'Física', color: 'bg-orange-500' },
+                      { label: 'Visual', value: 'Visual', color: 'bg-blue-500' },
+                      { label: 'Auditiva', value: 'Auditiva', color: 'bg-purple-500' },
+                      { label: 'Outros', value: 'Outros', color: 'bg-slate-400' }
+                    ]}
+                    selectedItems={activeCategories}
+                    onChange={(val) => setActiveCategories(prev => prev.includes(val) ? prev.filter(p => p !== val) : [...prev, val])}
+                  />
+                  <FilterGroup
+                    title="Status"
+                    items={[
+                      { label: 'Aberto', value: 'Aberto', color: 'bg-blue-500' },
+                      { label: 'Em Análise', value: 'Em Análise', color: 'bg-yellow-500' },
+                      { label: 'Concluído', value: 'Concluído', color: 'bg-green-500' },
+                      { label: 'Atrasado', value: 'Atrasado', color: 'bg-red-500' }
+                    ]}
+                    selectedItems={activeStatuses}
+                    onChange={(val) => setactiveStatuses(prev => prev.includes(val) ? prev.filter(p => p !== val) : [...prev, val])}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Search Bar */}
+          <div className="flex-1 md:w-72 bg-[#1c2127]/90 backdrop-blur-sm border border-slate-700 rounded-xl shadow-lg px-3 h-10 flex items-center gap-2 relative">
+            <SearchIcon className="text-slate-400 shrink-0" size={16} />
+            <input
+              className="bg-transparent border-none focus:ring-0 text-white placeholder-slate-400 text-sm w-full p-0"
+              placeholder="Buscar no mapa (ex: Águas Claras)"
+              type="text"
+              onChange={(e) => handleAddressSearch(e.target.value)}
+            />
+            {isSearchingAddress && <Loader2 size={14} className="text-blue-500 animate-spin shrink-0" />}
+
+            {/* Suggestions Dropdown */}
+            {addressSuggestions.length > 0 && (
+              <div className="absolute top-full mt-2 left-0 right-0 bg-[#1c2632] border border-slate-700 rounded-lg shadow-xl overflow-hidden divide-y divide-slate-800/50 z-30">
+                {addressSuggestions.map((sug, i) => (
+                  <button
+                    key={i}
+                    onClick={() => selectAddress(sug)}
+                    className="w-full text-left px-4 py-3 hover:bg-[#283039] transition-colors text-sm text-slate-200 flex items-start gap-3"
+                  >
+                    <SearchIcon size={16} className="text-slate-500 mt-0.5 shrink-0" />
+                    <span className="line-clamp-2">{sug.display_name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Navigation Controls */}
+        {/* Row 2: Navigation Controls */}
         {filteredProtocols.length > 0 && (
-          <div className="bg-[#1c2127]/90 backdrop-blur-sm border border-slate-700 rounded-lg p-2 shadow-lg flex items-center justify-between w-48 pointer-events-auto">
+          <div className="bg-[#1c2127]/90 backdrop-blur-sm border border-slate-700 rounded-lg p-2 shadow-lg flex items-center justify-between w-44 pointer-events-auto">
             <button
               onClick={() => handleNavigate('prev')}
               className="p-1.5 hover:bg-slate-800 rounded text-slate-300 hover:text-white transition-colors"
@@ -292,12 +318,12 @@ export function CitizenMap() {
             >
               <div className="absolute inset-0 bg-gradient-to-t from-[#111418] to-transparent"></div>
               <div className="absolute top-2 right-2">
-                <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${selectedIncident.status === 'Open' ? 'bg-blue-500/20 text-blue-400 ring-blue-500/40' :
-                  selectedIncident.status === 'InProgress' ? 'bg-yellow-500/20 text-yellow-500 ring-yellow-500/40' :
-                    selectedIncident.status === 'Resolved' ? 'bg-green-500/20 text-green-400 ring-green-500/40' :
+                <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${selectedIncident.status === 'Aberto' || selectedIncident.status === 'Open' ? 'bg-blue-500/20 text-blue-400 ring-blue-500/40' :
+                  selectedIncident.status === 'Em Análise' || selectedIncident.status === 'InProgress' ? 'bg-yellow-500/20 text-yellow-500 ring-yellow-500/40' :
+                    selectedIncident.status === 'Concluído' || selectedIncident.status === 'Resolved' ? 'bg-green-500/20 text-green-400 ring-green-500/40' :
                       'bg-red-500/20 text-red-400 ring-red-500/40'
                   }`}>
-                  {selectedIncident.status === 'Open' ? 'Aberto' : selectedIncident.status === 'InProgress' ? 'Em Análise' : selectedIncident.status === 'Resolved' ? 'Concluído' : 'Fechado/Atraso'}
+                  {selectedIncident.status === 'Aberto' || selectedIncident.status === 'Open' ? 'Aberto' : selectedIncident.status === 'Em Análise' || selectedIncident.status === 'InProgress' ? 'Em Análise' : selectedIncident.status === 'Concluído' || selectedIncident.status === 'Resolved' ? 'Concluído' : selectedIncident.status}
                 </span>
               </div>
             </div>
@@ -369,25 +395,50 @@ function LegendItem({ color, label }: { color: string; label: string }) {
   );
 }
 
-function FilterGroup({ title, items, selectedItems, onChange }: { title: string; items: { label: string, value: string }[]; selectedItems: string[]; onChange: (val: string) => void }) {
+function FilterGroup({ title, items, selectedItems, onChange }: {
+  title: string;
+  items: { label: string; value: string; color?: string }[];
+  selectedItems: string[];
+  onChange: (val: string) => void;
+}) {
   return (
     <details className="group" open>
-      <summary className="flex cursor-pointer items-center justify-between text-sm font-medium text-slate-200 hover:text-blue-600 transition-colors py-1">
+      <summary className="flex cursor-pointer items-center justify-between text-sm font-semibold text-slate-200 hover:text-white transition-colors py-1">
         {title}
-        <ChevronDown size={18} className="transition group-open:rotate-180" />
+        <ChevronDown size={16} className="text-slate-500 transition group-open:rotate-180" />
       </summary>
-      <div className="pt-2 pl-2 space-y-2">
-        {items.map((item) => (
-          <label key={item.value} className="flex items-center space-x-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={selectedItems.includes(item.value)}
-              onChange={() => onChange(item.value)}
-              className="form-checkbox rounded border-slate-600 bg-transparent text-blue-600 focus:ring-blue-600 focus:ring-offset-0 h-4 w-4"
-            />
-            <span className="text-sm text-slate-400">{item.label}</span>
-          </label>
-        ))}
+      <div className="pt-2 pl-1 space-y-1.5">
+        {items.map((item) => {
+          const isChecked = selectedItems.includes(item.value);
+          return (
+            <label key={item.value} className="flex items-center gap-2.5 cursor-pointer group/item">
+              {/* Custom checkbox */}
+              <span className={`flex items-center justify-center size-4 rounded border transition-all shrink-0 ${isChecked
+                ? `${item.color ? item.color.replace('bg-', 'bg-').replace('/20', '') : 'bg-blue-600'} border-transparent`
+                : 'bg-transparent border-slate-600 group-hover/item:border-slate-400'
+                }`}>
+                {isChecked && (
+                  <svg viewBox="0 0 10 8" className="w-2.5 h-2.5 fill-none stroke-white stroke-[2]">
+                    <path d="M1 4l2.5 2.5L9 1" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </span>
+              <input
+                type="checkbox"
+                checked={isChecked}
+                onChange={() => onChange(item.value)}
+                className="sr-only"
+              />
+              {/* Color dot */}
+              {item.color && (
+                <span className={`size-2.5 rounded-full shrink-0 ${item.color} ${!isChecked ? 'opacity-40' : ''}`} />
+              )}
+              <span className={`text-sm transition-colors ${isChecked ? 'text-white font-medium' : 'text-slate-400 group-hover/item:text-slate-300'}`}>
+                {item.label}
+              </span>
+            </label>
+          );
+        })}
       </div>
     </details>
   );

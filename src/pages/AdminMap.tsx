@@ -147,7 +147,7 @@ export function AdminMap() {
             <div className="hidden sm:flex size-8 items-center justify-center bg-blue-600 rounded-lg text-white">
               <MapPin size={20} />
             </div>
-            <h2 className="text-base sm:text-lg font-bold leading-tight tracking-tight">HackGov PCD</h2>
+            <h2 className="text-base sm:text-lg font-bold leading-tight tracking-tight">Zeladoria Pública</h2>
           </div>
           <div className="hidden lg:flex flex-col min-w-40 h-10 w-96">
             <div className="flex w-full flex-1 items-stretch rounded-lg h-full bg-[#283039]">

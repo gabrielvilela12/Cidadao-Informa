@@ -49,7 +49,7 @@ export function Sidebar() {
                 <MapIcon size={24} />
               </div>
               <div>
-                <h1 className="text-lg font-bold leading-tight text-white">HackGov PCD</h1>
+                <h1 className="text-lg font-bold leading-tight text-white">Zeladoria Pública</h1>
                 <p className="text-[#9dabb9] text-sm">{role === 'citizen' ? 'Portal do Cidadão' : 'Portal do Servidor'}</p>
               </div>
             </div>

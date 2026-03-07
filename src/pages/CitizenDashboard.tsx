@@ -128,7 +128,7 @@ export function CitizenDashboard() {
         </div>
 
         <footer className="mt-8 border-t border-slate-800 pt-6 pb-2 text-center text-[10px] sm:text-xs text-slate-500">
-          <p>© 2023 HackGov PCD. Todos os direitos reservados. Portal de Acessibilidade Governamental.</p>
+          <p>© 2023 Zeladoria Pública. Todos os direitos reservados. Portal de Acessibilidade Governamental.</p>
           <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mt-2">
             <a className="hover:text-blue-500 transition-colors" href="#">Termos de Uso</a>
             <a className="hover:text-blue-500 transition-colors" href="#">Política de Privacidade</a>
