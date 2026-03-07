@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, Type, Contrast, Check, Menu } from 'lucide-react';
+import { Bell, Type, Contrast, Check, Menu, Keyboard } from 'lucide-react';
 import { useA11y } from '../context/A11yContext';
 import { useApp } from '../context/AppContext';
+import { useNavigate } from 'react-router-dom';
+import { CITIZEN_SHORTCUTS, ADMIN_SHORTCUTS, SHARED_SHORTCUTS } from '../hooks/useKeyboardShortcuts';
 
 interface HeaderProps {
   title: string;
@@ -11,6 +13,7 @@ interface HeaderProps {
 export function Header({ title, subtitle }: HeaderProps) {
   const { fontSize, setFontSize, theme, setTheme } = useA11y();
   const { role, user, toggleMobileMenu } = useApp();
+  const navigate = useNavigate();
 
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -18,6 +21,11 @@ export function Header({ title, subtitle }: HeaderProps) {
 
   const [showFontSize, setShowFontSize] = useState(false);
   const fontSizeRef = useRef<HTMLDivElement>(null);
+
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const shortcutsRef = useRef<HTMLDivElement>(null);
+
+  const mainShortcuts = role === 'citizen' ? CITIZEN_SHORTCUTS : ADMIN_SHORTCUTS;
 
   const handleTheme = () => {
     if (theme === 'dark') setTheme('light');
@@ -37,6 +45,9 @@ export function Header({ title, subtitle }: HeaderProps) {
       }
       if (fontSizeRef.current && !fontSizeRef.current.contains(event.target as Node)) {
         setShowFontSize(false);
+      }
+      if (shortcutsRef.current && !shortcutsRef.current.contains(event.target as Node)) {
+        setShowShortcuts(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -65,6 +76,65 @@ export function Header({ title, subtitle }: HeaderProps) {
         </div>
       </div>
       <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+        {/* Keyboard Shortcuts Button */}
+        <div className="relative" ref={shortcutsRef}>
+          <button
+            onClick={() => setShowShortcuts(s => !s)}
+            className="flex items-center justify-center size-10 rounded-full bg-[#1b2631] text-slate-400 hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
+            title="Atalhos de Teclado"
+          >
+            <Keyboard size={20} />
+          </button>
+
+          {showShortcuts && (
+            <div className="absolute right-0 mt-2 w-72 bg-[#1c2632] border border-slate-700 rounded-xl shadow-xl overflow-hidden z-50">
+              <div className="px-4 py-3 border-b border-slate-700 bg-[#18212b] flex items-center gap-2">
+                <Keyboard size={14} className="text-blue-400" />
+                <h3 className="font-semibold text-white text-sm">Atalhos de Teclado</h3>
+              </div>
+              <div className="p-3 space-y-1">
+                <p className="text-[10px] uppercase tracking-widest text-blue-400 font-semibold px-2 mb-1">Navegação</p>
+                {mainShortcuts.map(s => (
+                  <button
+                    key={s.key}
+                    onClick={() => { navigate(s.path); setShowShortcuts(false); }}
+                    className="flex items-center justify-between w-full px-2 py-1.5 rounded-lg hover:bg-slate-700/50 transition-colors group"
+                  >
+                    <span className="text-slate-300 text-xs group-hover:text-white">{s.description}</span>
+                    <span className="flex items-center gap-0.5">
+                      {s.key.split('+').map((part, i) => (
+                        <span key={i} className="flex items-center gap-0.5">
+                          {i > 0 && <span className="text-slate-500 text-[10px]">+</span>}
+                          <kbd className="px-1.5 py-0.5 rounded bg-[#0d1822] border border-slate-600 text-[11px] font-mono text-slate-200">{part}</kbd>
+                        </span>
+                      ))}
+                    </span>
+                  </button>
+                ))}
+                <div className="border-t border-slate-700/50 my-2" />
+                <p className="text-[10px] uppercase tracking-widest text-blue-400 font-semibold px-2 mb-1">Gerais</p>
+                {SHARED_SHORTCUTS.map(s => (
+                  <button
+                    key={s.key}
+                    onClick={() => { navigate(s.path); setShowShortcuts(false); }}
+                    className="flex items-center justify-between w-full px-2 py-1.5 rounded-lg hover:bg-slate-700/50 transition-colors group"
+                  >
+                    <span className="text-slate-300 text-xs group-hover:text-white">{s.description}</span>
+                    <span className="flex items-center gap-0.5">
+                      {s.key.split('+').map((part, i) => (
+                        <span key={i} className="flex items-center gap-0.5">
+                          {i > 0 && <span className="text-slate-500 text-[10px]">+</span>}
+                          <kbd className="px-1.5 py-0.5 rounded bg-[#0d1822] border border-slate-600 text-[11px] font-mono text-slate-200">{part}</kbd>
+                        </span>
+                      ))}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="relative" ref={fontSizeRef}>
           <button
             onClick={() => setShowFontSize(!showFontSize)}

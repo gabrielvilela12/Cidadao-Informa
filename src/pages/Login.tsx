@@ -103,7 +103,7 @@ export function Login() {
                     <div className="bg-blue-600/20 p-4 rounded-2xl text-blue-500 mb-4 ring-1 ring-blue-500/50">
                         <MapIcon size={40} />
                     </div>
-                    <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">HackGov PCD</h1>
+                    <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Zeladoria Pública</h1>
                     <p className="text-slate-400 text-center text-sm">Portal Inclusivo de Zeladoria Urbana</p>
                 </div>
 

@@ -15,6 +15,7 @@ import { Login } from './pages/Login';
 import { Profile } from './pages/Profile';
 import { Accessibility } from './pages/Accessibility';
 import { A11yProvider } from './context/A11yContext';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 /**
  * Componente principal de roteamento e layout da aplicação.
@@ -28,6 +29,8 @@ import { A11yProvider } from './context/A11yContext';
  */
 function AppContent() {
   const { role, isAuthenticated } = useApp();
+
+  useKeyboardShortcuts(role);
 
   if (!isAuthenticated) {
     return (
