@@ -12,10 +12,12 @@ import { AdminRequestsQueue } from './pages/AdminRequestsQueue';
 import { AdminReports } from './pages/AdminReports';
 import { ProtocolDetails } from './pages/ProtocolDetails';
 import { Login } from './pages/Login';
+import { LandingPage } from './pages/LandingPage';
 import { Profile } from './pages/Profile';
 import { Accessibility } from './pages/Accessibility';
 import { A11yProvider } from './context/A11yContext';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { PublicProtocol } from './pages/PublicProtocol';
 
 /**
  * Componente principal de roteamento e layout da aplicação.
@@ -35,14 +37,17 @@ function AppContent() {
   if (!isAuthenticated) {
     return (
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login initialMode={false} />} />
+        <Route path="/cadastro" element={<Login initialMode={true} />} />
+        <Route path="/p/:id" element={<PublicProtocol />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-[#101922] text-white font-sans">
+    <div className="flex min-h-screen bg-[#080d12] text-white font-sans">
       <Sidebar />
       <main className="flex-1 ml-0 md:ml-72 flex flex-col h-screen overflow-hidden transition-all duration-300">
         <Routes>
@@ -64,6 +69,7 @@ function AppContent() {
           {/* Shared Routes */}
           <Route path="/perfil" element={<Profile />} />
           <Route path="/protocolo/:id" element={<ProtocolDetails />} />
+          <Route path="/p/:id" element={<PublicProtocol />} />
           <Route path="/acessibilidade" element={<Accessibility />} />
 
           {/* Fallback */}

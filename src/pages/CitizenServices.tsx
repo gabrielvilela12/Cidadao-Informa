@@ -49,7 +49,7 @@ export function CitizenServices() {
     const navigate = useNavigate();
 
     return (
-        <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#101922]">
+        <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#080d12]">
             <Header title="Catálogo de Serviços" subtitle="O que você precisa relatar hoje?" />
 
             <div className="p-8 max-w-7xl mx-auto w-full flex flex-col gap-8">
@@ -58,7 +58,7 @@ export function CitizenServices() {
                     <input
                         type="text"
                         placeholder="Buscar por tipo de serviço, exemplo: Iluminação, Buraco..."
-                        className="w-full bg-[#1b2631] border border-slate-700 rounded-xl pl-12 pr-4 py-4 text-white focus:outline-none focus:border-blue-500 transition-colors shadow-lg"
+                        className="w-full bg-white/5 border border-white/8 rounded-2xl pl-12 pr-4 py-3.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 placeholder-slate-600 transition-all hover:border-white/15"
                     />
                 </div>
 
@@ -68,15 +68,15 @@ export function CitizenServices() {
                         return (
                             <div
                                 key={service.id}
-                                className="bg-[#1b2631] border border-slate-700 hover:border-blue-500 hover:shadow-lg hover:translate-y-[-2px] transition-all rounded-xl p-6 flex flex-col group cursor-pointer"
+                                className="bg-white/5 border border-white/8 hover:border-blue-500/40 hover:bg-white/8 hover:-translate-y-0.5 transition-all rounded-2xl p-6 flex flex-col group cursor-pointer"
                                 onClick={() => navigate('/nova-solicitacao')}
                             >
                                 <div className="flex items-start justify-between mb-4">
                                     <div className={`p-3 rounded-lg flex items-center justify-center ${service.color === 'amber' ? 'bg-amber-500/20 text-amber-500' :
-                                            service.color === 'red' ? 'bg-red-500/20 text-red-500' :
-                                                service.color === 'yellow' ? 'bg-yellow-500/20 text-yellow-500' :
-                                                    service.color === 'emerald' ? 'bg-emerald-500/20 text-emerald-500' :
-                                                        'bg-blue-500/20 text-blue-500'
+                                        service.color === 'red' ? 'bg-red-500/20 text-red-500' :
+                                            service.color === 'yellow' ? 'bg-yellow-500/20 text-yellow-500' :
+                                                service.color === 'emerald' ? 'bg-emerald-500/20 text-emerald-500' :
+                                                    'bg-blue-500/20 text-blue-500'
                                         }`}>
                                         <Icon size={24} />
                                     </div>

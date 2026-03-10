@@ -1,237 +1,238 @@
-import { Header } from '../components/Header';
 import { useProtocols } from '../hooks/useProtocols';
-import { Download, Calendar, Inbox, Timer, AlertCircle, CheckCircle, MoreHorizontal, Eye } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Area, AreaChart } from 'recharts';
+import { useMemo } from 'react';
+import { Download, Calendar, Inbox, Timer, AlertCircle, CheckCircle, Eye, ArrowRight } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, CartesianGrid } from 'recharts';
 import { StatusBadge } from './CitizenDashboard';
-import { exportToCSV } from '../utils/exportUtils';
-
-
-
-const TREND_DATA = [
-  { name: 'Jan', atual: 400, anterior: 300 },
-  { name: 'Fev', atual: 450, anterior: 320 },
-  { name: 'Mar', atual: 600, anterior: 400 },
-  { name: 'Abr', atual: 550, anterior: 450 },
-  { name: 'Mai', atual: 700, anterior: 500 },
-  { name: 'Jun', atual: 800, anterior: 550 },
-  { name: 'Jul', atual: 750, anterior: 600 },
-  { name: 'Ago', atual: 900, anterior: 650 },
-  { name: 'Set', atual: 1000, anterior: 700 },
-  { name: 'Out', atual: 1100, anterior: 750 },
-  { name: 'Nov', atual: 1248, anterior: 800 },
-  { name: 'Dez', atual: 1300, anterior: 850 },
-];
-
-import { ChevronDown } from 'lucide-react';
+import { exportToExcel } from '../utils/exportUtils';
 import { Link } from 'react-router-dom';
+import { motion } from 'motion/react';
+
+const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 export function AdminDashboard() {
   const { protocols, loading } = useProtocols('admin');
 
   const totalCount = protocols.length;
-  const delayedCount = protocols.filter(p => p.status === 'Closed' || p.status === 'Atrasado').length; // Assuming 'Closed' indicates delayed for now, normally computed by dates
-  const resolvedCount = protocols.filter(p => p.status === 'Resolved').length;
+  const delayedCount = protocols.filter(p => p.status === 'Atrasado').length;
+  const resolvedCount = protocols.filter(p => p.status === 'Concluído').length;
   const resolutionRate = totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 0;
+  const inProgressCount = protocols.filter(p => p.status === 'Em Análise').length;
+  const openCount = protocols.filter(p => p.status === 'Aberto').length;
 
+  // Category breakdown for PieChart
   const categories = ['Física', 'Visual', 'Auditiva', 'Outros'];
-  const colors = ['#137fec', '#0bda5b', '#fa6238', '#a855f7'];
-  const categoryData = categories.map((cat, i) => {
-    return { name: cat, value: protocols.filter(p => p.category === cat).length, color: colors[i] };
-  }).filter(c => c.value > 0);
+  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#a855f7'];
+  const categoryData = categories.map((cat, i) => ({
+    name: cat, value: protocols.filter(p => p.category === cat).length, color: colors[i]
+  })).filter(c => c.value > 0);
+
+  // Monthly trend derived from real protocol created_at dates
+  const trendData = useMemo(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+
+    // Count protocols per month for current year
+    const monthlyCounts = Array(12).fill(0);
+    protocols.forEach(p => {
+      // p.date is formatted 'DD/MM/YYYY' by api.ts
+      const raw = (p as any).created_at || '';
+      if (raw) {
+        const d = new Date(raw);
+        if (d.getFullYear() === currentYear) {
+          monthlyCounts[d.getMonth()] += 1;
+        }
+      }
+    });
+
+    // Only show months up to current month
+    return MONTH_LABELS.slice(0, now.getMonth() + 1).map((name, i) => ({
+      name,
+      abertas: monthlyCounts[i],
+      resolvidas: Math.round(monthlyCounts[i] * (resolutionRate / 100 || 0)),
+    }));
+  }, [protocols, resolutionRate]);
+
+  const kpis = [
+    { label: 'Total', value: totalCount.toString(), icon: Inbox, color: 'text-blue-400', bg: 'bg-blue-500/10', trend: '● Ao vivo', trendColor: 'text-green-400' },
+    { label: 'Em Análise', value: inProgressCount.toString(), icon: Timer, color: 'text-sky-400', bg: 'bg-sky-500/10', trend: '● Ao vivo', trendColor: 'text-green-400' },
+    { label: 'Em Atraso', value: delayedCount.toString(), icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-500/10', trend: '● Ao vivo', trendColor: 'text-red-400' },
+    { label: 'Resolução', value: `${resolutionRate}%`, icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10', trend: '● Ao vivo', trendColor: 'text-green-400' },
+  ];
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#101922] p-4 sm:p-6 md:p-8 lg:p-10">
-      <header className="flex flex-wrap justify-between items-end gap-4 mb-8">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-white text-3xl font-bold leading-tight tracking-tight">Visão Geral Executiva</h2>
-          <p className="text-[#9dabb9] text-base font-normal">Monitoramento em tempo real da acessibilidade pública.</p>
+    <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#080d12] p-4 sm:p-6 md:p-8">
+
+      {/* Header */}
+      <div className="flex flex-wrap justify-between items-end gap-4 mb-8">
+        <div>
+          <p className="text-slate-500 text-sm mb-1">Portal do Servidor</p>
+          <h2 className="text-3xl font-black text-white tracking-tight">Visão Geral Executiva</h2>
+          <p className="text-slate-500 text-sm mt-1">Monitoramento em tempo real da acessibilidade pública</p>
         </div>
-        <div className="flex gap-3 items-center">
-          <div className="flex items-center bg-[#1a242f] border border-[#283039] rounded-lg px-3 py-2 text-sm text-[#9dabb9]">
-            <Calendar size={18} className="mr-2" />
-            <span>Últimos 30 dias</span>
-            <ChevronDown size={18} className="ml-2" />
+        <div className="flex gap-2">
+          <div className="flex items-center gap-2 bg-white/5 border border-white/8 rounded-xl px-3 h-10 text-sm text-slate-400">
+            <Calendar size={16} />
+            <span>{new Date().getFullYear()}</span>
           </div>
-          <button onClick={() => exportToCSV(protocols, 'dashboard_data.csv')} className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition-colors shadow-lg shadow-blue-600/20">
-            <Download size={18} />
-            <span>Exportar Dados</span>
+          <button onClick={() => exportToExcel(protocols, 'dashboard_data.xlsx')}
+            className="flex items-center gap-2 h-10 px-4 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-blue-600/25 hover:-translate-y-0.5">
+            <Download size={16} /> Exportar
           </button>
         </div>
-      </header>
-
-      {/* KPI Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <KPICard label="Total de Solicitações" value={totalCount.toString()} trend="Live" trendColor="text-[#0bda5b]" icon={Inbox} iconColor="text-blue-500" />
-        <KPICard label="Tempo Médio Resposta" value="N/A" trend="Live" trendColor="text-[#0bda5b]" icon={Timer} iconColor="text-blue-400" />
-        <KPICard label="Solicitações em Atraso" value={delayedCount.toString()} trend="Live" trendColor="text-[#fa6238]" icon={AlertCircle} iconColor="text-red-400" />
-        <KPICard label="Taxa de Resolução" value={`${resolutionRate}%`} trend="Live" trendColor="text-[#0bda5b]" icon={CheckCircle} iconColor="text-emerald-400" />
       </div>
 
-      {/* Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div className="lg:col-span-1 rounded-xl bg-[#1a242f] border border-[#283039] flex flex-col p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-white text-lg font-bold">Por Categoria</h3>
-            <button className="text-[#9dabb9] hover:text-white transition-colors">
-              <MoreHorizontal size={20} />
-            </button>
-          </div>
-          <div className="flex-1 flex flex-col justify-center items-center relative py-4 min-h-[200px]">
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={categoryData.length > 0 ? categoryData : [{ name: 'Vazio', value: 1, color: '#3b4754' }]}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {(categoryData.length > 0 ? categoryData : [{ name: 'Vazio', value: 1, color: '#3b4754' }]).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#111418', border: '1px solid #283039', borderRadius: '8px', color: '#fff' }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-              <span className="text-[#9dabb9] text-xs font-medium uppercase tracking-wide">Total</span>
-              <span className="text-white text-2xl font-bold">{totalCount}</span>
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {kpis.map((k, i) => (
+          <motion.div key={k.label}
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
+            className="bg-white/5 border border-white/8 rounded-2xl p-5 hover:border-white/15 transition-colors">
+            <div className="flex justify-between items-start mb-4">
+              <div className={`size-10 rounded-xl flex items-center justify-center ${k.bg} ${k.color}`}>
+                <k.icon size={20} />
+              </div>
+              <span className={`text-[10px] font-bold ${k.trendColor}`}>{k.trend}</span>
             </div>
+            <p className="text-slate-500 text-xs mb-1">{k.label}</p>
+            <p className="text-2xl font-black text-white tracking-tight">{k.value}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Status breakdown mini-bar */}
+      {totalCount > 0 && (
+        <div className="mb-6 bg-white/5 border border-white/8 rounded-2xl p-5">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="font-black text-white text-sm">Distribuição por Status</h3>
+            <span className="text-[10px] text-slate-500 uppercase tracking-wide">{totalCount} total</span>
           </div>
-          <div className="grid grid-cols-2 gap-4 mt-6">
-            {categoryData.map((cat) => (
-              <div key={cat.name} className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }}></div>
-                <div className="flex flex-col">
-                  <span className="text-white text-sm font-medium">{cat.name}</span>
-                  <span className="text-[#9dabb9] text-xs">{totalCount > 0 ? Math.round((cat.value / totalCount) * 100) : 0}% ({cat.value})</span>
-                </div>
+          <div className="flex rounded-xl overflow-hidden h-3 gap-0.5">
+            {openCount > 0 && (
+              <div className="bg-blue-500" style={{ width: `${(openCount / totalCount) * 100}%` }} title={`Aberto: ${openCount}`} />
+            )}
+            {inProgressCount > 0 && (
+              <div className="bg-yellow-500" style={{ width: `${(inProgressCount / totalCount) * 100}%` }} title={`Em Análise: ${inProgressCount}`} />
+            )}
+            {resolvedCount > 0 && (
+              <div className="bg-emerald-500" style={{ width: `${(resolvedCount / totalCount) * 100}%` }} title={`Concluído: ${resolvedCount}`} />
+            )}
+            {delayedCount > 0 && (
+              <div className="bg-red-500" style={{ width: `${(delayedCount / totalCount) * 100}%` }} title={`Atrasado: ${delayedCount}`} />
+            )}
+          </div>
+          <div className="flex flex-wrap gap-4 mt-3">
+            {[
+              { label: 'Aberto', count: openCount, color: 'bg-blue-500' },
+              { label: 'Em Análise', count: inProgressCount, color: 'bg-yellow-500' },
+              { label: 'Concluído', count: resolvedCount, color: 'bg-emerald-500' },
+              { label: 'Atrasado', count: delayedCount, color: 'bg-red-500' },
+            ].filter(s => s.count > 0).map(s => (
+              <div key={s.label} className="flex items-center gap-1.5">
+                <span className={`size-2 rounded-full ${s.color}`} />
+                <span className="text-xs text-slate-400">{s.label}</span>
+                <span className="text-xs font-bold text-white">{s.count}</span>
               </div>
             ))}
           </div>
         </div>
+      )}
 
-        <div className="lg:col-span-2 rounded-xl bg-[#1a242f] border border-[#283039] flex flex-col p-6">
-          <div className="flex justify-between items-center mb-6">
+      {/* Charts row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+
+        {/* Pie — by category (real data) */}
+        <div className="bg-white/5 border border-white/8 rounded-2xl p-5 flex flex-col">
+          <h3 className="font-black text-white mb-4">Por Categoria</h3>
+          {loading ? (
+            <div className="flex-1 flex items-center justify-center min-h-[180px]">
+              <p className="text-slate-500 text-sm">Carregando...</p>
+            </div>
+          ) : categoryData.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center min-h-[180px]">
+              <p className="text-slate-500 text-sm">Nenhum dado ainda</p>
+            </div>
+          ) : (
+            <>
+              <div className="relative flex-1 flex items-center justify-center min-h-[180px]">
+                <ResponsiveContainer width="100%" height={180}>
+                  <PieChart>
+                    <Pie
+                      data={categoryData}
+                      cx="50%" cy="50%" innerRadius={55} outerRadius={75} paddingAngle={4} dataKey="value"
+                    >
+                      {categoryData.map((entry, index) => (
+                        <Cell key={index} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ backgroundColor: '#0d1520', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+                  <p className="text-xs text-slate-500">Total</p>
+                  <p className="text-xl font-black text-white">{totalCount}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                {categoryData.map(cat => (
+                  <div key={cat.name} className="flex items-center gap-2">
+                    <div className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                    <div>
+                      <p className="text-white text-xs font-medium">{cat.name}</p>
+                      <p className="text-slate-500 text-[10px]">{totalCount > 0 ? Math.round((cat.value / totalCount) * 100) : 0}% · {cat.value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Area chart — monthly from real data */}
+        <div className="lg:col-span-2 bg-white/5 border border-white/8 rounded-2xl p-5 flex flex-col">
+          <div className="flex justify-between items-start mb-4">
             <div>
-              <h3 className="text-white text-lg font-bold">Fluxo de Solicitações</h3>
-              <p className="text-[#9dabb9] text-sm">Comparativo mensal 2023 vs 2024</p>
+              <h3 className="font-black text-white">Fluxo de Solicitações</h3>
+              <p className="text-slate-500 text-xs mt-0.5">Abertas por mês em {new Date().getFullYear()}</p>
             </div>
             <div className="flex gap-4">
-              <span className="flex items-center gap-1 text-xs font-medium text-white">
-                <span className="w-2 h-2 rounded-full bg-blue-600"></span> Atual
-              </span>
-              <span className="flex items-center gap-1 text-xs font-medium text-[#9dabb9]">
-                <span className="w-2 h-2 rounded-full bg-[#3b4754]"></span> Anterior
-              </span>
+              <span className="flex items-center gap-1.5 text-xs text-slate-300"><span className="size-2 rounded-full bg-blue-500" /> Abertas</span>
+              <span className="flex items-center gap-1.5 text-xs text-slate-600"><span className="size-2 rounded-full bg-emerald-500" /> Resolvidas</span>
             </div>
           </div>
-          <div className="flex-1 w-full min-h-[240px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={TREND_DATA}>
-                <defs>
-                  <linearGradient id="colorAtual" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#137fec" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#137fec" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#283039" vertical={false} />
-                <XAxis dataKey="name" stroke="#9dabb9" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis hide />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#111418', border: '1px solid #283039', borderRadius: '8px', color: '#fff' }}
-                />
-                <Area type="monotone" dataKey="atual" stroke="#137fec" strokeWidth={3} fillOpacity={1} fill="url(#colorAtual)" />
-                <Area type="monotone" dataKey="anterior" stroke="#3b4754" strokeWidth={2} fill="transparent" />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="flex-1 min-h-[200px]">
+            {loading ? (
+              <div className="h-full flex items-center justify-center">
+                <p className="text-slate-500 text-sm">Carregando...</p>
+              </div>
+            ) : trendData.length === 0 ? (
+              <div className="h-full flex items-center justify-center">
+                <p className="text-slate-500 text-sm">Nenhum protocolo registrado ainda</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trendData}>
+                  <defs>
+                    <linearGradient id="colorAbertas" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="colorResolvidas" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                  <Tooltip contentStyle={{ backgroundColor: '#0d1520', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff' }} />
+                  <Area type="monotone" dataKey="abertas" name="Abertas" stroke="#3b82f6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorAbertas)" />
+                  <Area type="monotone" dataKey="resolvidas" name="Resolvidas" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorResolvidas)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="rounded-xl bg-[#1a242f] border border-[#283039] mb-6">
-        <div className="p-6 border-b border-[#283039] flex justify-between items-center">
-          <h3 className="text-white text-lg font-bold">Solicitações Recentes</h3>
-          <Link to="/admin/solicitacoes" className="text-blue-600 text-sm font-semibold hover:text-blue-500 transition-colors">Ver todas</Link>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-[#111418] border-b border-[#283039]">
-                <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-[#9dabb9]">ID</th>
-                <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-[#9dabb9]">Solicitante</th>
-                <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-[#9dabb9]">Categoria</th>
-                <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-[#9dabb9]">Data</th>
-                <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-[#9dabb9]">Status</th>
-                <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-[#9dabb9] text-right">Ação</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#283039]">
-              {loading && (
-                <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-[#9dabb9]">
-                    Carregando banco de dados...
-                  </td>
-                </tr>
-              )}
-              {!loading && protocols.slice(0, 5).map((p, index) => (
-                <tr key={`${p.id}-${index}`} className="hover:bg-[#283039]/50 transition-colors border-b border-[#283039]">
-                  <td className="py-4 px-6 text-sm text-[#9dabb9] font-mono">{p.id}</td>
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[#3b4754] flex items-center justify-center text-xs font-bold text-white">
-                        {p.requester?.split(' ').map(n => n[0]).join('')}
-                      </div>
-                      <span className="text-white text-sm font-medium">{p.requester}</span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className={`inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-xs font-medium border ${p.category === 'Física' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
-                      p.category === 'Auditiva' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                        'bg-pink-500/10 text-pink-400 border-pink-500/20'
-                      }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${p.category === 'Física' ? 'bg-purple-400' :
-                        p.category === 'Auditiva' ? 'bg-blue-400' :
-                          'bg-pink-400'
-                        }`}></span>
-                      Acessibilidade {p.category}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6 text-sm text-white">{p.date}</td>
-                  <td className="py-4 px-6">
-                    <StatusBadge status={p.status} />
-                  </td>
-                  <td className="py-4 px-6 text-right">
-                    <Link to={`/protocolo/${p.id}`} className="text-[#9dabb9] hover:text-white p-1 rounded hover:bg-[#3b4754] transition-colors inline-block">
-                      <Eye size={20} />
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   );
 }
-
-function KPICard({ label, value, trend, trendColor, icon: Icon, iconColor }: any) {
-  return (
-    <div className="flex flex-col gap-1 rounded-xl p-5 bg-[#1a242f] border border-[#283039] hover:border-blue-500/30 transition-colors">
-      <div className="flex justify-between items-start mb-2">
-        <div className={`p-2 bg-slate-800 rounded-lg ${iconColor}`}>
-          <Icon size={24} />
-        </div>
-        <span className={`${trendColor} text-xs font-bold bg-slate-800 px-2 py-1 rounded-full`}>{trend}</span>
-      </div>
-      <p className="text-[#9dabb9] text-sm font-medium">{label}</p>
-      <p className="text-white text-2xl font-bold tracking-tight">{value}</p>
-    </div>
-  );
-}
-

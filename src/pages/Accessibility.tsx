@@ -56,10 +56,10 @@ export function Accessibility() {
     };
 
     return (
-        <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#101922] font-sans">
+        <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#080d12] font-sans">
             <main className="flex-grow flex flex-col items-center py-8 px-4 md:px-8">
                 <div className="w-full max-w-[1000px] flex flex-col gap-6">
-                    <div className="flex flex-col gap-2 border-b border-slate-800 pb-6">
+                    <div className="flex flex-col gap-2 border-b border-white/5 pb-6">
                         <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white flex items-center gap-3">
                             <Eye className="text-blue-500" size={36} />
                             Acessibilidade
@@ -69,14 +69,14 @@ export function Accessibility() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Font Size Panel */}
-                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-[#1c2632] rounded-xl p-6 shadow-sm border border-slate-700 flex flex-col gap-5">
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white/5 rounded-2xl p-6 border border-white/8 flex flex-col gap-5">
                             <h2 className="text-xl font-bold text-white flex items-center gap-2">
                                 <Type className="text-blue-500" size={24} />
                                 Tamanho da Fonte
                             </h2>
                             <p className="text-sm text-slate-400 mb-2">Ajuste o tamanho de todos os textos da aplicação: <span className="text-white font-bold">{fontSize}%</span></p>
 
-                            <div className="bg-[#111418] border border-slate-800 rounded-xl p-6 flex flex-col gap-4">
+                            <div className="bg-white/5 border border-white/5 rounded-2xl p-6 flex flex-col gap-4">
                                 <div className="flex items-center gap-6">
                                     <span className="text-slate-400 font-medium text-lg">A</span>
                                     <input
@@ -98,7 +98,7 @@ export function Accessibility() {
                         </motion.div>
 
                         {/* Espaçamento de Texto */}
-                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-[#1c2632] rounded-xl p-6 shadow-sm border border-slate-700 flex flex-col gap-5">
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white/5 rounded-2xl p-6 border border-white/8 flex flex-col gap-5">
                             <h2 className="text-xl font-bold text-white flex items-center gap-2">
                                 <AlignJustify className="text-blue-500" size={24} />
                                 Espaçamento de Texto
@@ -112,7 +112,7 @@ export function Accessibility() {
                         </motion.div>
 
                         {/* Tema Panel */}
-                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-[#1c2632] rounded-xl p-6 shadow-sm border border-slate-700 flex flex-col gap-5">
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white/5 rounded-2xl p-6 border border-white/8 flex flex-col gap-5">
                             <h2 className="text-xl font-bold text-white flex items-center gap-2">
                                 <Sun className="text-blue-500" size={24} />
                                 Temas & Contraste
@@ -125,7 +125,7 @@ export function Accessibility() {
                         </motion.div>
 
                         {/* Navegação por Teclado */}
-                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-[#1c2632] rounded-xl p-6 shadow-sm border border-slate-700 flex flex-col gap-5">
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white/5 rounded-2xl p-6 border border-white/8 flex flex-col gap-5">
                             <h2 className="text-xl font-bold text-white flex items-center gap-2">
                                 <Keyboard className="text-blue-500" size={24} />
                                 Navegação por Teclado
@@ -139,7 +139,7 @@ export function Accessibility() {
                         </motion.div>
 
                         {/* Movimento e Animações */}
-                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-[#1c2632] rounded-xl p-6 shadow-sm border border-slate-700 flex flex-col gap-5">
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white/5 rounded-2xl p-6 border border-white/8 flex flex-col gap-5">
                             <h2 className="text-xl font-bold text-white flex items-center gap-2">
                                 <Activity className="text-blue-500" size={24} />
                                 Movimento e Animações
@@ -153,7 +153,7 @@ export function Accessibility() {
                         </motion.div>
 
                         {/* Modo Simplificado */}
-                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-[#1c2632] rounded-xl p-6 shadow-sm border border-slate-700 flex flex-col gap-5">
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-white/5 rounded-2xl p-6 border border-white/8 flex flex-col gap-5">
                             <h2 className="text-xl font-bold text-white flex items-center gap-2">
                                 <LayoutTemplate className="text-blue-500" size={24} />
                                 Modo Simplificado
@@ -225,7 +225,7 @@ function OptionButton({ label, desc, active, onClick, icon }: any) {
             onClick={onClick}
             className={`flex items-center gap-4 w-full p-4 rounded-xl border text-left transition-all ${active
                 ? 'bg-blue-500/10 border-blue-500'
-                : 'bg-[#111418] border-slate-800 hover:border-slate-600'
+                : 'bg-white/5 border-white/5 hover:border-white/15'
                 }`}
         >
             <div className={`flex items-center justify-center min-w-5 h-5 rounded-full border-2 ${active ? 'border-blue-500' : 'border-slate-600'}`}>
@@ -247,7 +247,7 @@ function CardButton({ label, desc, active, onClick }: any) {
             onClick={onClick}
             className={`flex flex-col items-center justify-center p-5 rounded-xl border text-center transition-all h-full ${active
                 ? 'bg-blue-500 border-blue-500 text-white shadow-lg shadow-blue-500/20'
-                : 'bg-[#111418] border-slate-700 text-slate-300 hover:bg-[#283039]'
+                : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10'
                 }`}
         >
             <span className="font-bold mb-1">{label}</span>
@@ -262,7 +262,7 @@ function ToggleButton({ label, active, onClick }: any) {
             onClick={onClick}
             className={`flex items-center justify-between w-full p-4 rounded-xl border text-left transition-all ${active
                 ? 'bg-blue-500/10 border-blue-500'
-                : 'bg-[#111418] border-slate-800 hover:border-slate-600'
+                : 'bg-white/5 border-white/5 hover:border-white/15'
                 }`}
         >
             <span className={`font-semibold flex items-center gap-2 ${active ? 'text-blue-400' : 'text-slate-200'}`}>

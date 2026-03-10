@@ -1,4 +1,4 @@
-import { MapPin, Search as SearchIcon, ChevronDown, SlidersHorizontal, Info, Share2, X, Navigation, Plus, Minus, Layers as LayersIcon, Loader2, Menu } from 'lucide-react';
+import { MapPin, Search as SearchIcon, ChevronDown, SlidersHorizontal, Info, Share2, X, Navigation, Plus, Minus, Layers as LayersIcon, Loader2, Menu, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
@@ -7,6 +7,7 @@ import L from 'leaflet';
 import { useProtocols } from '../hooks/useProtocols';
 import { getMarkerPosition } from '../utils/mapUtils';
 import { useApp } from '../context/AppContext';
+import { useNavigate } from 'react-router-dom';
 
 // Fix for default Leaflet marker icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -63,7 +64,9 @@ export function CitizenMap() {
   const [showFilters, setShowFilters] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([-15.7942, -47.8822]);
   const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const { toggleMobileMenu } = useApp();
+  const navigate = useNavigate();
 
   const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
@@ -350,11 +353,24 @@ export function CitizenMap() {
               </div>
 
               <div className="flex gap-2">
-                <button className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold py-2 px-4 rounded-lg transition-colors">
+                <button
+                  onClick={() => navigate(`/protocolo/${selectedIncident.id}`)}
+                  className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold py-2 px-4 rounded-lg transition-colors">
                   Acompanhar
                 </button>
-                <button className="bg-[#283039] hover:bg-[#3b4754] text-white p-2 rounded-lg transition-colors">
-                  <Share2 size={18} />
+                <button
+                  onClick={() => {
+                    const url = `${window.location.origin}/p/${selectedIncident.id}`;
+                    navigator.clipboard.writeText(url);
+                    setCopiedId(selectedIncident.id);
+                    setTimeout(() => setCopiedId(null), 2500);
+                  }}
+                  title="Copiar link público"
+                  className={`p-2 rounded-lg transition-colors flex items-center justify-center ${copiedId === selectedIncident.id
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-[#283039] hover:bg-[#3b4754] text-white'
+                    }`}>
+                  {copiedId === selectedIncident.id ? <Check size={18} /> : <Share2 size={18} />}
                 </button>
               </div>
             </div>
