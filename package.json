@@ -25,7 +25,8 @@
     "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.13.0",
     "recharts": "^3.7.0",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/leaflet": "^1.9.21",

@@ -1,37 +1,61 @@
-export function exportToCSV(data: any[], filename: string) {
+import * as XLSX from 'xlsx';
+
+export function exportToExcel(data: any[], filename: string) {
     if (!data || !data.length) {
         return;
     }
 
-    const separator = ',';
-    const keys = Object.keys(data[0]);
+    // Convert dates and format objects
+    const formattedData = data.map(row => {
+        const newRow: any = {};
+        Object.keys(row).forEach(key => {
+            const val = row[key];
+            if (val instanceof Date) {
+                newRow[key] = val.toLocaleString();
+            } else if (val !== null && val !== undefined) {
+                newRow[key] = val;
+            } else {
+                newRow[key] = '';
+            }
+        });
+        return newRow;
+    });
 
-    const csvContent =
-        keys.join(separator) +
-        '\n' +
-        data.map(row => {
-            return keys.map(k => {
-                let cell = row[k] === null || row[k] === undefined ? '' : row[k];
-                cell = cell instanceof Date
-                    ? cell.toLocaleString()
-                    : cell.toString().replace(/"/g, '""');
-                if (cell.search(/("|,|\n)/g) >= 0) {
-                    cell = `"${cell}"`;
-                }
-                return cell;
-            }).join(separator);
-        }).join('\n');
+    const worksheet = XLSX.utils.json_to_sheet(formattedData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Relatório");
 
-    const blob = new Blob(["\ufeff", csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    if (link.download !== undefined) {
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", filename);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+    // Auto-fit columns
+    const keys = Object.keys(formattedData[0]);
+    const colWidths = keys.map(key => {
+        let maxLength = key.length;
+        formattedData.forEach(row => {
+            const valStr = row[key] ? row[key].toString() : '';
+            if (valStr.length > maxLength) {
+                maxLength = valStr.length;
+            }
+        });
+        return { wch: Math.min(maxLength + 2, 60) }; // cap width at 60 characters
+    });
+    worksheet['!cols'] = colWidths;
+
+    // Fix extension
+    const finalFilename = filename.replace(/\.csv$/, '.xlsx');
+    if (!finalFilename.endsWith('.xlsx')) {
+        finalFilename += '.xlsx';
     }
+
+    XLSX.writeFile(workbook, finalFilename);
+}
+const link = document.createElement("a");
+if (link.download !== undefined) {
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
 }
