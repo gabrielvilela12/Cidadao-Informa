@@ -272,7 +272,7 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                     <div className="flex items-center justify-center size-8 rounded-lg bg-blue-600 shadow-lg shadow-blue-600/40 group-hover:shadow-blue-600/60 transition-shadow">
                         <MapPin size={16} />
                     </div>
-                    <span className="font-bold tracking-tight">Acesso <span className="text-blue-400">Gov</span></span>
+                    <span className="font-bold tracking-tight">Cidadão <span className="text-blue-400">Informa</span></span>
                 </Link>
 
                 <div className="flex items-center gap-2 text-sm">

@@ -91,7 +91,7 @@ export function PublicProtocol() {
                         <div className="size-7 rounded-lg bg-blue-600 flex items-center justify-center">
                             <Shield size={14} className="text-white" />
                         </div>
-                        <span className="font-black text-sm text-white group-hover:text-blue-400 transition-colors">Acesso Gov</span>
+                        <span className="font-black text-sm text-white group-hover:text-blue-400 transition-colors">Cidadão Informa</span>
                     </Link>
                     <div className="flex items-center gap-2">
                         <button onClick={handleCopyLink}
@@ -255,7 +255,7 @@ export function PublicProtocol() {
             {/* Footer */}
             <footer className="border-t border-white/5 mt-16 py-6">
                 <div className="max-w-5xl mx-auto px-4 text-center text-xs text-slate-600">
-                    © {new Date().getFullYear()} Acesso Gov — Portal de Acessibilidade Urbana
+                    © {new Date().getFullYear()} Cidadão Informa — Portal de Acessibilidade Urbana
                 </div>
             </footer>
         </div>

@@ -61,7 +61,7 @@ export function Sidebar() {
               <MapPin size={16} />
             </div>
             <span className="font-bold tracking-tight text-white">
-              Acesso <span className="text-blue-400">Gov</span>
+              Cidadão <span className="text-blue-400">Informa</span>
             </span>
           </div>
           <button
