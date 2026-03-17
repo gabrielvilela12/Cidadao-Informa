@@ -61,7 +61,7 @@ export function Sidebar() {
               <MapPin size={16} />
             </div>
             <span className="font-bold tracking-tight text-white">
-              Zeladoria <span className="text-blue-400">Pública</span>
+              Acesso <span className="text-blue-400">Gov</span>
             </span>
           </div>
           <button
@@ -120,8 +120,8 @@ export function Sidebar() {
           <button
             onClick={handleSwitchRole}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all mb-2 ${role === 'citizen'
-                ? 'text-slate-400 hover:bg-amber-500/10 hover:text-amber-400 border border-dashed border-white/8 hover:border-amber-500/30'
-                : 'text-slate-400 hover:bg-blue-500/10 hover:text-blue-400 border border-dashed border-white/8 hover:border-blue-500/30'
+              ? 'text-slate-400 hover:bg-amber-500/10 hover:text-amber-400 border border-dashed border-white/8 hover:border-amber-500/30'
+              : 'text-slate-400 hover:bg-blue-500/10 hover:text-blue-400 border border-dashed border-white/8 hover:border-blue-500/30'
               }`}
             title={role === 'citizen' ? 'Trocar para modo Servidor' : 'Trocar para modo Cidadão'}
           >

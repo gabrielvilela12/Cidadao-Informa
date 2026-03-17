@@ -81,7 +81,7 @@ function AppContent() {
 }
 
 /**
- * Ponto de entrada (Entrypoint) do React para a aplicação Zeladoria Pública.
+ * Ponto de entrada (Entrypoint) do React para a aplicação Acesso Gov.
  * Engloba a aplicação com os provedores de contexto necessários (Acessibilidade, Aplicação global e Roteador).
  * 
  * @returns O componente App que provê os contextos e renderiza o conteúdo principal.

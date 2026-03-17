@@ -272,7 +272,7 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                     <div className="flex items-center justify-center size-8 rounded-lg bg-blue-600 shadow-lg shadow-blue-600/40 group-hover:shadow-blue-600/60 transition-shadow">
                         <MapPin size={16} />
                     </div>
-                    <span className="font-bold tracking-tight">Zeladoria <span className="text-blue-400">Pública</span></span>
+                    <span className="font-bold tracking-tight">Acesso <span className="text-blue-400">Gov</span></span>
                 </Link>
 
                 <div className="flex items-center gap-2 text-sm">
@@ -434,8 +434,8 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                     transition={{ duration: 0.65, type: 'spring', stiffness: 60, damping: 18 }}
                     style={{ order: isRegistering ? 1 : 2 }}
                     className={`hidden lg:flex flex-1 relative items-center justify-center px-12 overflow-hidden transition-colors duration-700 ${isAdmin
-                            ? 'bg-gradient-to-br from-amber-950/30 via-[#0d1520] to-[#080d12]'
-                            : 'bg-gradient-to-br from-blue-950/40 via-[#0d1520] to-[#080d12]'
+                        ? 'bg-gradient-to-br from-amber-950/30 via-[#0d1520] to-[#080d12]'
+                        : 'bg-gradient-to-br from-blue-950/40 via-[#0d1520] to-[#080d12]'
                         }`}
                 >
                     {/* Divider */}
