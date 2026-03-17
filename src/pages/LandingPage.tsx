@@ -79,7 +79,7 @@ export function LandingPage() {
                     <div className="flex items-center justify-center size-9 rounded-xl bg-blue-600 shadow-lg shadow-blue-600/40">
                         <MapPin size={18} />
                     </div>
-                    <span className="text-lg font-bold tracking-tight">Acesso <span className="text-blue-400">Gov</span></span>
+                    <span className="text-lg font-bold tracking-tight">Cidadão <span className="text-blue-400">Informa</span></span>
                 </div>
                 <div className="flex items-center gap-3">
                     <button
@@ -116,10 +116,10 @@ export function LandingPage() {
                     </span>
 
                     <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-[1.05]">
-                        Acesso
+                        Cidadão
                         <br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-300 to-cyan-400">
-                            Gov
+                            Informa
                         </span>
                     </h1>
 
@@ -163,7 +163,7 @@ export function LandingPage() {
                         <div className="size-3 rounded-full bg-yellow-500/70" />
                         <div className="size-3 rounded-full bg-green-500/70" />
                         <div className="ml-3 flex-1 h-5 rounded bg-white/5 text-[10px] text-slate-500 flex items-center px-3">
-                            acessogov.gov.br/mapa
+                            cidadaoinforma.gov.br/mapa
                         </div>
                     </div>
                     <div className="relative h-64 bg-[#141e28] flex items-center justify-center overflow-hidden">
@@ -255,7 +255,7 @@ export function LandingPage() {
                 <div className="max-w-5xl mx-auto">
                     <div className="text-center mb-12">
                         <h2 className="text-3xl font-black mb-2">O que dizem os cidadãos</h2>
-                        <p className="text-slate-400 text-sm">Histórias reais de quem usa Acesso Gov</p>
+                        <p className="text-slate-400 text-sm">Histórias reais de quem usa Cidadão Informa</p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                         {testimonials.map((t, i) => (
@@ -323,7 +323,7 @@ export function LandingPage() {
                     <div className="flex items-center justify-center size-6 rounded bg-blue-600">
                         <MapPin size={12} />
                     </div>
-                    <span>Acesso Gov © 2026</span>
+                    <span>Cidadão Informa © 2026</span>
                 </div>
                 <div className="flex gap-5">
                     <a href="#" className="hover:text-slate-400 transition-colors">Termos de Uso</a>

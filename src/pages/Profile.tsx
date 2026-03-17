@@ -100,7 +100,7 @@ export function Profile() {
                         <div className="mt-auto pt-4 border-t border-white/5">
                             <div className="flex items-center gap-2 text-xs text-slate-600">
                                 <MapPin size={12} />
-                                <span>Portal de Acessibilidade Urbana — Acesso Gov</span>
+                                <span>Portal de Acessibilidade Urbana — Cidadão Informa</span>
                             </div>
                         </div>
                     </div>
