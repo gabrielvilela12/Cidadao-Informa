@@ -1,7 +1,7 @@
 import { MapPin, Search as SearchIcon, ChevronDown, SlidersHorizontal, Info, Share2, X, Navigation, Plus, Minus, Layers as LayersIcon, Loader2, Menu, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import React, { useState, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { useProtocols } from '../hooks/useProtocols';
@@ -32,6 +32,17 @@ function MapInstanceTracker({ setMap }: { setMap: (m: L.Map) => void }) {
   React.useEffect(() => {
     setMap(map);
   }, [map, setMap]);
+  return null;
+}
+
+// Emits map center whenever user stops moving the map
+function MapMoveTracker({ onMoveEnd }: { onMoveEnd: (center: [number, number]) => void }) {
+  useMapEvents({
+    moveend(e) {
+      const c = e.target.getCenter();
+      onMoveEnd([c.lat, c.lng]);
+    },
+  });
   return null;
 }
 
@@ -67,6 +78,38 @@ export function CitizenMap() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const { toggleMobileMenu } = useApp();
   const navigate = useNavigate();
+
+  // Region info state
+  const [regionInfo, setRegionInfo] = useState<{ neighbourhood?: string; suburb?: string; city?: string; state?: string } | null>(null);
+  const regionTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const fetchRegionInfo = useCallback(async (lat: number, lon: number) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&addressdetails=1`,
+        { headers: { 'Accept-Language': 'pt-BR' } }
+      );
+      const data = await res.json();
+      if (data?.address) {
+        setRegionInfo({
+          neighbourhood: data.address.neighbourhood || data.address.quarter || data.address.suburb,
+          suburb: data.address.suburb || data.address.district,
+          city: data.address.city || data.address.town || data.address.municipality,
+          state: data.address.state,
+        });
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const handleMapMoveEnd = useCallback((center: [number, number]) => {
+    if (regionTimeout.current) clearTimeout(regionTimeout.current);
+    regionTimeout.current = setTimeout(() => fetchRegionInfo(center[0], center[1]), 600);
+  }, [fetchRegionInfo]);
+
+  // Load region info on first render
+  useEffect(() => {
+    fetchRegionInfo(mapCenter[0], mapCenter[1]);
+  }, []);
 
   const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
@@ -140,7 +183,7 @@ export function CitizenMap() {
   return (
     <div className="flex-1 relative bg-[#1c2127] h-screen overflow-hidden font-sans">
       {/* Map Area */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0" style={{ colorScheme: 'light' }}>
         <MapContainer
           center={mapCenter} // Center of Brasília
           zoom={14}
@@ -149,9 +192,10 @@ export function CitizenMap() {
         >
           <MapController center={mapCenter} />
           <MapInstanceTracker setMap={setMapInstance} />
-          {/* Dark Mode Tiles */}
+          <MapMoveTracker onMoveEnd={handleMapMoveEnd} />
+          {/* Fixed Voyager Tiles - unaffected by app theme */}
           <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           />
 
@@ -367,8 +411,8 @@ export function CitizenMap() {
                   }}
                   title="Copiar link público"
                   className={`p-2 rounded-lg transition-colors flex items-center justify-center ${copiedId === selectedIncident.id
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-[#283039] hover:bg-[#3b4754] text-white'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-[#283039] hover:bg-[#3b4754] text-white'
                     }`}>
                   {copiedId === selectedIncident.id ? <Check size={18} /> : <Share2 size={18} />}
                 </button>
@@ -398,6 +442,21 @@ export function CitizenMap() {
           <LegendItem color="bg-blue-600" label="Transporte" />
         </div>
       </div>
+
+      {/* Region Info Panel */}
+      {regionInfo && (
+        <div className="absolute bottom-20 md:bottom-4 left-1/2 -translate-x-1/2 z-10 bg-[#1c2127]/90 backdrop-blur-sm border border-slate-700 rounded-xl shadow-lg px-4 py-2.5 flex items-center gap-3 pointer-events-none">
+          <MapPin size={14} className="text-blue-400 shrink-0" />
+          <div className="flex flex-col">
+            {regionInfo.neighbourhood && (
+              <span className="text-white text-xs font-bold leading-tight">{regionInfo.neighbourhood}</span>
+            )}
+            <span className="text-slate-400 text-[11px] leading-tight">
+              {[regionInfo.suburb, regionInfo.city, regionInfo.state].filter(Boolean).join(' · ')}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

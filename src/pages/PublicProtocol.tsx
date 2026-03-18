@@ -149,7 +149,7 @@ export function PublicProtocol() {
                                     <MapContainer center={[-23.5505, -46.6333]} zoom={15}
                                         style={{ height: '100%', width: '100%', zIndex: 0 }} zoomControl={false}>
                                         <TileLayer
-                                            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                                            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                                             attribution='© OpenStreetMap contributors © CARTO'
                                         />
                                         <Marker position={[-23.5505, -46.6333]}>

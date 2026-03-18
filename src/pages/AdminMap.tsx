@@ -1,7 +1,7 @@
 import { Search, ChevronDown, MapPin, Navigation, Download, AlertTriangle, Plus, Minus, Loader2, SlidersHorizontal, X, Menu } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import React, { useState, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { exportToExcel } from '../utils/exportUtils';
@@ -29,6 +29,17 @@ function MapController({ center }: { center: [number, number] }) {
 function MapInstanceTracker({ setMap }: { setMap: (m: L.Map) => void }) {
   const map = useMap();
   React.useEffect(() => { setMap(map); }, [map, setMap]);
+  return null;
+}
+
+// Emits center on moveend
+function MapMoveTracker({ onMoveEnd }: { onMoveEnd: (c: [number, number]) => void }) {
+  useMapEvents({
+    moveend(e) {
+      const c = e.target.getCenter();
+      onMoveEnd([c.lat, c.lng]);
+    },
+  });
   return null;
 }
 
@@ -69,6 +80,35 @@ export function AdminMap() {
   const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Region info
+  const [regionInfo, setRegionInfo] = useState<{ neighbourhood?: string; suburb?: string; city?: string; state?: string } | null>(null);
+  const regionTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const fetchRegionInfo = useCallback(async (lat: number, lon: number) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&addressdetails=1`,
+        { headers: { 'Accept-Language': 'pt-BR' } }
+      );
+      const data = await res.json();
+      if (data?.address) {
+        setRegionInfo({
+          neighbourhood: data.address.neighbourhood || data.address.quarter || data.address.suburb,
+          suburb: data.address.suburb || data.address.district,
+          city: data.address.city || data.address.town || data.address.municipality,
+          state: data.address.state,
+        });
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const handleMapMoveEnd = useCallback((center: [number, number]) => {
+    if (regionTimeout.current) clearTimeout(regionTimeout.current);
+    regionTimeout.current = setTimeout(() => fetchRegionInfo(center[0], center[1]), 600);
+  }, [fetchRegionInfo]);
+
+  useEffect(() => { fetchRegionInfo(mapCenter[0], mapCenter[1]); }, []);
 
   const { protocols, loading } = useProtocols('admin');
 
@@ -272,8 +312,9 @@ export function AdminMap() {
         >
           <MapController center={mapCenter} />
           <MapInstanceTracker setMap={setMapInstance} />
+          <MapMoveTracker onMoveEnd={handleMapMoveEnd} />
           <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           />
 
@@ -426,6 +467,21 @@ export function AdminMap() {
             </div>
           ))}
         </div>
+
+        {/* Region Info Panel */}
+        {regionInfo && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[400] bg-[#111820]/90 backdrop-blur-md border border-white/10 rounded-xl shadow-xl px-4 py-2.5 flex items-center gap-3 pointer-events-none">
+            <MapPin size={14} className="text-blue-400 shrink-0" />
+            <div className="flex flex-col">
+              {regionInfo.neighbourhood && (
+                <span className="text-white text-xs font-bold leading-tight">{regionInfo.neighbourhood}</span>
+              )}
+              <span className="text-slate-400 text-[11px] leading-tight">
+                {[regionInfo.suburb, regionInfo.city, regionInfo.state].filter(Boolean).join(' · ')}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
