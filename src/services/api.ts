@@ -167,7 +167,7 @@ export const api = {
      * Recupera os dados do usuário autenticado via token de sessão no localStorage.
      */
     async getMe() {
-        const token = localStorage.getItem('zeladoria_token');
+        const token = localStorage.getItem('cidadaoinforma_token');
         if (!token) throw new Error('Sessão inválida ou expirada.');
 
         const payload = decodeSessionToken(token);
@@ -237,7 +237,7 @@ export const api = {
      * Cria um novo protocolo/solicitação.
      */
     async createProtocol(data: any) {
-        const token = localStorage.getItem('zeladoria_token');
+        const token = localStorage.getItem('cidadaoinforma_token');
         const payload = token ? decodeSessionToken(token) : null;
 
         const protocol = {
@@ -267,7 +267,7 @@ export const api = {
 
     // UTILS (mantido para compatibilidade com código existente)
     getAuthHeader(contentType?: string) {
-        const token = localStorage.getItem('zeladoria_token');
+        const token = localStorage.getItem('cidadaoinforma_token');
         const headers: HeadersInit = {
             'Authorization': `Bearer ${token}`
         };

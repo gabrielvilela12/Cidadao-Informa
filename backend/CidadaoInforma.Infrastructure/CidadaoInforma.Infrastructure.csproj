@@ -1,6 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\CidadaoInforma.Domain\CidadaoInforma.Domain.csproj" />
     <ProjectReference Include="..\CidadaoInforma.Application\CidadaoInforma.Application.csproj" />
   </ItemGroup>
 

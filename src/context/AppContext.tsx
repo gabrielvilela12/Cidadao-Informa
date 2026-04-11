@@ -53,8 +53,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const validateSession = async () => {
-      const token = localStorage.getItem('zeladoria_token');
-      const savedRole = localStorage.getItem('zeladoria_role') as UserRole | null;
+      const token = localStorage.getItem('cidadaoinforma_token');
+      const savedRole = localStorage.getItem('cidadaoinforma_role') as UserRole | null;
 
       if (token) {
         try {
@@ -74,9 +74,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
           // Sessão inválida: limpa o cache local
           console.warn("Sessão inválida, limpando cache...", error);
-          localStorage.removeItem('zeladoria_token');
-          localStorage.removeItem('zeladoria_user');
-          localStorage.removeItem('zeladoria_role');
+          localStorage.removeItem('cidadaoinforma_token');
+          localStorage.removeItem('cidadaoinforma_user');
+          localStorage.removeItem('cidadaoinforma_role');
           setIsAuthenticated(false);
           setUser(null);
         }
@@ -88,9 +88,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loginSuccess = (token: string, user: AppUser, role: UserRole) => {
-    localStorage.setItem('zeladoria_token', token);
-    localStorage.setItem('zeladoria_user', JSON.stringify(user));
-    localStorage.setItem('zeladoria_role', role);
+    localStorage.setItem('cidadaoinforma_token', token);
+    localStorage.setItem('cidadaoinforma_user', JSON.stringify(user));
+    localStorage.setItem('cidadaoinforma_role', role);
     setUser(user);
     setRoleState(role);
     setIsAuthenticated(true);
@@ -101,9 +101,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    localStorage.removeItem('zeladoria_token');
-    localStorage.removeItem('zeladoria_user');
-    localStorage.removeItem('zeladoria_role');
+    localStorage.removeItem('cidadaoinforma_token');
+    localStorage.removeItem('cidadaoinforma_user');
+    localStorage.removeItem('cidadaoinforma_role');
     setIsAuthenticated(false);
     setUser(null);
   };
