@@ -30,6 +30,7 @@ coverage/
 npm-debug.log*
 
 # ── IDEs ──────────────────────────────────────────────────────
+.vs/
 .vscode/settings.json
 .idea/
 *.suo
@@ -41,3 +42,7 @@ Thumbs.db
 
 # ── TypeScript ────────────────────────────────────────────────
 *.tsbuildinfo
+
+# Supabase / artefatos locais
+supabase/.temp/
+supabase-schema.sql
