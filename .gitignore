@@ -14,6 +14,8 @@ coverage/
 # ── Build do backend .NET (gerado automaticamente, não commitar)
 **/bin/
 **/obj/
+**/target/
+*.class
 
 # ── Variáveis de ambiente (NÃO commitar credenciais) ─────────
 .env*
