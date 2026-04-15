@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { User, Mail, Shield, Calendar, KeyRound, Eye, EyeOff, MapPin, Phone } from 'lucide-react';
+import { User, Mail, Shield, Calendar, KeyRound, Eye, EyeOff, MapPin, Phone, Edit2, Check, X } from 'lucide-react';
 import { Header } from '../components/Header';
+import { api } from '../services/api';
 
 export function Profile() {
     const { user, role } = useApp();
     const [showCpf, setShowCpf] = useState(false);
+    const [editingPhone, setEditingPhone] = useState(false);
+    const [phoneValue, setPhoneValue] = useState(user?.phone || '');
+    const [savingPhone, setSavingPhone] = useState(false);
+    const [phoneError, setPhoneError] = useState('');
 
     const maskCpf = (cpf: string) => {
         if (!cpf) return '';
@@ -23,6 +28,40 @@ export function Profile() {
     const formatDate = (dateString?: string) => {
         if (!dateString) return 'Data não disponível';
         return new Date(dateString).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+    };
+
+    const formatPhone = (phone: string) => {
+        const clean = phone.replace(/\D/g, '');
+        if (clean.length === 11) return `(${clean.slice(0, 2)}) ${clean.slice(2, 7)}-${clean.slice(7)}`;
+        if (clean.length === 10) return `(${clean.slice(0, 2)}) ${clean.slice(2, 6)}-${clean.slice(6)}`;
+        return phone;
+    };
+
+    const handleSavePhone = async () => {
+        setPhoneError('');
+        const clean = phoneValue.replace(/\D/g, '');
+
+        if (!clean) {
+            setPhoneError('Digite um número de telefone válido');
+            return;
+        }
+
+        if (clean.length < 10 || clean.length > 11) {
+            setPhoneError('Telefone deve ter 10 ou 11 dígitos');
+            return;
+        }
+
+        setSavingPhone(true);
+        try {
+            await api.updatePhone(clean);
+            setEditingPhone(false);
+            window.location.reload();
+        } catch (error) {
+            setPhoneError('Erro ao salvar telefone. Tente novamente.');
+            console.error(error);
+        } finally {
+            setSavingPhone(false);
+        }
     };
 
     const initials = user?.full_name ? user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'U';
@@ -96,7 +135,61 @@ export function Profile() {
                             </div>
                             <p className="text-xs text-slate-600 mt-1.5">CPF mascarado por segurança (shoulder surfing).</p>
                         </div>
-                        <InfoField label="Telefone" icon={Phone} value={user?.phone || 'Não informado'} />
+                        
+                        {/* Telefone - com edição */}
+                        <div>
+                            <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5 block">Telefone</label>
+                            {editingPhone ? (
+                                <div className="flex items-center gap-2">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-3 bg-white/5 border border-white/8 rounded-xl px-4 py-3">
+                                            <Phone size={16} className="text-slate-600 shrink-0" />
+                                            <input
+                                                type="tel"
+                                                value={phoneValue}
+                                                onChange={(e) => setPhoneValue(e.target.value)}
+                                                placeholder="(11) 99999-9999 ou 11999999999"
+                                                className="bg-transparent text-white font-medium text-sm flex-1 outline-none placeholder-slate-600"
+                                            />
+                                        </div>
+                                        {phoneError && (
+                                            <p className="text-xs text-red-400 mt-1.5">{phoneError}</p>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={handleSavePhone}
+                                        disabled={savingPhone}
+                                        className="p-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors disabled:opacity-50"
+                                        title="Salvar">
+                                        <Check size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setEditingPhone(false);
+                                            setPhoneValue(user?.phone || '');
+                                            setPhoneError('');
+                                        }}
+                                        className="p-2 rounded-lg bg-slate-600 hover:bg-slate-500 text-white transition-colors"
+                                        title="Cancelar">
+                                        <X size={16} />
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-3 bg-white/5 border border-white/8 rounded-xl px-4 py-3">
+                                    <Phone size={16} className="text-slate-600 shrink-0" />
+                                    <span className="text-white font-medium text-sm flex-1">{user?.phone ? formatPhone(user.phone) : 'Não informado'}</span>
+                                    <button
+                                        onClick={() => {
+                                            setEditingPhone(true);
+                                            setPhoneValue(user?.phone || '');
+                                        }}
+                                        className="text-slate-500 hover:text-blue-400 p-1 rounded-lg hover:bg-white/5 transition-colors"
+                                        title="Editar telefone">
+                                        <Edit2 size={16} />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
 
                         <div className="mt-auto pt-4 border-t border-white/5">
                             <div className="flex items-center gap-2 text-xs text-slate-600">

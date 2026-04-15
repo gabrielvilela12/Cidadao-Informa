@@ -271,6 +271,31 @@ export const api = {
         return result;
     },
 
+    /**
+     * Atualiza o número de telefone do usuário autenticado.
+     */
+    async updatePhone(phone: string) {
+        const token = localStorage.getItem('cidadaoinforma_token');
+        if (!token) throw new Error('Sessão inválida ou expirada.');
+
+        const payload = decodeSessionToken(token);
+        if (!payload || !payload.userId) throw new Error('Sessão inválida ou expirada.');
+
+        const { data, error } = await supabase
+            .from('users')
+            .update({ phone })
+            .eq('id', payload.userId)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Supabase updatePhone error:', error);
+            throw new Error('Erro ao atualizar telefone');
+        }
+
+        return data;
+    },
+
     // UTILS (mantido para compatibilidade com código existente)
     getAuthHeader(contentType?: string) {
         const token = localStorage.getItem('cidadaoinforma_token');
