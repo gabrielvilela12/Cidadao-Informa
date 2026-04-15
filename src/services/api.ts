@@ -8,6 +8,7 @@ interface DbUser {
     full_name: string;
     email: string;
     cpf: string;
+    phone?: string;
     role: string;
     password_hash: string;
     created_at: string;
@@ -37,6 +38,7 @@ function createSessionToken(user: DbUser): string {
         role: user.role,
         name: user.full_name,
         email: user.email,
+        phone: user.phone,
         createdAt: user.created_at,
         iat: Date.now()
     };
@@ -93,6 +95,7 @@ export const api = {
             name: user.full_name,
             email: user.email,
             cpf: user.cpf,
+            phone: user.phone,
             role: user.role,
             createdAt: user.created_at
         };
@@ -158,6 +161,7 @@ export const api = {
             name: user.full_name,
             email: user.email,
             cpf: user.cpf,
+            phone: user.phone,
             role: user.role,
             createdAt: user.created_at
         };
@@ -176,7 +180,7 @@ export const api = {
         // Confirma que o usuário ainda existe no banco
         const { data, error } = await supabase
             .from('users')
-            .select('id, full_name, email, cpf, role, created_at')
+            .select('id, full_name, email, cpf, phone, role, created_at')
             .eq('id', payload.userId)
             .single();
 
@@ -191,6 +195,7 @@ export const api = {
             name: user.full_name,
             email: user.email,
             cpf: user.cpf,
+            phone: user.phone,
             role: user.role,
             createdAt: user.created_at
         };
@@ -204,7 +209,7 @@ export const api = {
     async getProtocols(userId?: string) {
         let query = supabase
             .from('protocols')
-            .select('*')
+            .select('*, users!inner(phone)')
             .order('created_at', { ascending: false });
 
         if (userId) {
@@ -218,11 +223,12 @@ export const api = {
             throw new Error('Erro ao buscar protocolos');
         }
 
-        return (data as DbProtocol[]).map((item) => ({
+        return (data as any[]).map((item) => ({
             ...item,
             id: item.id,
             service: item.category || 'Outros',
             requester: item.requester || 'Usuário',
+            phone: item.users?.phone,
             date: item.created_at
                 ? new Date(item.created_at).toLocaleDateString('pt-BR')
                 : 'Data não informada',

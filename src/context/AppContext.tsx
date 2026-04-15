@@ -13,6 +13,7 @@ interface AppUser {
   cpf: string;
   full_name: string;
   email: string;
+  phone?: string;
   created_at?: string;
 }
 
@@ -67,6 +68,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             cpf: userData.cpf,
             full_name: userData.name,
             email: userData.email,
+            phone: userData.phone,
             created_at: userData.createdAt
           });
           setRoleState((userData.role as UserRole) || savedRole || 'citizen');

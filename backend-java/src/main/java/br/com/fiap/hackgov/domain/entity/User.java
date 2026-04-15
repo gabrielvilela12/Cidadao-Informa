@@ -26,6 +26,9 @@ public class User {
     @Column(name = "cpf", nullable = false)
     private String cpf;
 
+    @Column(name = "phone")
+    private String phone;
+
     @Column(name = "role", nullable = false)
     private String role;
 
@@ -78,6 +81,14 @@ public class User {
 
     public void setCpf(String cpf) {
         this.cpf = cpf;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 
     public String getRole() {

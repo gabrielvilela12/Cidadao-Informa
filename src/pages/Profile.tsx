@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { User, Mail, Shield, Calendar, KeyRound, Eye, EyeOff, MapPin } from 'lucide-react';
+import { User, Mail, Shield, Calendar, KeyRound, Eye, EyeOff, MapPin, Phone } from 'lucide-react';
 import { Header } from '../components/Header';
 
 export function Profile() {
@@ -96,6 +96,7 @@ export function Profile() {
                             </div>
                             <p className="text-xs text-slate-600 mt-1.5">CPF mascarado por segurança (shoulder surfing).</p>
                         </div>
+                        <InfoField label="Telefone" icon={Phone} value={user?.phone || 'Não informado'} />
 
                         <div className="mt-auto pt-4 border-t border-white/5">
                             <div className="flex items-center gap-2 text-xs text-slate-600">

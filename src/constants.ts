@@ -18,4 +18,5 @@ export interface Protocol {
   status: Status;
   category: string;
   requester?: string;
+  phone?: string;
 }

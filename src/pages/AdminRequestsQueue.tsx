@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Header } from '../components/Header';
 import { useProtocols } from '../hooks/useProtocols';
-import { Search, Filter, Eye, Download, List as ListIcon, ChevronDown } from 'lucide-react';
+import { Search, Filter, Eye, Download, List as ListIcon, ChevronDown, MessageCircle } from 'lucide-react';
 import { StatusBadge } from './CitizenDashboard';
 import { Link } from 'react-router-dom';
 import { exportToExcel } from '../utils/exportUtils';
@@ -11,6 +11,14 @@ export function AdminRequestsQueue() {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [categoryFilter, setCategoryFilter] = useState('all');
+
+    const openWhatsApp = (phone?: string) => {
+        if (phone) {
+            const cleanPhone = phone.replace(/\D/g, '');
+            const whatsappUrl = `https://wa.me/${cleanPhone}`;
+            window.open(whatsappUrl, '_blank');
+        }
+    };
 
     const filteredProtocols = useMemo(() => {
         return protocols.filter(p => {
@@ -93,8 +101,8 @@ export function AdminRequestsQueue() {
                         <table className="w-full text-left text-sm whitespace-nowrap">
                             <thead>
                                 <tr className="border-b border-white/5">
-                                    {['Solicitante', 'Categoria', 'Data', 'SLA', 'Status', ''].map(h => (
-                                        <th key={h} className={`px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide ${h === '' ? 'text-right' : ''}`}>{h}</th>
+                                    {['Solicitante', 'Categoria', 'Data', 'SLA', 'Status', 'Ações'].map(h => (
+                                        <th key={h} className={`px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide ${h === 'Ações' ? 'text-right' : ''}`}>{h}</th>
                                     ))}
                                 </tr>
                             </thead>
@@ -127,9 +135,18 @@ export function AdminRequestsQueue() {
                                         </td>
                                         <td className="px-5 py-3.5"><StatusBadge status={p.status} /></td>
                                         <td className="px-5 py-3.5 text-right">
-                                            <Link to={`/protocolo/${p.id}`} className="text-slate-600 hover:text-blue-400 transition-colors p-1.5 rounded-lg hover:bg-white/5 inline-block">
-                                                <Eye size={16} />
-                                            </Link>
+                                            <div className="flex items-center justify-end gap-1.5">
+                                                <button 
+                                                    onClick={() => openWhatsApp(p.phone)}
+                                                    disabled={!p.phone}
+                                                    title={p.phone ? 'Enviar mensagem via WhatsApp' : 'Cidadão não tem telefone registrado'}
+                                                    className={`p-1.5 rounded-lg transition-colors ${p.phone ? 'text-slate-600 hover:text-green-400 hover:bg-white/5' : 'text-slate-700 cursor-not-allowed opacity-50'}`}>
+                                                    <MessageCircle size={16} />
+                                                </button>
+                                                <Link to={`/protocolo/${p.id}`} className="text-slate-600 hover:text-blue-400 transition-colors p-1.5 rounded-lg hover:bg-white/5 inline-block">
+                                                    <Eye size={16} />
+                                                </Link>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
