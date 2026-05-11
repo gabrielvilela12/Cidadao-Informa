@@ -19,6 +19,7 @@ coverage/
 
 # ── Variáveis de ambiente (NÃO commitar credenciais) ─────────
 .env*
+!.env.example
 
 # ── Banco de dados SQLite ─────────────────────────────────────
 *.db
