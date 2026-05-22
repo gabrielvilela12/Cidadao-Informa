@@ -103,9 +103,13 @@ export function AdminRequestsQueue() {
                         <table className="w-full text-left text-sm whitespace-nowrap">
                             <thead>
                                 <tr className="border-b border-white/5">
-                                    {['Solicitante', 'Categoria', 'Data', 'SLA', 'Status', 'Prioridade', 'Ações'].map(h => (
-                                        <th key={h} className={`px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide ${h === 'Ações' ? 'text-right' : ''}`}>{h}</th>
-                                    ))}
+                                    <th className="px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Solicitante</th>
+                                    <th className="px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide hidden sm:table-cell">Categoria</th>
+                                    <th className="px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide hidden sm:table-cell">Data</th>
+                                    <th className="px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide hidden md:table-cell">SLA</th>
+                                    <th className="px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Status</th>
+                                    <th className="px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Prioridade</th>
+                                    <th className="px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide text-right">Ações</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
@@ -121,23 +125,23 @@ export function AdminRequestsQueue() {
                                     >
                                         <td className="px-5 py-3.5">
                                             <div className="flex items-center gap-3">
-                                                <div className="size-8 rounded-full bg-blue-600/15 border border-blue-500/20 flex items-center justify-center text-xs font-black text-blue-400">
+                                                <div className="size-8 rounded-full bg-blue-600/15 border border-blue-500/20 flex items-center justify-center text-xs font-black text-blue-400 shrink-0">
                                                     {p.requester?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                                                 </div>
-                                                <div>
-                                                    <p className="text-white font-medium text-sm">{p.requester}</p>
+                                                <div className="min-w-0">
+                                                    <p className="text-white font-medium text-sm truncate max-w-[140px] sm:max-w-none">{p.requester}</p>
                                                     <p className="text-slate-600 text-xs">Cidadão Verificado</p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-5 py-3.5">
+                                        <td className="px-5 py-3.5 hidden sm:table-cell">
                                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${catColors[p.category] || catColors['Outros']}`}>
                                                 <span className={`size-1.5 rounded-full ${catDots[p.category] || catDots['Outros']}`} />
                                                 {p.category}
                                             </span>
                                         </td>
-                                        <td className="px-5 py-3.5 text-slate-500 text-xs">{p.date}</td>
-                                        <td className="px-5 py-3.5">
+                                        <td className="px-5 py-3.5 text-slate-500 text-xs hidden sm:table-cell">{p.date}</td>
+                                        <td className="px-5 py-3.5 hidden md:table-cell">
                                             <span className={`text-xs font-medium ${p.status === 'Atrasado' ? 'text-red-400' : p.status === 'Resolved' || p.status === 'Concluído' ? 'text-emerald-400' : 'text-slate-400'}`}>
                                                 {p.status === 'Atrasado' ? 'Vencido' : 'Em dia'}
                                             </span>
