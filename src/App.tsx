@@ -10,6 +10,7 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminMap } from './pages/AdminMap';
 import { AdminRequestsQueue } from './pages/AdminRequestsQueue';
 import { AdminReports } from './pages/AdminReports';
+import { AiLogsPage } from './pages/AiLogsPage';
 import { ProtocolDetails } from './pages/ProtocolDetails';
 import { Login } from './pages/Login';
 import { LandingPage } from './pages/LandingPage';
@@ -65,6 +66,7 @@ function AppContent() {
           <Route path="/admin/solicitacoes" element={<AdminRequestsQueue />} />
           <Route path="/admin/mapa" element={<AdminMap />} />
           <Route path="/admin/relatorios" element={<AdminReports />} />
+          <Route path="/admin/ai-logs" element={<AiLogsPage />} />
 
           {/* Shared Routes */}
           <Route path="/perfil" element={<Profile />} />
