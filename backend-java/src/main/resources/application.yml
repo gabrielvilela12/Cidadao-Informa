@@ -32,3 +32,6 @@ springdoc:
 app:
   jwt:
     secret: ${JWT_SECRET:SuperSecretKeyForCidadaoInformaApplication2026}
+  supabase:
+    edge-function-url: ${SUPABASE_EDGE_FUNCTION_URL:http://localhost:54321/functions/v1/classify-priority}
+    anon-key: ${SUPABASE_ANON_KEY}
