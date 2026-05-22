@@ -20,4 +20,6 @@ export interface Protocol {
   description?: string;
   requester?: string;
   phone?: string;
+  ai_priority?: 'baixa' | 'media' | 'alta' | 'critica' | null;
+  ai_status?: 'pending' | 'success' | 'failed';
 }

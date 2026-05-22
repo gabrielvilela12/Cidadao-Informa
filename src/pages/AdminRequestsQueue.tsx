@@ -5,6 +5,7 @@ import { Search, Filter, Eye, Download, List as ListIcon, ChevronDown, MessageCi
 import { StatusBadge } from './CitizenDashboard';
 import { Link } from 'react-router-dom';
 import { exportToExcel } from '../utils/exportUtils';
+import { PriorityBadge } from '../components/admin/PriorityBadge';
 
 export function AdminRequestsQueue() {
     const { protocols, loading } = useProtocols('admin');
@@ -101,13 +102,13 @@ export function AdminRequestsQueue() {
                         <table className="w-full text-left text-sm whitespace-nowrap">
                             <thead>
                                 <tr className="border-b border-white/5">
-                                    {['Solicitante', 'Categoria', 'Data', 'SLA', 'Status', 'Ações'].map(h => (
+                                    {['Solicitante', 'Categoria', 'Data', 'SLA', 'Status', 'Prioridade', 'Ações'].map(h => (
                                         <th key={h} className={`px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide ${h === 'Ações' ? 'text-right' : ''}`}>{h}</th>
                                     ))}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
-                                {loading && <tr><td colSpan={6} className="px-5 py-12 text-center text-slate-500">Carregando...</td></tr>}
+                                {loading && <tr><td colSpan={7} className="px-5 py-12 text-center text-slate-500">Carregando...</td></tr>}
                                 {!loading && filteredProtocols.map((p) => (
                                     <tr key={p.id} className="hover:bg-white/5 transition-colors">
                                         <td className="px-5 py-3.5">
@@ -134,6 +135,13 @@ export function AdminRequestsQueue() {
                                             </span>
                                         </td>
                                         <td className="px-5 py-3.5"><StatusBadge status={p.status} /></td>
+                                        <td className="px-5 py-3.5 whitespace-nowrap">
+                                            <PriorityBadge
+                                                priority={p.ai_priority || null}
+                                                status={p.ai_status === 'failed' ? 'failed' : p.ai_status === 'success' ? 'success' : 'pending'}
+                                                showLabel={true}
+                                            />
+                                        </td>
                                         <td className="px-5 py-3.5 text-right">
                                             <div className="flex items-center justify-end gap-1.5">
                                                 <button 
@@ -151,7 +159,7 @@ export function AdminRequestsQueue() {
                                     </tr>
                                 ))}
                                 {!loading && filteredProtocols.length === 0 && (
-                                    <tr><td colSpan={6} className="px-5 py-12 text-center text-slate-500">Nenhum protocolo encontrado.</td></tr>
+                                    <tr><td colSpan={7} className="px-5 py-12 text-center text-slate-500">Nenhum protocolo encontrado.</td></tr>
                                 )}
                             </tbody>
                         </table>
