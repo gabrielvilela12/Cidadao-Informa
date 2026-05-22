@@ -116,8 +116,8 @@ export function AdminRequestsQueue() {
                                         onClick={() => navigate(`/protocolo/${p.id}`)}
                                         className="cursor-pointer"
                                         style={{ transition: 'background 0.15s' }}
-                                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
-                                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(59,130,246,0.15)')}
+                                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = '')}
                                     >
                                         <td className="px-5 py-3.5">
                                             <div className="flex items-center gap-3">
