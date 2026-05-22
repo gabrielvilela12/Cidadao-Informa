@@ -49,6 +49,12 @@ public class Protocol {
     @Column(name = "requester", nullable = false)
     private String requester;
 
+    @Column(name = "ai_priority")
+    private String aiPriority;
+
+    @Column(name = "ai_status")
+    private String aiStatus;
+
     @PrePersist
     public void prePersist() {
         if (id == null || id.isBlank()) {
@@ -135,5 +141,21 @@ public class Protocol {
 
     public void setRequester(String requester) {
         this.requester = requester;
+    }
+
+    public String getAiPriority() {
+        return aiPriority;
+    }
+
+    public void setAiPriority(String aiPriority) {
+        this.aiPriority = aiPriority;
+    }
+
+    public String getAiStatus() {
+        return aiStatus;
+    }
+
+    public void setAiStatus(String aiStatus) {
+        this.aiStatus = aiStatus;
     }
 }
