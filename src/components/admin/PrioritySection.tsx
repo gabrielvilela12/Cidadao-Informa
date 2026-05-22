@@ -3,9 +3,11 @@ import { PriorityBadge } from './PriorityBadge';
 import { ChangePriorityModal } from './ChangePriorityModal';
 import { aiPriorityService } from '../../services/aiPriorityService';
 
+type Priority = 'baixa' | 'media' | 'alta' | 'critica';
+
 interface PrioritySectionProps {
   protocolId: string;
-  initialPriority?: string | null;
+  initialPriority?: Priority | null;
   initialStatus?: 'success' | 'failed' | 'pending';
 }
 
@@ -14,7 +16,7 @@ export const PrioritySection: React.FC<PrioritySectionProps> = ({
   initialPriority,
   initialStatus = 'pending',
 }) => {
-  const [priority, setPriority] = useState(initialPriority);
+  const [priority, setPriority] = useState<Priority | null | undefined>(initialPriority);
   const [status, setStatus] = useState(initialStatus);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -40,7 +42,7 @@ export const PrioritySection: React.FC<PrioritySectionProps> = ({
   };
 
   const handleChangePriority = async (
-    newPriority: string,
+    newPriority: Priority,
     reason?: string
   ) => {
     try {
@@ -50,7 +52,7 @@ export const PrioritySection: React.FC<PrioritySectionProps> = ({
         newPriority,
         reason
       );
-      setPriority(newPriority as any);
+      setPriority(newPriority);
       setStatus('success');
       setShowModal(false);
     } catch (error) {
