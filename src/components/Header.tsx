@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, Type, Contrast, Check, Menu, Keyboard } from 'lucide-react';
+import { Bell, Type, Check, Menu, Keyboard } from 'lucide-react';
 import { useA11y } from '../context/A11yContext';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import { CITIZEN_SHORTCUTS, ADMIN_SHORTCUTS, SHARED_SHORTCUTS } from '../hooks/useKeyboardShortcuts';
+import { ThemeSwitch } from './ThemeSwitch';
 
 interface HeaderProps {
   title: string;
@@ -11,7 +12,7 @@ interface HeaderProps {
 }
 
 export function Header({ title, subtitle }: HeaderProps) {
-  const { fontSize, setFontSize, theme, setTheme } = useA11y();
+  const { fontSize, setFontSize } = useA11y();
   const { role, toggleMobileMenu } = useApp();
   const navigate = useNavigate();
 
@@ -24,11 +25,6 @@ export function Header({ title, subtitle }: HeaderProps) {
   const shortcutsRef = useRef<HTMLDivElement>(null);
 
   const mainShortcuts = role === 'citizen' ? CITIZEN_SHORTCUTS : ADMIN_SHORTCUTS;
-
-  const handleTheme = () => {
-    if (theme === 'dark') setTheme('light');
-    else setTheme('dark');
-  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -132,9 +128,7 @@ export function Header({ title, subtitle }: HeaderProps) {
           )}
         </div>
 
-        <button onClick={handleTheme} className={iconBtnClass} title="Alternar Tema">
-          <Contrast size={16} />
-        </button>
+        <ThemeSwitch />
 
         <div className="h-5 w-px bg-white/10 mx-1" />
 

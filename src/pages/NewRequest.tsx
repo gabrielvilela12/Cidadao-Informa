@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
+import { Button3D } from '../components/Button3D';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -245,7 +246,7 @@ export function NewRequest() {
                   <button
                     key={cat.id}
                     onClick={() => setCategory(cat.id)}
-                    className={`p-6 rounded-xl border text-left transition-all flex flex-col gap-4 ${category === cat.id ? 'bg-blue-600/10 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'bg-[#111418] border-slate-700 hover:border-slate-500 hover:bg-[#1a2027]'}`}
+                    className={`category-card p-6 rounded-xl border text-left flex flex-col gap-4 ${category === cat.id ? 'is-selected bg-blue-600/10 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'bg-[#111418] border-slate-700'}`}
                   >
                     <div>{cat.icon}</div>
                     <div>
@@ -428,7 +429,7 @@ export function NewRequest() {
                 <div className="bg-[#1c2632] rounded-xl shadow-sm border border-slate-700 overflow-hidden flex flex-col h-full min-h-[400px]">
                   <div className="p-3 border-b border-slate-700 bg-[#1c2632] flex justify-between items-center z-10">
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-400 pl-2">Mapa Interativo</span>
-                    <button onClick={handleUseMyLocation} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#283039] border border-slate-700 text-slate-200 text-xs font-medium hover:bg-[#3b4754] transition-colors shadow-sm focus:outline-none">
+                    <button onClick={handleUseMyLocation} className="pill-btn flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#283039] border border-slate-700 text-slate-200 text-xs font-medium shadow-sm focus:outline-none">
                       <LocateFixed size={16} />
                       Usar minha localização atual
                     </button>
@@ -511,7 +512,8 @@ export function NewRequest() {
 
           {/* Action Bar */}
           <div className="sticky bottom-0 bg-[#101922] pt-4 pb-8 border-t border-slate-800 mt-4 flex items-center justify-between lg:justify-end gap-4 z-40">
-            <button
+            <Button3D
+              variant="white"
               onClick={() => {
                 if (currentStep > 1) {
                   setCurrentStep((prev) => (prev - 1) as 1 | 2 | 3);
@@ -519,19 +521,20 @@ export function NewRequest() {
                   navigate(-1);
                 }
               }}
-              className="px-6 py-3 rounded-lg border border-slate-700 text-slate-200 font-bold hover:bg-[#283039] transition-colors w-full lg:w-auto"
+              className="w-full lg:w-auto"
             >
               {currentStep > 1 ? 'Voltar' : 'Cancelar'}
-            </button>
-            <button
+            </Button3D>
+            <Button3D
+              variant="blue"
               onClick={currentStep < 3 ? handleNextStep : handleSubmit}
               disabled={loading}
-              className="px-8 py-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-500/30 transition-all transform hover:-translate-y-0.5 w-full lg:w-auto flex items-center justify-center gap-2 disabled:opacity-50 disabled:hover:translate-y-0"
+              className="w-full lg:w-auto"
             >
               {loading && <Loader2 size={16} className="animate-spin" />}
               {currentStep === 1 ? 'Continuar' : currentStep === 2 ? 'Revisar Solicitação' : (!loading && 'Finalizar Solicitação')}
               {currentStep < 3 ? <ArrowRight size={16} /> : (!loading && <Check size={16} />)}
-            </button>
+            </Button3D>
           </div>
         </div>
       </main>

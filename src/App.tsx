@@ -19,6 +19,7 @@ import { Accessibility } from './pages/Accessibility';
 import { A11yProvider } from './context/A11yContext';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { PublicProtocol } from './pages/PublicProtocol';
+import { NotFound } from './pages/NotFound';
 
 /**
  * Componente principal de roteamento e layout da aplicação.
@@ -42,7 +43,7 @@ function AppContent() {
         <Route path="/login" element={<Login initialMode={false} />} />
         <Route path="/cadastro" element={<Login initialMode={true} />} />
         <Route path="/p/:id" element={<PublicProtocol />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     );
   }
@@ -75,7 +76,7 @@ function AppContent() {
           <Route path="/acessibilidade" element={<Accessibility />} />
 
           {/* Fallback */}
-          <Route path="*" element={<Navigate to={role === 'citizen' ? '/' : '/admin'} replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
     </div>
