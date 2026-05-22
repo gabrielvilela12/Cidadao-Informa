@@ -3,12 +3,13 @@ import { Header } from '../components/Header';
 import { useProtocols } from '../hooks/useProtocols';
 import { Search, Filter, Eye, Download, List as ListIcon, ChevronDown, MessageCircle } from 'lucide-react';
 import { StatusBadge } from './CitizenDashboard';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { exportToExcel } from '../utils/exportUtils';
 import { PriorityBadge } from '../components/admin/PriorityBadge';
 
 export function AdminRequestsQueue() {
     const { protocols, loading } = useProtocols('admin');
+    const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [categoryFilter, setCategoryFilter] = useState('all');
@@ -110,7 +111,11 @@ export function AdminRequestsQueue() {
                             <tbody className="divide-y divide-white/5">
                                 {loading && <tr><td colSpan={7} className="px-5 py-12 text-center text-slate-500">Carregando...</td></tr>}
                                 {!loading && filteredProtocols.map((p) => (
-                                    <tr key={p.id} className="hover:bg-white/5 transition-colors">
+                                    <tr
+                                        key={p.id}
+                                        onClick={() => navigate(`/protocolo/${p.id}`)}
+                                        className="hover:bg-white/5 transition-colors cursor-pointer group"
+                                    >
                                         <td className="px-5 py-3.5">
                                             <div className="flex items-center gap-3">
                                                 <div className="size-8 rounded-full bg-blue-600/15 border border-blue-500/20 flex items-center justify-center text-xs font-black text-blue-400">
@@ -144,14 +149,18 @@ export function AdminRequestsQueue() {
                                         </td>
                                         <td className="px-5 py-3.5 text-right">
                                             <div className="flex items-center justify-end gap-1.5">
-                                                <button 
-                                                    onClick={() => openWhatsApp(p.phone)}
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); openWhatsApp(p.phone); }}
                                                     disabled={!p.phone}
                                                     title={p.phone ? 'Enviar mensagem via WhatsApp' : 'Cidadão não tem telefone registrado'}
                                                     className={`p-1.5 rounded-lg transition-colors ${p.phone ? 'text-slate-600 hover:text-green-400 hover:bg-white/5' : 'text-slate-700 cursor-not-allowed opacity-50'}`}>
                                                     <MessageCircle size={16} />
                                                 </button>
-                                                <Link to={`/protocolo/${p.id}`} className="text-slate-600 hover:text-blue-400 transition-colors p-1.5 rounded-lg hover:bg-white/5 inline-block">
+                                                <Link
+                                                    to={`/protocolo/${p.id}`}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="text-slate-600 hover:text-blue-400 transition-colors p-1.5 rounded-lg hover:bg-white/5 inline-block"
+                                                >
                                                     <Eye size={16} />
                                                 </Link>
                                             </div>
