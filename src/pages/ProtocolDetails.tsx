@@ -51,7 +51,7 @@ export function ProtocolDetails() {
         <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#101922]">
             <Header title={`Protocolo ${protocol.id}`} subtitle="Detalhes da Solicitação" />
 
-            <div className="p-8 max-w-7xl mx-auto w-full flex flex-col gap-6">
+            <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6">
                 <Link to={-1 as any} className="text-slate-400 hover:text-white flex items-center gap-2 w-fit mb-2 transition-colors">
                     <ArrowLeft size={18} />
                     Voltar
@@ -65,9 +65,9 @@ export function ProtocolDetails() {
                         <div className="bg-[#1a242f] border border-[#283039] rounded-xl p-6 flex flex-wrap justify-between items-start gap-4">
                             <div>
                                 <h2 className="text-2xl font-bold text-white mb-2">{protocol.service || `Acessibilidade ${protocol.category}`}</h2>
-                                <div className="flex items-center gap-4 text-sm text-[#9dabb9]">
-                                    <span className="flex items-center gap-1.5"><Calendar size={16} /> Aberto em: {protocol.date}</span>
-                                    <span className="flex items-center gap-1.5"><MapPin size={16} /> {protocol.address || 'Av. Central, São Paulo'}</span>
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-[#9dabb9]">
+                                    <span className="flex items-center gap-1.5 whitespace-nowrap"><Calendar size={16} /> Aberto em: {protocol.date}</span>
+                                    <span className="flex items-center gap-1.5 min-w-0"><MapPin size={16} className="shrink-0" /> <span className="truncate">{protocol.address || 'Av. Central, São Paulo'}</span></span>
                                 </div>
                             </div>
                             <StatusBadge status={protocol.status} />

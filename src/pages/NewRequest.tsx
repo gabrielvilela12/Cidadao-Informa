@@ -227,7 +227,7 @@ export function NewRequest() {
           {/* Content Area */}
           {/* Step 1: Tipo */}
           {currentStep === 1 && (
-            <div className="bg-[#1c2632] rounded-xl p-8 shadow-sm border border-slate-700 flex flex-col gap-8 min-h-[400px]">
+            <div className="bg-[#1c2632] rounded-xl p-4 sm:p-8 shadow-sm border border-slate-700 flex flex-col gap-6 sm:gap-8 min-h-[400px]">
               <div className="flex items-center gap-4 border-b border-slate-800 pb-4">
                 <div>
                   <h2 className="text-2xl font-bold text-white">Categoria de Acessibilidade</h2>
@@ -235,7 +235,7 @@ export function NewRequest() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {[
                   { id: 'Física', icon: <Footprints size={40} className={category === 'Física' ? 'text-blue-400' : 'text-slate-400'} />, title: 'Física', desc: 'Buracos na calçada, rampas bloqueadas, etc.' },
                   { id: 'Visual', icon: <Eye size={40} className={category === 'Visual' ? 'text-blue-400' : 'text-slate-400'} />, title: 'Visual', desc: 'Piso tátil ausente ou danificado, etc.' },
@@ -324,8 +324,8 @@ export function NewRequest() {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="flex flex-col gap-2 col-span-1">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <div className="flex flex-col gap-2">
                       <label className="text-sm font-medium text-slate-300">Número</label>
                       <input
                         className="block w-full p-3 rounded-lg bg-[#111418] border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
@@ -334,7 +334,7 @@ export function NewRequest() {
                         onChange={(e) => setAddressObj({ ...addressObj, number: e.target.value })}
                       />
                     </div>
-                    <div className="flex flex-col gap-2 col-span-2">
+                    <div className="flex flex-col gap-2 col-span-1 sm:col-span-2">
                       <label className="text-sm font-medium text-slate-300">Bairro</label>
                       <input
                         className="block w-full p-3 rounded-lg bg-[#111418] border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
@@ -400,7 +400,7 @@ export function NewRequest() {
                     <p className="text-slate-400 text-xs">JPG, PNG até 5MB</p>
                   </label>
 
-                  <div className="grid grid-cols-4 gap-2 mt-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
                     {images.map((file, index) => (
                       <div key={index} className="aspect-square rounded-lg bg-[#283039] relative overflow-hidden group">
                         <img
@@ -458,7 +458,7 @@ export function NewRequest() {
 
           {/* Review Step */}
           {currentStep === 3 && (
-            <div className="bg-[#1c2632] rounded-xl p-8 shadow-sm border border-slate-700 flex flex-col gap-8 min-h-[400px]">
+            <div className="bg-[#1c2632] rounded-xl p-4 sm:p-8 shadow-sm border border-slate-700 flex flex-col gap-6 sm:gap-8 min-h-[400px]">
               <div className="flex items-center gap-4 border-b border-slate-800 pb-4">
                 <CheckCircle className="text-green-500 shrink-0" size={32} />
                 <div>

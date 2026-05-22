@@ -107,7 +107,7 @@ export function LandingPage() {
                         Portal de Acessibilidade Urbana
                     </span>
 
-                    <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-[1.05]">
+                    <h1 className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tight leading-[1.05]">
                         Cidadão
                         <br />
                         <span className="hero-fill-word" aria-label="Informa">
@@ -190,7 +190,7 @@ export function LandingPage() {
 
             {/* ── Stats ── */}
             <section className="py-16 px-6 border-y border-white/5 bg-white/[0.02]">
-                <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div className="max-w-5xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
                     {stats.map((s, i) => (
                         <motion.div
                             key={i}

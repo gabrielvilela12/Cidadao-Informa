@@ -67,7 +67,7 @@ export function Header({ title, subtitle }: HeaderProps) {
             <Keyboard size={16} />
           </button>
           {showShortcuts && (
-            <div className="absolute right-0 mt-2 w-72 bg-[#0d1520] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50">
+            <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1rem)] bg-[#0d1520] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50">
               <div className="px-4 py-3 border-b border-white/8 flex items-center gap-2">
                 <Keyboard size={14} className="text-blue-400" />
                 <h3 className="font-bold text-white text-sm">Atalhos de Teclado</h3>
@@ -115,7 +115,7 @@ export function Header({ title, subtitle }: HeaderProps) {
             <Type size={16} />
           </button>
           {showFontSize && (
-            <div className="absolute right-0 mt-2 w-72 bg-[#0d1520] border border-white/10 rounded-2xl shadow-2xl z-50 p-5">
+            <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1rem)] bg-[#0d1520] border border-white/10 rounded-2xl shadow-2xl z-50 p-5">
               <h3 className="font-bold text-white mb-1 text-sm">Tamanho do Texto</h3>
               <p className="text-xs text-slate-500 mb-4">Ajuste: <span className="text-white font-bold">{fontSize}%</span></p>
               <div className="flex items-center gap-4">
@@ -147,7 +147,7 @@ export function Header({ title, subtitle }: HeaderProps) {
             )}
           </button>
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 bg-[#0d1520] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50">
+            <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1rem)] bg-[#0d1520] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50">
               <div className="px-4 py-3 border-b border-white/8 flex justify-between items-center">
                 <h3 className="font-bold text-white text-sm">Notificações</h3>
                 {unreadCount > 0 && (

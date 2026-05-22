@@ -72,9 +72,11 @@ export function CitizenProtocols() {
                         <table className="w-full text-left text-sm">
                             <thead>
                                 <tr className="border-b border-white/5">
-                                    {['Serviço / Endereço', 'Protocolo', 'Data', 'Status', ''].map(h => (
-                                        <th key={h} className={`px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide ${h === '' ? 'text-right' : ''}`}>{h}</th>
-                                    ))}
+                                    <th className="px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Serviço / Endereço</th>
+                                    <th className="px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide hidden sm:table-cell">Protocolo</th>
+                                    <th className="px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide hidden sm:table-cell">Data</th>
+                                    <th className="px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Status</th>
+                                    <th className="px-5 py-3 text-right" />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
@@ -82,11 +84,11 @@ export function CitizenProtocols() {
                                 {!loading && filteredProtocols.map((p) => (
                                     <tr key={p.id} className="hover:bg-white/5 transition-colors">
                                         <td className="px-5 py-3.5">
-                                            <p className="text-slate-200 font-medium truncate max-w-[240px]">{p.service}</p>
-                                            <p className="text-slate-600 text-xs truncate">{p.address}</p>
+                                            <p className="text-slate-200 font-medium truncate max-w-[180px] sm:max-w-[240px]">{p.service}</p>
+                                            <p className="text-slate-600 text-xs truncate max-w-[180px] sm:max-w-[240px]">{p.address}</p>
                                         </td>
-                                        <td className="px-5 py-3.5 font-mono text-slate-500 text-xs">{p.id}</td>
-                                        <td className="px-5 py-3.5 text-slate-500 text-xs whitespace-nowrap">{p.date}</td>
+                                        <td className="px-5 py-3.5 font-mono text-slate-500 text-xs hidden sm:table-cell">{p.id}</td>
+                                        <td className="px-5 py-3.5 text-slate-500 text-xs whitespace-nowrap hidden sm:table-cell">{p.date}</td>
                                         <td className="px-5 py-3.5"><StatusBadge status={p.status} /></td>
                                         <td className="px-5 py-3.5 text-right">
                                             <Link to={`/protocolo/${p.id}`} className="text-slate-600 hover:text-blue-400 transition-colors p-1.5 rounded-lg hover:bg-white/5 inline-block">
