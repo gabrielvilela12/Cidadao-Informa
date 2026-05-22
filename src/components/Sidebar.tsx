@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, Briefcase, User, LogOut, BarChart3, List, Accessibility as A11yIcon, X, MapPin, Shield, UserCircle } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, Briefcase, User, LogOut, BarChart3, List, Accessibility as A11yIcon, X, Shield, UserCircle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { CidadaoBrand } from './CidadaoBrand';
 
 export function Sidebar() {
   const { role, setRole, logout, user, isMobileMenuOpen, toggleMobileMenu } = useApp();
@@ -56,14 +57,7 @@ export function Sidebar() {
 
         {/* Logo */}
         <div className="flex items-center justify-between px-6 h-16 border-b border-white/5">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center size-8 rounded-lg bg-blue-600 shadow-lg shadow-blue-600/40">
-              <MapPin size={16} />
-            </div>
-            <span className="font-bold tracking-tight text-white">
-              Cidadão <span className="text-blue-400">Informa</span>
-            </span>
-          </div>
+          <CidadaoBrand />
           <button
             onClick={toggleMobileMenu}
             className="md:hidden text-slate-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-colors"

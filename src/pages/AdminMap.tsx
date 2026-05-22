@@ -186,7 +186,7 @@ export function AdminMap() {
   }));
 
   return (
-    <div className="flex-1 relative bg-[#080d12] overflow-hidden font-sans flex flex-col">
+    <div className="map-theme flex-1 relative bg-[#080d12] overflow-hidden font-sans flex flex-col">
 
       {/* ── Top toolbar ──────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 px-4 py-3 bg-[#080d12] border-b border-white/5 shrink-0 z-30">

@@ -19,6 +19,7 @@ A full-stack civic-tech application built for the HackGov/FIAP hackathon. Citize
 - [[Citizen Domain]] — citizen-facing pages and journey
 - [[Infrastructure Overview]] — Supabase, database schema, deploy
 - [[API Overview]] — REST endpoints and contracts
+- [[AI Standards]] — long-term AI prompts, skills, maintenance and Brazilian institutional UI standards
 
 ## Architecture
 

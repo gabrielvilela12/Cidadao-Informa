@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { supabase } from '../services/supabase';
+import { CidadaoBrand } from '../components/CidadaoBrand';
 
 // Fix leaflet icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -88,10 +89,7 @@ export function PublicProtocol() {
             <nav className="border-b border-white/5 bg-[#080d12]/80 backdrop-blur-md sticky top-0 z-50">
                 <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
                     <Link to="/" className="flex items-center gap-2 group">
-                        <div className="size-7 rounded-lg bg-blue-600 flex items-center justify-center">
-                            <Shield size={14} className="text-white" />
-                        </div>
-                        <span className="font-black text-sm text-white group-hover:text-blue-400 transition-colors">Cidadão Informa</span>
+                        <CidadaoBrand compact showIcon={false} />
                     </Link>
                     <div className="flex items-center gap-2">
                         <button onClick={handleCopyLink}
@@ -255,7 +253,7 @@ export function PublicProtocol() {
             {/* Footer */}
             <footer className="border-t border-white/5 mt-16 py-6">
                 <div className="max-w-5xl mx-auto px-4 text-center text-xs text-slate-600">
-                    © {new Date().getFullYear()} Cidadão Informa — Portal de Acessibilidade Urbana
+                    © {new Date().getFullYear()} Cidadão Informa - Portal de Acessibilidade Urbana
                 </div>
             </footer>
         </div>

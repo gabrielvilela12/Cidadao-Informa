@@ -27,7 +27,7 @@ export function CitizenDashboard() {
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#080d12]">
-      <Header title={`Olá, ${firstName} 👋`} subtitle={formattedDate} />
+      <Header title={`Olá, ${firstName}`} subtitle={formattedDate} />
 
       <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6">
 
@@ -66,16 +66,14 @@ export function CitizenDashboard() {
             {/* CTA card */}
             <motion.div
               whileHover={{ scale: 1.02 }}
-              className="relative bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-6 overflow-hidden cursor-pointer shadow-xl shadow-blue-600/20"
+              className="brand-blue-card relative rounded-2xl p-6 overflow-hidden cursor-pointer shadow-xl"
               onClick={() => navigate('/nova-solicitacao')}
             >
-              <div className="absolute -right-6 -bottom-6 size-32 bg-white/5 rounded-full" />
-              <div className="absolute -right-2 -bottom-2 size-20 bg-white/5 rounded-full" />
-              <h3 className="text-lg font-black text-white mb-1 relative z-10">Nova Solicitação</h3>
-              <p className="text-blue-100 text-sm leading-relaxed mb-5 relative z-10">
+              <h3 className="text-lg font-black mb-1 relative z-10">Nova Solicitação</h3>
+              <p className="text-sm leading-relaxed mb-5 relative z-10">
                 Relate problemas de acessibilidade na sua cidade.
               </p>
-              <button className="flex items-center gap-2 bg-white/15 hover:bg-white/25 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-all relative z-10">
+              <button className="brand-blue-card-button flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl transition-all relative z-10">
                 <Plus size={16} /> Criar solicitação
               </button>
             </motion.div>

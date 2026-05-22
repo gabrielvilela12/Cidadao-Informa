@@ -181,7 +181,7 @@ export function CitizenMap() {
   };
 
   return (
-    <div className="flex-1 relative bg-[#1c2127] h-screen overflow-hidden font-sans">
+    <div className="map-theme flex-1 relative bg-[#1c2127] h-screen overflow-hidden font-sans">
       {/* Map Area */}
       <div className="absolute inset-0 z-0" style={{ colorScheme: 'light' }}>
         <MapContainer

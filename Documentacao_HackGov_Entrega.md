@@ -12,7 +12,7 @@
 - **O que entra:** Captura de GPS (ou endereço manual), upload de ao menos 1 foto, seleção de categoria obrigatória.
 - **O que não entra:** Acompanhamento do trabalho da equipe em tempo real no mapa (fora de escopo para MVP).
 - **Critérios de Aceitação:**
-  1. O sistema deve validar se o CPF do usuário é válido (integração Gov.br simulada).
+  1. O sistema deve validar se o CPF do usuário é válido (validacao de identidade simulada).
   2. A ocorrência não pode ser salva sem categoria, descrição e localização.
   3. Ao salvar, o sistema deve emitir um "Protocolo de Atendimento" único.
 - **Regras e Exceções:** 
@@ -61,7 +61,7 @@ Atores principais: `Cidadão`, `Atendente de Triagem`, `Gestão`.
 usecaseDiagram
     actor Cidadão as "Cidadão"
     actor Atendente as "Atendente Triagem"
-    actor SistemaLegado as "Sistema Censo/Gov.br"
+    actor SistemaLegado as "Sistema de Dados Cadastrais"
 
     Cidadão --> (Abrir Solicitação Zeladoria)
     Cidadão --> (Consultar Status Protocolo)

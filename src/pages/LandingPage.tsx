@@ -4,6 +4,7 @@ import {
     MapPin, ArrowRight, Shield, Zap, Users, BarChart3,
     CheckCircle, ChevronRight, Star, MessageSquare, Eye
 } from 'lucide-react';
+import { CidadaoBrand } from '../components/CidadaoBrand';
 
 export function LandingPage() {
     const navigate = useNavigate();
@@ -17,11 +18,11 @@ export function LandingPage() {
             border: 'border-blue-500/20',
         },
         {
-            icon: <Zap className="text-orange-400" size={28} />,
+            icon: <Zap className="text-yellow-400" size={28} />,
             title: 'Respostas Rápidas',
             desc: 'Protocolo gerado instantaneamente. Acompanhe cada etapa da sua solicitação em tempo real.',
-            color: 'from-orange-500/10 to-orange-500/5',
-            border: 'border-orange-500/20',
+            color: 'from-yellow-500/20 to-yellow-500/5',
+            border: 'border-yellow-500/30',
         },
         {
             icon: <Shield className="text-green-400" size={28} />,
@@ -31,11 +32,11 @@ export function LandingPage() {
             border: 'border-green-500/20',
         },
         {
-            icon: <BarChart3 className="text-purple-400" size={28} />,
+            icon: <BarChart3 className="text-blue-400" size={28} />,
             title: 'Transparência Total',
             desc: 'Dados abertos e relatórios públicos sobre todas as demandas e resoluções da prefeitura.',
-            color: 'from-purple-500/10 to-purple-500/5',
-            border: 'border-purple-500/20',
+            color: 'from-blue-500/10 to-green-500/5',
+            border: 'border-blue-500/20',
         },
     ];
 
@@ -43,7 +44,7 @@ export function LandingPage() {
         { value: '12.4k', label: 'Solicitações atendidas', icon: <CheckCircle size={20} className="text-green-400" /> },
         { value: '98%', label: 'Satisfação dos cidadãos', icon: <Star size={20} className="text-yellow-400" /> },
         { value: '3.2k', label: 'Usuários ativos', icon: <Users size={20} className="text-blue-400" /> },
-        { value: '48h', label: 'Tempo médio de resposta', icon: <Zap size={20} className="text-orange-400" /> },
+        { value: '48h', label: 'Tempo médio de resposta', icon: <Zap size={20} className="text-yellow-400" /> },
     ];
 
     const testimonials = [
@@ -59,7 +60,7 @@ export function LandingPage() {
             role: 'Deficiente visual',
             text: 'Finalmente um portal que pensa em mim. A acessibilidade auditiva e o contraste são perfeitos.',
             avatar: 'CM',
-            color: 'bg-purple-600',
+            color: 'bg-blue-600',
         },
         {
             name: 'Fernanda Costa',
@@ -75,12 +76,7 @@ export function LandingPage() {
 
             {/* ── Navbar ── */}
             <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 h-16 bg-[#080d12]/80 backdrop-blur-md border-b border-white/5">
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center size-9 rounded-xl bg-blue-600 shadow-lg shadow-blue-600/40">
-                        <MapPin size={18} />
-                    </div>
-                    <span className="text-lg font-bold tracking-tight">Cidadão <span className="text-blue-400">Informa</span></span>
-                </div>
+                <CidadaoBrand />
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => navigate('/login')}
@@ -99,10 +95,6 @@ export function LandingPage() {
 
             {/* ── Hero ── */}
             <section className="relative flex flex-col items-center justify-center min-h-screen text-center px-6 pt-24 pb-16">
-                {/* Background glow */}
-                <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
-                <div className="absolute top-1/2 left-1/4 w-[300px] h-[300px] bg-purple-600/8 rounded-full blur-[100px] pointer-events-none" />
-
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -118,8 +110,9 @@ export function LandingPage() {
                     <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-[1.05]">
                         Cidadão
                         <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-300 to-cyan-400">
-                            Informa
+                        <span className="hero-fill-word" aria-label="Informa">
+                            <span className="hero-fill-base" aria-hidden="true">Informa</span>
+                            <span className="hero-fill-overlay" aria-hidden="true">Informa</span>
                         </span>
                     </h1>
 
@@ -163,7 +156,7 @@ export function LandingPage() {
                         <div className="size-3 rounded-full bg-yellow-500/70" />
                         <div className="size-3 rounded-full bg-green-500/70" />
                         <div className="ml-3 flex-1 h-5 rounded bg-white/5 text-[10px] text-slate-500 flex items-center px-3">
-                            cidadaoinforma.gov.br/mapa
+                            cidadaoinforma.local/mapa
                         </div>
                     </div>
                     <div className="relative h-64 bg-[#141e28] flex items-center justify-center overflow-hidden">
@@ -221,7 +214,7 @@ export function LandingPage() {
                     <div className="text-center mb-14">
                         <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-3">
                             Tudo que sua cidade precisa,<br />
-                            <span className="text-blue-400">na palma da sua mão</span>
+                            <span className="text-blue-400">com identidade pública brasileira</span>
                         </h2>
                         <p className="text-slate-400 max-w-xl mx-auto">
                             Uma plataforma pensada para cidadãos e gestores públicos trabalharem juntos.
@@ -286,7 +279,6 @@ export function LandingPage() {
 
             {/* ── CTA final ── */}
             <section className="py-28 px-6 text-center relative overflow-hidden">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-blue-600/12 rounded-full blur-[100px] pointer-events-none" />
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -320,10 +312,8 @@ export function LandingPage() {
             {/* ── Footer ── */}
             <footer className="py-8 px-6 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-600">
                 <div className="flex items-center gap-2">
-                    <div className="flex items-center justify-center size-6 rounded bg-blue-600">
-                        <MapPin size={12} />
-                    </div>
-                    <span>Cidadão Informa © 2026</span>
+                    <CidadaoBrand compact />
+                    <span>© 2026</span>
                 </div>
                 <div className="flex gap-5">
                     <a href="#" className="hover:text-slate-400 transition-colors">Termos de Uso</a>

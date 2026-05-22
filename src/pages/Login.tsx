@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { MapPin, User, Shield, Key, FileText, Loader2, ArrowRight, CheckCircle, BarChart3, Zap } from 'lucide-react';
+import { User, Shield, Key, FileText, Loader2, ArrowRight, CheckCircle, BarChart3, Zap } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import { CidadaoBrand } from '../components/CidadaoBrand';
 
 // ─── InputField — must be at module level to avoid remounting on each render ──
 function InputField({ label, icon: Icon, type = 'text', value, onChange, placeholder, autoComplete }: any) {
@@ -269,10 +270,7 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
             {/* ── Navbar ─────────────────────────────────────── */}
             <nav className="flex items-center justify-between px-6 md:px-12 h-16 border-b border-white/5 shrink-0">
                 <Link to="/" className="flex items-center gap-2.5 group">
-                    <div className="flex items-center justify-center size-8 rounded-lg bg-blue-600 shadow-lg shadow-blue-600/40 group-hover:shadow-blue-600/60 transition-shadow">
-                        <MapPin size={16} />
-                    </div>
-                    <span className="font-bold tracking-tight">Cidadão <span className="text-blue-400">Informa</span></span>
+                    <CidadaoBrand />
                 </Link>
 
                 <div className="flex items-center gap-2 text-sm">
@@ -434,25 +432,12 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                     transition={{ duration: 0.65, type: 'spring', stiffness: 60, damping: 18 }}
                     style={{ order: isRegistering ? 1 : 2 }}
                     className={`hidden lg:flex flex-1 relative items-center justify-center px-12 overflow-hidden transition-colors duration-700 ${isAdmin
-                        ? 'bg-gradient-to-br from-amber-950/30 via-[#0d1520] to-[#080d12]'
-                        : 'bg-gradient-to-br from-blue-950/40 via-[#0d1520] to-[#080d12]'
+                        ? 'bg-yellow-500/10'
+                        : 'bg-blue-500/10'
                         }`}
                 >
                     {/* Divider */}
                     <div className={`absolute top-0 bottom-0 w-px bg-white/5 ${isRegistering ? 'right-0' : 'left-0'}`} />
-
-                    {/* Ambient blob — color follows mode */}
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={`blob-${authMode}`}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.5 }}
-                            className={`absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full blur-[100px] pointer-events-none ${isAdmin ? 'bg-amber-600/10' : 'bg-blue-600/10'
-                                }`}
-                        />
-                    </AnimatePresence>
 
                     <div className="relative z-10 flex flex-col items-center gap-16 w-full">
 
@@ -470,7 +455,7 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                                     <>
                                         <h2 className="text-3xl font-black tracking-tight leading-tight mb-3">
                                             Gerencie com<br />
-                                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400">eficiência</span>
+                                            <span className="text-yellow-400">eficiência</span>
                                         </h2>
                                         <p className="text-slate-500 text-sm max-w-xs">
                                             Acompanhe a fila de solicitações, atribua equipes e monitore o SLA em tempo real.
@@ -480,7 +465,7 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                                     <>
                                         <h2 className="text-3xl font-black tracking-tight leading-tight mb-3">
                                             Faça parte da<br />
-                                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">mudança</span>
+                                            <span className="text-blue-400">mudança</span>
                                         </h2>
                                         <p className="text-slate-500 text-sm max-w-xs">
                                             Cadastre-se e comece a relatar problemas urbanos na sua cidade.
@@ -490,7 +475,7 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                                     <>
                                         <h2 className="text-3xl font-black tracking-tight leading-tight mb-3">
                                             Cidade mais<br />
-                                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">acessível</span>{' '}para todos
+                                            <span className="text-blue-400">acessível</span>{' '}para todos
                                         </h2>
                                         <p className="text-slate-500 text-sm max-w-xs">
                                             Acompanhe suas solicitações, veja o mapa de demandas e transforme sua cidade.
