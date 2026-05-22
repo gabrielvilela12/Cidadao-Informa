@@ -43,7 +43,7 @@ export function Header({ title, subtitle }: HeaderProps) {
   const unreadCount = notifications.filter(n => !n.read).length;
   const markAllAsRead = () => { setNotifications(prev => prev.map(n => ({ ...n, read: true }))); setShowNotifications(false); };
 
-  const iconBtnClass = "flex items-center justify-center size-9 rounded-xl bg-white/5 border border-white/8 text-slate-400 hover:text-white hover:bg-white/10 transition-all";
+  const iconBtnClass = "header-icon-btn flex items-center justify-center size-9 rounded-xl bg-white/5 border border-white/8 text-slate-400 transition-all";
 
   return (
     <header className="sticky top-0 z-30 bg-[#080d12]/80 backdrop-blur-md border-b border-white/5 px-4 sm:px-6 py-3 flex justify-between items-center w-full">
