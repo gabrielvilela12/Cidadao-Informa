@@ -17,6 +17,7 @@ export interface Protocol {
   date: string;
   status: Status;
   category: string;
+  description?: string;
   requester?: string;
   phone?: string;
 }

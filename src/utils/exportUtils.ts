@@ -40,7 +40,7 @@ export function exportToExcel(data: any[], filename: string) {
     worksheet['!cols'] = colWidths;
 
     // Fix extension
-    const finalFilename = filename.replace(/\.csv$/, '.xlsx');
+    let finalFilename = filename.replace(/\.csv$/, '.xlsx');
     if (!finalFilename.endsWith('.xlsx')) {
         finalFilename += '.xlsx';
     }

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Slides - Cidadão Informa</title>
+  <style>
+    @page { size: 16in 9in; margin: 0; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #09111f; color: white; }
+    section { width: 16in; height: 9in; page-break-after: always; padding: 0.75in 0.9in; display: flex; flex-direction: column; justify-content: center; background: linear-gradient(135deg, #08111f 0%, #10243d 55%, #0f3b69 100%); position: relative; overflow: hidden; }
+    section:nth-child(even) { background: linear-gradient(135deg, #0a1724 0%, #18324a 60%, #244b5a 100%); }
+    h1 { font-size: 58pt; line-height: 1; margin: 0 0 18px; letter-spacing: 0; }
+    h2 { font-size: 42pt; line-height: 1.05; margin: 0 0 28px; letter-spacing: 0; color: #dbeafe; }
+    .subtitle { font-size: 22pt; color: #a7d7ff; margin-bottom: 28px; }
+    ul { margin: 0; padding-left: 34px; max-width: 12.5in; }
+    li { font-size: 25pt; line-height: 1.25; margin: 15px 0; color: #eef7ff; }
+    .badge { position: absolute; top: 0.45in; right: 0.65in; font-size: 13pt; color: #bfdbfe; border: 1px solid rgba(191,219,254,.35); padding: 8px 14px; border-radius: 999px; }
+    .footer { position: absolute; left: 0.9in; bottom: 0.45in; color: #9fb9d3; font-size: 14pt; }
+  </style>
+</head>
+<body>
+
+  <section>
+    <div class="badge">1/10</div>
+    <h1>Cidadão Informa</h1>
+    <div class="subtitle">Atividade 2 - Enterprise Challenge EGESP</div>
+    <ul><li>HackGov/FIAP</li><li>Zeladoria urbana e acessibilidade</li><li>Ciência de Dados e IA aplicada à gestão pública</li></ul>
+    <div class="footer">Equipe: [nomes, RMs e fotos]</div>
+  </section>
+
+  <section>
+    <div class="badge">2/10</div>
+    <h2>Problema Público</h2>
+    
+    <ul><li>Demandas urbanas chegam de forma dispersa e pouco rastreável.</li><li>Cidadãos têm dificuldade para acompanhar solicitações.</li><li>Gestores precisam priorizar com dados, não apenas por ordem de chegada.</li></ul>
+    <div class="footer">Cidadão Informa - HackGov/FIAP</div>
+  </section>
+
+  <section>
+    <div class="badge">3/10</div>
+    <h2>Solução</h2>
+    
+    <ul><li>Plataforma para registrar, acompanhar e gerir protocolos.</li><li>Jornada do cidadão com formulário, endereço, evidências e mapa.</li><li>Portal do servidor com dashboard, fila, mapa e relatórios.</li></ul>
+    <div class="footer">Cidadão Informa - HackGov/FIAP</div>
+  </section>
+
+  <section>
+    <div class="badge">4/10</div>
+    <h2>Protótipo Atual</h2>
+    
+    <ul><li>Login, cadastro e perfis cidadão/admin.</li><li>Nova solicitação em etapas.</li><li>Consulta pública e privada de protocolos.</li><li>Backend Java/Spring Boot, Supabase/PostgreSQL e exportação em planilhas.</li></ul>
+    <div class="footer">Cidadão Informa - HackGov/FIAP</div>
+  </section>
+
+  <section>
+    <div class="badge">5/10</div>
+    <h2>Ciência de Dados</h2>
+    
+    <ul><li>KPIs: total, análise, atraso e resolução.</li><li>Distribuição por status e categoria.</li><li>Tendência mensal de abertura/resolução.</li><li>Mapas para observar concentração territorial.</li></ul>
+    <div class="footer">Cidadão Informa - HackGov/FIAP</div>
+  </section>
+
+  <section>
+    <div class="badge">6/10</div>
+    <h2>IA Implementada</h2>
+    
+    <ul><li>Bloco de insights no dashboard administrativo.</li><li>Score de prioridade de 0 a 100 para protocolos ativos.</li><li>Justificativas explicáveis por status, idade, categoria e termos críticos.</li><li>Servidor decide com apoio da IA, mantendo revisão humana.</li></ul>
+    <div class="footer">Cidadão Informa - HackGov/FIAP</div>
+  </section>
+
+  <section>
+    <div class="badge">7/10</div>
+    <h2>Valor para a EGESP</h2>
+    
+    <ul><li>Transforma dados operacionais em decisão.</li><li>Ajuda a reduzir atrasos e melhorar SLA.</li><li>Traz transparência e rastreabilidade.</li><li>Mostra IA aplicada de forma responsável no setor público.</li></ul>
+    <div class="footer">Cidadão Informa - HackGov/FIAP</div>
+  </section>
+
+  <section>
+    <div class="badge">8/10</div>
+    <h2>Tecnologias</h2>
+    
+    <ul><li>React, TypeScript, Vite, Tailwind, Recharts e Leaflet.</li><li>Java 21, Spring Boot 3, Spring Security, JPA e Flyway.</li><li>Supabase/PostgreSQL, bcrypt, JWT e xlsx.</li><li>Gemini/Google GenAI planejado para resumos e classificação textual.</li></ul>
+    <div class="footer">Cidadão Informa - HackGov/FIAP</div>
+  </section>
+
+  <section>
+    <div class="badge">9/10</div>
+    <h2>Próximas Evoluções</h2>
+    
+    <ul><li>Análise por bairro e mapa de calor.</li><li>Classificação automática de categoria.</li><li>Resumo de protocolos com IA generativa.</li><li>Predição de risco de atraso e relatórios executivos automáticos.</li></ul>
+    <div class="footer">Cidadão Informa - HackGov/FIAP</div>
+  </section>
+
+  <section>
+    <div class="badge">10/10</div>
+    <h2>Cronograma</h2>
+    
+    <ul><li>Até 22/05: MVP funcional, dashboards e insights inteligentes.</li><li>23/05 a 05/06: filtros, geodados e base analítica.</li><li>06/06 a 20/06: NLP, resumo e classificação.</li><li>Final de junho: validação, ajustes e documentação final.</li></ul>
+    <div class="footer">Cidadão Informa - HackGov/FIAP</div>
+  </section>
+</body>
+</html>
