@@ -1,7 +1,7 @@
 -- Create ai_priority_jobs table
 CREATE TABLE IF NOT EXISTS ai_priority_jobs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  protocol_id UUID NOT NULL REFERENCES protocols(id) ON DELETE CASCADE,
+  protocol_id TEXT NOT NULL REFERENCES protocols(id) ON DELETE CASCADE,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'success', 'failed')),
   description TEXT NOT NULL,
   category TEXT NOT NULL,
