@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { StatusBadge } from './CitizenDashboard';
 import { useProtocols } from '../hooks/useProtocols';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { PrioritySection } from '../components/admin/PrioritySection';
 
 export function ProtocolDetails() {
     const { id } = useParams();
@@ -142,6 +143,13 @@ export function ProtocolDetails() {
                                 Contato preservado por regras de privacidade da LGPD.
                             </div>
                         </div>
+
+                        {/* Priority Section */}
+                        <PrioritySection
+                            protocolId={protocol.id}
+                            initialPriority={protocol.ai_priority}
+                            initialStatus={protocol.ai_status}
+                        />
 
                         {/* Timeline */}
                         <div className="bg-[#1a242f] border border-[#283039] rounded-xl p-6">
