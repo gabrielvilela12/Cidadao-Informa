@@ -37,6 +37,9 @@ npm-debug.log*
 *.suo
 *.user
 
+# ── Claude Code (configurações locais — podem conter tokens) ──
+.claude/settings.local.json
+
 # ── OS ────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db

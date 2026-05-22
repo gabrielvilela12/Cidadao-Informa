@@ -87,9 +87,9 @@ export function CitizenDashboard() {
                   { icon: BarChart3, label: 'Protocolos', to: '/meus-protocolos' },
                 ].map(({ icon: Icon, label, to }) => (
                   <Link key={to} to={to}
-                    className="flex flex-col items-center gap-2 p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-white/10 transition-all group">
-                    <Icon size={20} className="text-slate-500 group-hover:text-blue-400 transition-colors" />
-                    <span className="text-xs font-medium text-slate-400 group-hover:text-white transition-colors">{label}</span>
+                    className="quick-tile flex flex-col items-center gap-2 p-3 rounded-xl bg-white/5 border border-white/8 group">
+                    <Icon size={20} className="text-slate-500 transition-colors" />
+                    <span className="text-xs font-medium text-slate-400 transition-colors">{label}</span>
                   </Link>
                 ))}
               </div>
@@ -117,22 +117,33 @@ export function CitizenDashboard() {
                   <thead>
                     <tr className="border-b border-white/5">
                       <th className="px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Serviço</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Data</th>
+                      <th className="px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide hidden sm:table-cell">Data</th>
                       <th className="px-5 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wide">Status</th>
                       <th className="px-5 py-3" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
                     {protocols.slice(0, 5).map((p, i) => (
-                      <tr key={`${p.id}-${i}`} className="hover:bg-white/5 transition-colors">
+                      <tr
+                        key={`${p.id}-${i}`}
+                        onClick={() => navigate(`/protocolo/${p.id}`)}
+                        className="cursor-pointer"
+                        style={{ transition: 'background 0.15s' }}
+                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(59,130,246,0.15)')}
+                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = '')}
+                      >
                         <td className="px-5 py-3.5">
                           <p className="text-slate-200 font-medium text-sm truncate max-w-[200px]">{p.service || p.description}</p>
                           <p className="text-slate-600 text-xs truncate">{p.address}</p>
                         </td>
-                        <td className="px-5 py-3.5 text-slate-500 text-xs whitespace-nowrap">{p.date}</td>
+                        <td className="px-5 py-3.5 text-slate-500 text-xs whitespace-nowrap hidden sm:table-cell">{p.date}</td>
                         <td className="px-5 py-3.5"><StatusBadge status={p.status} /></td>
                         <td className="px-5 py-3.5 text-right">
-                          <Link to={`/protocolo/${p.id}`} className="text-slate-600 hover:text-blue-400 transition-colors p-1.5 rounded-lg hover:bg-white/5 inline-block">
+                          <Link
+                            to={`/protocolo/${p.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-slate-600 hover:text-blue-400 transition-colors p-1.5 rounded-lg hover:bg-white/5 inline-block"
+                          >
                             <Eye size={16} />
                           </Link>
                         </td>
