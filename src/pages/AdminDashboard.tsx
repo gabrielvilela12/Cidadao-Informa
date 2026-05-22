@@ -1,10 +1,9 @@
 import { useProtocols } from '../hooks/useProtocols';
 import { useMemo } from 'react';
-import { Download, Calendar, Inbox, Timer, AlertCircle, CheckCircle, BrainCircuit } from 'lucide-react';
+import { Download, Calendar, Inbox, Timer, AlertCircle, CheckCircle } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, CartesianGrid } from 'recharts';
 import { exportToExcel } from '../utils/exportUtils';
 import { motion } from 'motion/react';
-import { buildSmartInsights } from '../utils/aiInsights';
 
 const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -17,7 +16,6 @@ export function AdminDashboard() {
   const resolutionRate = totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 0;
   const inProgressCount = protocols.filter(p => p.status === 'Em Análise').length;
   const openCount = protocols.filter(p => p.status === 'Aberto').length;
-  const smartInsights = useMemo(() => buildSmartInsights(protocols), [protocols]);
 
   // Category breakdown for PieChart
   const categories = ['Física', 'Visual', 'Auditiva', 'Outros'];
@@ -136,73 +134,6 @@ export function AdminDashboard() {
           </div>
         </div>
       )}
-
-      {/* AI and data science insights */}
-      <div className="mb-6 bg-white/5 border border-white/8 rounded-2xl p-5">
-        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-5">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <BrainCircuit size={18} className="text-blue-400" />
-              <h3 className="font-black text-white">Insights de IA e Ciência de Dados</h3>
-            </div>
-            <p className="text-slate-500 text-xs max-w-3xl">
-              Priorização explicável baseada em status, tempo de abertura, categoria e termos críticos descritos pelo cidadão.
-            </p>
-          </div>
-          <span className="text-[10px] font-bold text-blue-300 bg-blue-500/10 border border-blue-500/20 rounded-full px-3 py-1 w-fit">
-            Modelo heurístico MVP
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-          {smartInsights.cards.map(card => (
-            <div key={card.label} className="border border-white/8 rounded-xl p-4 bg-black/10">
-              <p className="text-slate-500 text-xs mb-1">{card.label}</p>
-              <p className={`text-2xl font-black ${card.tone === 'red' ? 'text-red-400' : card.tone === 'yellow' ? 'text-yellow-400' : card.tone === 'green' ? 'text-emerald-400' : 'text-blue-400'}`}>
-                {card.value}
-              </p>
-              <p className="text-slate-500 text-xs mt-1">{card.detail}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-slate-500 font-bold mb-3">Fila priorizada</p>
-            <div className="flex flex-col divide-y divide-white/8 border-y border-white/8">
-              {smartInsights.priorityQueue.length === 0 ? (
-                <p className="text-slate-500 text-sm py-4">Nenhum protocolo ativo para priorização.</p>
-              ) : smartInsights.priorityQueue.map(item => (
-                <div key={item.id} className="py-3 flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-white text-sm font-bold truncate">#{String(item.id).split('-')[0]} · {item.category}</p>
-                    <p className="text-slate-500 text-xs truncate">{item.address || 'Endereço não informado'}</p>
-                    <p className="text-slate-400 text-xs mt-1">{item.reasons.join(' · ')}</p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-blue-400 text-lg font-black">{item.score}</p>
-                    <p className="text-[10px] text-slate-500">score</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <p className="text-xs uppercase tracking-wide text-slate-500 font-bold mb-3">Recomendações</p>
-            <div className="flex flex-col gap-3">
-              {smartInsights.recommendations.map((recommendation, index) => (
-                <div key={recommendation} className="flex gap-3 text-sm text-slate-300">
-                  <span className="size-6 shrink-0 rounded-full bg-blue-500/10 text-blue-300 flex items-center justify-center text-xs font-black">
-                    {index + 1}
-                  </span>
-                  <p className="leading-relaxed">{recommendation}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
