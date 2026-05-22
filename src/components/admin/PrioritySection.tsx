@@ -35,7 +35,7 @@ export const PrioritySection: React.FC<PrioritySectionProps> = ({
       }, 5000);
     } catch (error) {
       console.error('Failed to regenerate:', error);
-      alert('Erro ao regenerar prioridade');
+      alert('Erro ao regenerar prioridade: ' + (error instanceof Error ? error.message : String(error)));
     } finally {
       setRegenerating(false);
     }

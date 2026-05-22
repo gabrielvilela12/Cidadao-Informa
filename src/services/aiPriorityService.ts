@@ -6,10 +6,8 @@ interface AiPriorityResponse {
   errorMessage?: string;
 }
 
-interface ManualPriorityPayload {
-  priority: 'baixa' | 'media' | 'alta' | 'critica';
-  reason?: string;
-}
+const EDGE_URL = import.meta.env.VITE_EDGE_FUNCTION_URL as string;
+const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 export const aiPriorityService = {
   async getPriority(protocolId: string): Promise<AiPriorityResponse> {
@@ -23,7 +21,7 @@ export const aiPriorityService = {
 
     return {
       priority: data.ai_priority as any,
-      aiStatus: data.ai_status,
+      aiStatus: data.ai_status ?? 'pending',
     };
   },
 
@@ -32,59 +30,73 @@ export const aiPriorityService = {
     priority: string,
     reason?: string
   ): Promise<void> {
-    const response = await fetch(
-      `/api/ai-priority/manual/${protocolId}`,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          priority,
-          reason,
-        }),
-      }
-    );
+    const { error: protocolError } = await supabase
+      .from('protocols')
+      .update({ ai_priority: priority, ai_status: 'success' })
+      .eq('id', protocolId);
 
-    if (!response.ok) {
-      throw new Error(`Failed to set priority: ${response.statusText}`);
-    }
+    if (protocolError) throw protocolError;
+
+    const { error: logError } = await supabase
+      .from('ai_job_logs')
+      .insert({ protocol_id: protocolId, priority, source: 'admin_manual', reason: reason ?? null });
+
+    if (logError) throw logError;
   },
 
   async regeneratePriority(protocolId: string): Promise<void> {
-    const response = await fetch(
-      `/api/ai-priority/regenerate/${protocolId}`,
-      {
-        method: 'POST',
-      }
-    );
+    const { data: protocol, error } = await supabase
+      .from('protocols')
+      .select('description, category')
+      .eq('id', protocolId)
+      .single();
+
+    if (error || !protocol) throw new Error('Protocolo não encontrado');
+
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token ?? ANON_KEY;
+
+    const response = await fetch(EDGE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        protocol_id: protocolId,
+        description: protocol.description,
+        category: protocol.category,
+      }),
+    });
 
     if (!response.ok) {
-      throw new Error(
-        `Failed to regenerate priority: ${response.statusText}`
-      );
+      const text = await response.text();
+      throw new Error(`Edge Function falhou: ${text}`);
     }
   },
 
   async getAuditLogs(days: number = 7): Promise<any[]> {
-    const response = await fetch(
-      `/api/ai-priority/logs?days=${days}`
-    );
+    const since = new Date();
+    since.setDate(since.getDate() - days);
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch logs: ${response.statusText}`);
-    }
+    const { data, error } = await supabase
+      .from('ai_job_logs')
+      .select('*')
+      .gte('created_at', since.toISOString())
+      .order('created_at', { ascending: false });
 
-    return response.json();
+    if (error) throw error;
+    return data ?? [];
   },
 
   async getFailedJobs(): Promise<any[]> {
-    const response = await fetch(`/api/ai-priority/jobs/failed`);
+    const { data, error } = await supabase
+      .from('ai_priority_jobs')
+      .select('*')
+      .eq('status', 'failed')
+      .order('created_at', { ascending: false });
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch failed jobs: ${response.statusText}`);
-    }
-
-    return response.json();
+    if (error) throw error;
+    return data ?? [];
   },
 };

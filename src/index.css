@@ -509,24 +509,22 @@ a {
   display: none !important;
 }
 
-/* 
+/*
   LIGHT THEME IMPROVEMENTS (Filter-based)
 */
-.theme-light {
-  filter: none !important;
-}
 
-/* Re-invert media, images, and maps so they look normal in light mode */
+/* Re-invert media and maps so they look natural under the invert filter */
 .theme-light img,
 .theme-light video,
-.theme-light svg,
 .theme-light .leaflet-container {
-  filter: none !important;
+  filter: invert(1) hue-rotate(180deg);
 }
 
-/* Exceptions for icons that are SVG but should remain adapting to text color */
-.theme-light .lucide {
-  filter: none !important;
+/* Header icon buttons hover */
+.header-icon-btn:hover {
+  background-color: var(--brand-soft-blue) !important;
+  border-color: var(--brand-blue) !important;
+  color: var(--brand-blue) !important;
 }
 
 /* Keyboard Shortcuts Bar - fade in animation */
