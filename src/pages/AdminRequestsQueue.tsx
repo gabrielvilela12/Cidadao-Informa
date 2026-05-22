@@ -114,7 +114,10 @@ export function AdminRequestsQueue() {
                                     <tr
                                         key={p.id}
                                         onClick={() => navigate(`/protocolo/${p.id}`)}
-                                        className="transition-colors duration-150 cursor-pointer hover:bg-white/10"
+                                        className="cursor-pointer"
+                                        style={{ transition: 'background 0.15s' }}
+                                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+                                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                                     >
                                         <td className="px-5 py-3.5">
                                             <div className="flex items-center gap-3">
