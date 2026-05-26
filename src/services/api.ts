@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { supabase } from './supabase';
+import { aiPriorityService } from './aiPriorityService';
 
 // ─── Tipos internos ────────────────────────────────────────────────────────────
 
@@ -267,6 +268,14 @@ export const api = {
             console.error('Supabase createProtocol error:', error);
             throw new Error('Erro ao criar protocolo');
         }
+
+        void aiPriorityService.classifyProtocol({
+            protocolId: result.id,
+            description: result.description,
+            category: result.category,
+        }).catch((classificationError) => {
+            console.error('Supabase AI classification error:', classificationError);
+        });
 
         return result;
     },
