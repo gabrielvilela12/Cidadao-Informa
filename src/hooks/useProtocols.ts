@@ -13,7 +13,7 @@ export function useProtocols(role: 'citizen' | 'admin' | 'all' = 'all') {
             setLoading(true);
             try {
                 // If citizen, pass userId to get only their protocols
-                const data = await api.getProtocols(role === 'citizen' ? user?.id : undefined);
+                const data = await api.getProtocols(role === 'citizen' ? user?.id : undefined, role);
                 setProtocols(data);
             } catch (error) {
                 console.error('Error fetching protocols:', error);

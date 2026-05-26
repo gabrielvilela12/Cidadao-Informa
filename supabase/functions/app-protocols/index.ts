@@ -60,7 +60,7 @@ async function getUserFromToken(token: string | null | undefined) {
   return user;
 }
 
-async function listProtocols(token: string | null | undefined, requestedUserId?: string) {
+async function listProtocols(token: string | null | undefined, requestedUserId?: string, scope?: string) {
   const user = token ? await getUserFromToken(token) : null;
 
   let query = supabase
@@ -68,7 +68,7 @@ async function listProtocols(token: string | null | undefined, requestedUserId?:
     .select("*, users!inner(phone)")
     .order("created_at", { ascending: false });
 
-  if (user?.role !== "admin") {
+  if (scope !== "admin" && user?.role !== "admin") {
     const userId = requestedUserId ?? user?.id;
     if (!userId) return [];
     query = query.eq("user_id", userId);
@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
 
     switch (body.action) {
       case "list":
-        return jsonResponse({ success: true, data: await listProtocols(body.token, body.userId) });
+        return jsonResponse({ success: true, data: await listProtocols(body.token, body.userId, body.scope) });
       case "getById":
         return jsonResponse({ success: true, data: await getProtocolById(body.id) });
       case "create":

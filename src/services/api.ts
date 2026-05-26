@@ -124,13 +124,14 @@ export const api = {
         });
     },
 
-    async getProtocols(userId?: string) {
+    async getProtocols(userId?: string, scope: 'citizen' | 'admin' | 'all' = 'all') {
         const token = localStorage.getItem('cidadaoinforma_token');
 
         const data = await invokeAppProtocols<DbProtocol[]>({
             action: 'list',
             token,
-            userId
+            userId,
+            scope
         });
 
         return data.map(mapProtocol);
