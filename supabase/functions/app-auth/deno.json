@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "bcryptjs": "https://esm.sh/bcryptjs@3.0.3",
+    "supabase": "https://esm.sh/@supabase/supabase-js@2.39.0"
+  }
+}
