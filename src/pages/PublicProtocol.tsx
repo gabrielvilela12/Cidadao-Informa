@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { supabase } from '../services/supabase';
+import { api } from '../services/api';
 import { CidadaoBrand } from '../components/CidadaoBrand';
 
 // Fix leaflet icons
@@ -48,13 +48,9 @@ export function PublicProtocol() {
 
     useEffect(() => {
         if (!id) return;
-        supabase
-            .from('protocols')
-            .select('*')
-            .eq('id', id)
-            .maybeSingle()
-            .then(({ data, error }) => {
-                if (error || !data) {
+        api.getProtocolById(id)
+            .then((data) => {
+                if (!data) {
                     setNotFound(true);
                 } else {
                     // Map DB fields to display fields
@@ -67,6 +63,10 @@ export function PublicProtocol() {
                         status: p.status || 'Aberto',
                     });
                 }
+                setLoading(false);
+            })
+            .catch(() => {
+                setNotFound(true);
                 setLoading(false);
             });
     }, [id]);
