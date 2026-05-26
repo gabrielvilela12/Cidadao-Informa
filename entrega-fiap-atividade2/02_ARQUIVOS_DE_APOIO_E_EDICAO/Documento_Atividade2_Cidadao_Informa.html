@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Atividade 2 - Cidadao Informa</title>
+  <style>
+    @page { size: A4; margin: 18mm 16mm; }
+    body { font-family: Arial, Helvetica, sans-serif; color: #13202f; line-height: 1.48; font-size: 11pt; }
+    h1 { font-size: 24pt; color: #0f3b69; margin: 0 0 12px; }
+    h2 { font-size: 16pt; color: #0f3b69; border-top: 1px solid #dbe7f3; padding-top: 18px; margin-top: 22px; }
+    h3 { font-size: 12.5pt; color: #164d80; margin-top: 18px; }
+    p { margin: 7px 0; }
+    ul { margin: 8px 0 12px 20px; padding: 0; }
+    li { margin: 4px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 9.5pt; }
+    th, td { border: 1px solid #c7d7e6; padding: 7px; vertical-align: top; }
+    th { background: #eaf3fb; color: #0f3b69; }
+    code { background: #eef4fb; padding: 1px 4px; border-radius: 4px; }
+    hr { border: 0; border-top: 1px solid #dbe7f3; margin: 18px 0; }
+  </style>
+</head>
+<body>
+<h1>ATIVIDADE 2 - ENTERPRISE Challenge - EGESP</h1>
+<h2>Cidadao Informa: Ciencia de Dados e IA no Projeto HackGov</h2>
+<p><strong>Grupo:</strong> Gabriel e Luis Gustavo  </p>
+<p><strong>Data:</strong> 25/05/2026  </p>
+<p><strong>Link do video pitch:</strong> https://youtu.be/INSERIR_LINK_DO_VIDEO_NAO_LISTADO</p>
+<hr>
+<h2>1. Contextualizacao do Projeto</h2>
+<p>O <strong>Cidadao Informa</strong> e uma plataforma HackGov voltada a transformacao digital da gestao publica municipal, com foco em zeladoria urbana e acessibilidade. O sistema permite que cidadaos registrem ocorrencias como calcadas quebradas, rampas bloqueadas, falhas de sinalizacao visual ou auditiva e outras barreiras urbanas. Do lado da administracao publica, a prefeitura acompanha a fila de solicitacoes, visualiza mapas, consulta dashboards e gera relatorios para apoiar a tomada de decisao.</p>
+<p>A proposta de valor e transformar um fluxo que normalmente e manual, disperso e pouco transparente em uma jornada digital rastreavel. O cidadao passa a ter protocolo e acompanhamento de status; o servidor publico passa a ter uma visao consolidada das demandas, indicadores de atendimento e apoio de IA para priorizar os casos mais criticos.</p>
+<h3>Evolucao do prototipo</h3>
+<p>Nesta etapa, o sistema ja apresenta:</p>
+<ul>
+<li>Tela inicial e fluxo de autenticacao.</li>
+<li>Cadastro e login de cidadaos.</li>
+<li>Registro de nova solicitacao em etapas.</li>
+<li>Classificacao por categorias de acessibilidade: fisica, visual, auditiva e outros.</li>
+<li>Formulario com endereco, descricao, evidencias por imagem e mapa interativo.</li>
+<li>Consulta de protocolos pelo cidadao.</li>
+<li>Tela publica de acompanhamento de protocolo.</li>
+<li>Dashboard administrativo com indicadores em tempo real.</li>
+<li>Fila de solicitacoes, mapa administrativo e relatorios.</li>
+<li>Exportacao de dados em planilhas.</li>
+<li>Backend Java/Spring Boot com autenticacao JWT, JPA, Flyway e banco PostgreSQL/Supabase.</li>
+<li>Modulo de IA finalizado para classificacao de prioridade dos protocolos.</li>
+<li>Tela de logs de IA para auditoria das classificacoes e alteracoes manuais.</li>
+<li>Praticas de seguranca como hash de senha, separacao de perfis, tokens e controle de rotas.</li>
+</ul>
+<h3>Contribuicoes da 1a mentoria EGESP</h3>
+<p>A 1a mentoria com a EGESP, realizada em 05/05/2026, reforcou a necessidade de demonstrar valor publico de forma objetiva. Para o nosso projeto, isso orientou quatro decisoes principais:</p>
+<ul>
+<li>Dar mais destaque a indicadores de gestao, como volume de protocolos, taxa de resolucao, atrasos e distribuicao por categoria.</li>
+<li>Tratar IA como apoio a decisao, e nao como substituicao automatica do servidor publico.</li>
+<li>Valorizar dados confiaveis, rastreaveis e explicaveis, principalmente por se tratar de governo e servico publico.</li>
+<li>Considerar LGPD, seguranca e transparencia desde o MVP, evitando exposicao indevida de dados pessoais do cidadao.</li>
+</ul>
+<p>Com isso, o projeto passou a enfatizar dashboards, relatorios, fila priorizada e um modulo de IA funcional para auxiliar a triagem administrativa.</p>
+<hr>
+<h2>2. Ciencia de Dados e Uso de IA</h2>
+<h3>Atualizacoes implementadas</h3>
+<p>O prototipo passou a usar os dados dos protocolos como base para analise gerencial. As principais atualizacoes relacionadas a Ciencia de Dados e IA sao:</p>
+<ul>
+<li>Consolidacao de indicadores no dashboard administrativo.</li>
+<li>Calculo de total de solicitacoes, chamados em analise, atrasos e taxa de resolucao.</li>
+<li>Distribuicao por status e por categoria.</li>
+<li>Tendencia mensal de solicitacoes abertas e resolvidas.</li>
+<li>Relatorios com exportacao em planilha para analise externa.</li>
+<li>Visualizacao geografica por mapa, permitindo observar concentracao territorial das demandas.</li>
+<li>Bloco de <strong>Insights de IA e Ciencia de Dados</strong> no dashboard administrativo.</li>
+<li>Classificacao de prioridade por IA em quatro niveis: baixa, media, alta e critica.</li>
+<li>Badges de prioridade na fila administrativa.</li>
+<li>Acao para <strong>Regenerar IA</strong> quando o servidor quiser reprocessar uma analise.</li>
+<li>Acao de <strong>Trocar prioridade</strong> manualmente, com justificativa.</li>
+<li>Pagina de <strong>Logs IA</strong>, registrando classificacoes feitas pela IA e alteracoes feitas pelo administrador.</li>
+</ul>
+<h3>IA finalizada e funcionando</h3>
+<p>A IA de prioridade ja foi implementada no sistema. O fluxo funciona da seguinte forma:</p>
+<p>1. O protocolo contem categoria e descricao do problema informado pelo cidadao.</p>
+<p>2. A classificacao e processada por uma Supabase Edge Function chamada <code>classify-priority</code>.</p>
+<p>3. A Edge Function envia a categoria e a descricao para o OpenRouter usando o modelo Gemini 2.5 Flash.</p>
+<p>4. O modelo retorna uma prioridade: baixa, media, alta ou critica.</p>
+<p>5. O sistema grava o resultado no protocolo, usando os campos <code>ai_priority</code> e <code>ai_status</code>.</p>
+<p>6. A fila administrativa mostra a prioridade por meio de badges visuais.</p>
+<p>7. O servidor pode regenerar a classificacao ou alterar a prioridade manualmente.</p>
+<p>8. Toda classificacao e toda alteracao manual sao registradas em logs de auditoria.</p>
+<p>Esse fluxo mostra que a IA nao esta apenas planejada: ela ja esta integrada ao produto, aparece na interface administrativa e gera rastreabilidade para a tomada de decisao.</p>
+<h3>Como a IA contribui para a proposta de valor</h3>
+<p>A IA contribui para reduzir o tempo de triagem e dar mais clareza sobre quais chamados precisam de atencao primeiro. Em vez de trabalhar apenas por ordem de chegada, a equipe administrativa passa a enxergar sinais de urgencia e impacto social.</p>
+<p>Isso e especialmente importante em acessibilidade. Uma rampa bloqueada, uma calcada danificada ou uma sinalizacao ausente pode afetar diretamente pessoas com deficiencia, idosos, criancas e outros grupos vulneraveis.</p>
+<p>Mesmo com IA, a decisao final continua humana. O servidor visualiza a sugestao, pode pedir nova analise, pode alterar a prioridade e deve justificar a mudanca. Assim, o sistema combina agilidade, controle humano, transparencia e responsabilidade.</p>
+<h3>Planejamento a partir daqui</h3>
+<p>Como a IA de prioridade ja esta funcionando, as proximas evolucoes previstas sao:</p>
+<ul>
+<li>Enriquecer a base de dados com bairro, latitude, longitude, secretaria responsavel, prazo de SLA e historico de alteracoes.</li>
+<li>Criar analise por regiao para identificar bairros com maior recorrencia.</li>
+<li>Evoluir filtros por status, categoria, bairro e prioridade.</li>
+<li>Usar IA generativa para resumir protocolos longos e sugerir encaminhamentos.</li>
+<li>Avaliar imagens anexadas para identificar tipo de ocorrencia e qualidade da evidencia.</li>
+<li>Criar previsao de risco de atraso com base no historico.</li>
+<li>Gerar relatorios executivos automaticos para gestores.</li>
+<li>Preparar dados anonimizados para transparencia publica.</li>
+</ul>
+<h3>Mudancas em relacao ao planejado</h3>
+<p>Inicialmente, o projeto tratava a zeladoria urbana de forma mais ampla. Nesta fase, o foco foi refinado para acessibilidade urbana, pois esse recorte torna o problema mais claro, mensuravel e alinhado a impacto social.</p>
+<p>Tambem houve evolucao importante na estrategia de IA. O projeto comecou com indicadores explicaveis e score de prioridade no dashboard, mas avancou para uma classificacao generativa real usando Supabase Edge Function, OpenRouter e Gemini 2.5 Flash. Dessa forma, a IA passou a ser uma funcionalidade operacional, auditavel e integrada a interface do servidor.</p>
+<hr>
+<h2>3. Materiais e Metodos para Ciencia de Dados e IA</h2>
+<h3>Tecnologias utilizadas</h3>
+<table><tbody>
+<tr><th>Camada</th><th>Tecnologias e ferramentas</th><th>Uso no projeto</th></tr>
+<tr><td>Frontend</td><td>React 19, TypeScript, Vite, Tailwind CSS, React Router</td><td>Interface do cidadao e do servidor publico</td></tr>
+<tr><td>Visualizacao de dados</td><td>Recharts</td><td>Dashboards, graficos e relatorios</td></tr>
+<tr><td>Mapas</td><td>Leaflet, React-Leaflet, OpenStreetMap, Nominatim</td><td>Geolocalizacao, mapa de ocorrencias e busca de endereco</td></tr>
+<tr><td>Banco de dados</td><td>Supabase/PostgreSQL</td><td>Persistencia de usuarios, protocolos, prioridades e logs</td></tr>
+<tr><td>Backend</td><td>Java 21, Spring Boot 3, Spring Security, JPA/Hibernate</td><td>API, autenticacao, regras de negocio e persistencia</td></tr>
+<tr><td>Migracoes</td><td>Flyway e migrations SQL do Supabase</td><td>Versionamento do schema do banco</td></tr>
+<tr><td>Seguranca</td><td>bcrypt, JWT, controle por perfil, variaveis de ambiente</td><td>Protecao de autenticacao e dados sensiveis</td></tr>
+<tr><td>Exportacao</td><td>xlsx</td><td>Geracao de planilhas para analise externa</td></tr>
+<tr><td>IA</td><td>Supabase Edge Function, OpenRouter e Gemini 2.5 Flash</td><td>Classificacao de prioridade dos protocolos</td></tr>
+<tr><td>Auditoria de IA</td><td><code>ai_priority_jobs</code>, <code>ai_job_logs</code>, <code>ai_priority</code>, <code>ai_status</code></td><td>Registro de processamento, resultado, falhas e alteracoes manuais</td></tr>
+</tbody></table>
+<h3>Metodos de Ciencia de Dados</h3>
+<p>O projeto aplica metodos de Ciencia de Dados de forma incremental:</p>
+<ul>
+<li>Coleta estruturada dos dados de protocolo.</li>
+<li>Padronizacao de status e categorias.</li>
+<li>Transformacao de dados brutos em indicadores.</li>
+<li>Analise de frequencia por status, categoria e periodo.</li>
+<li>Calculo de taxa de resolucao e risco de SLA.</li>
+<li>Priorizacao administrativa com apoio de IA.</li>
+<li>Exportacao para auditoria, planilhas e analises complementares.</li>
+</ul>
+<h3>Metodos de IA</h3>
+<p>O modulo de IA funciona como um sistema de apoio a decisao:</p>
+<p>1. Le os dados principais do protocolo: categoria e descricao.</p>
+<p>2. Envia esses dados para uma Edge Function.</p>
+<p>3. A Edge Function consulta o modelo Gemini 2.5 Flash via OpenRouter.</p>
+<p>4. O modelo classifica a prioridade como baixa, media, alta ou critica.</p>
+<p>5. O resultado e salvo no banco e exibido para o servidor.</p>
+<p>6. O servidor pode aceitar, regenerar ou alterar a prioridade.</p>
+<p>7. As acoes ficam registradas em logs de auditoria.</p>
+<p>No dashboard, o sistema tambem mantem indicadores explicaveis, como risco de SLA, eficiencia, categoria critica e recomendacoes operacionais. Assim, a IA nao aparece isolada; ela faz parte de uma visao maior de gestao por dados.</p>
+<h3>Seguranca, LGPD e governanca</h3>
+<p>Como o sistema lida com dados de cidadaos, a evolucao de IA respeita principios de governanca:</p>
+<ul>
+<li>Minimizar o envio de dados pessoais para servicos externos.</li>
+<li>Usar a descricao e a categoria como base principal da classificacao.</li>
+<li>Evitar exposicao de CPF, telefone e identificacao pessoal em areas publicas.</li>
+<li>Registrar logs de classificacoes automatizadas e alteracoes manuais.</li>
+<li>Permitir revisao humana antes de qualquer decisao administrativa final.</li>
+<li>Manter rastreabilidade sobre quem alterou a prioridade e por qual motivo.</li>
+<li>Preparar dados anonimizados para relatorios publicos.</li>
+</ul>
+<hr>
+<h2>4. Cronograma com destaque a Ciencia de Dados e IA</h2>
+<table><tbody>
+<tr><th>Periodo</th><th>Status</th><th>Atividades</th><th>Destaque em dados e IA</th></tr>
+<tr><td>25/02 a 15/03/2026</td><td>Concluido</td><td>Definicao do problema, publico-alvo, jornada do cidadao e primeiras telas</td><td>Levantamento das variaveis iniciais de protocolo</td></tr>
+<tr><td>16/03 a 31/03/2026</td><td>Concluido</td><td>Implementacao do frontend, rotas, login, cadastro e abertura de solicitacao</td><td>Estruturacao dos campos basicos para analise futura</td></tr>
+<tr><td>01/04 a 20/04/2026</td><td>Concluido</td><td>Backend Java/Spring Boot, entidades, repositorios, autenticacao e migracoes</td><td>Criacao das tabelas de usuarios e protocolos</td></tr>
+<tr><td>21/04 a 10/05/2026</td><td>Concluido</td><td>Dashboard, relatorios, mapa e exportacao de dados</td><td>Primeiros KPIs, graficos e relatorios gerenciais</td></tr>
+<tr><td>11/05 a 22/05/2026</td><td>Concluido</td><td>Painel de insights inteligentes no dashboard administrativo</td><td>Risco de SLA, categoria critica, fila priorizada e recomendacoes</td></tr>
+<tr><td>23/05 a 25/05/2026</td><td>Concluido</td><td>Finalizacao da IA de prioridade, Edge Function, badges, regeneracao, troca manual e logs</td><td>Classificacao funcional por IA com auditoria</td></tr>
+<tr><td>26/05 a 05/06/2026</td><td>Em andamento</td><td>Melhorar dados geograficos, filtros por bairro, status e prioridade</td><td>Preparar base para analise territorial</td></tr>
+<tr><td>06/06 a 20/06/2026</td><td>Futuro</td><td>Resumos de protocolos, sugestoes de encaminhamento e validacao com usuarios</td><td>Evolucao da IA generativa e metricas de aceitacao</td></tr>
+<tr><td>21/06 a 30/06/2026</td><td>Futuro</td><td>Testes, ajustes de governanca e preparacao para demonstracao final</td><td>Relatorios executivos e consolidacao do pipeline de dados</td></tr>
+</tbody></table>
+<hr>
+<h2>Link do video</h2>
+<p>Apos gravar e publicar o pitch no YouTube como <strong>nao listado</strong>, substituir o link abaixo:</p>
+<p>https://youtu.be/INSERIR_LINK_DO_VIDEO_NAO_LISTADO</p>
+<hr>
+<h2>Conclusao</h2>
+<p>O <strong>Cidadao Informa</strong> evoluiu de um sistema de registro de ocorrencias para uma plataforma de gestao publica orientada por dados e IA. A etapa atual demonstra front-end funcional, backend estruturado, banco de dados, recursos de seguranca, dashboards, relatorios, mapas e um modulo de IA ja funcionando para classificacao de prioridade.</p>
+<p>O principal diferencial e que a IA foi implementada com responsabilidade: ela apoia a triagem, mas nao substitui o servidor publico; gera prioridade, mas permite revisao humana; acelera a gestao, mas mantem logs de auditoria. Dessa forma, o projeto entrega valor publico com transparencia, rastreabilidade e foco em acessibilidade urbana.</p>
+</body>
+</html>
