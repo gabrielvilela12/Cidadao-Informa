@@ -1,11 +1,8 @@
 import { createClient } from "supabase";
-import {
-  classifyPriority,
-  type ClassifyRequest,
-} from "./openrouter-client.ts";
+import { classifyPriority } from "./openrouter-client.ts";
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -21,6 +18,48 @@ interface RequestPayload {
   category: string;
 }
 
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    status,
+  });
+}
+
+async function markJobProcessing(payload: RequestPayload): Promise<void> {
+  const now = new Date().toISOString();
+  const { protocol_id, description, category } = payload;
+
+  const { data: existingJobs, error: updateError } = await supabase
+    .from("ai_priority_jobs")
+    .update({
+      status: "processing",
+      description,
+      category,
+      result_priority: null,
+      error_message: null,
+      processing_started_at: now,
+      completed_at: null,
+      updated_at: now,
+    })
+    .eq("protocol_id", protocol_id)
+    .select("id");
+
+  if (updateError) throw updateError;
+
+  if (!existingJobs?.length) {
+    const { error: insertError } = await supabase.from("ai_priority_jobs").insert({
+      protocol_id,
+      description,
+      category,
+      status: "processing",
+      processing_started_at: now,
+      updated_at: now,
+    });
+
+    if (insertError) throw insertError;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -28,6 +67,10 @@ Deno.serve(async (req) => {
 
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+  }
+
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return jsonResponse({ success: false, error: "Supabase environment is not configured" }, 500);
   }
 
   let protocol_id = "";
@@ -38,25 +81,21 @@ Deno.serve(async (req) => {
     const { description, category } = payload;
 
     if (!protocol_id || !description || !category) {
-      return new Response("Missing required fields", { status: 400, headers: corsHeaders });
+      return jsonResponse({ success: false, error: "Missing required fields" }, 400);
     }
 
-    await supabase
-      .from("ai_priority_jobs")
-      .update({
-        status: "processing",
-        processing_started_at: new Date(),
-      })
-      .eq("protocol_id", protocol_id);
+    await markJobProcessing(payload);
 
     const result = await classifyPriority({ description, category });
+    const completedAt = new Date().toISOString();
 
     await supabase
       .from("ai_priority_jobs")
       .update({
         status: "success",
         result_priority: result.priority,
-        completed_at: new Date(),
+        completed_at: completedAt,
+        updated_at: completedAt,
       })
       .eq("protocol_id", protocol_id);
 
@@ -74,18 +113,17 @@ Deno.serve(async (req) => {
       source: "ia",
     });
 
-    return new Response(
-      JSON.stringify({ success: true, priority: result.priority }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-    );
+    return jsonResponse({ success: true, priority: result.priority });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Classification error:", errorMessage);
 
     if (protocol_id) {
+      const completedAt = new Date().toISOString();
+
       await supabase
         .from("ai_priority_jobs")
-        .update({ status: "failed", error_message: errorMessage, completed_at: new Date() })
+        .update({ status: "failed", error_message: errorMessage, completed_at: completedAt, updated_at: completedAt })
         .eq("protocol_id", protocol_id);
 
       await supabase
@@ -94,9 +132,6 @@ Deno.serve(async (req) => {
         .eq("id", protocol_id);
     }
 
-    return new Response(
-      JSON.stringify({ success: false, error: errorMessage }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
-    );
+    return jsonResponse({ success: false, error: errorMessage }, 500);
   }
 });

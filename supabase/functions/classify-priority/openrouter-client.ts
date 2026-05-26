@@ -15,6 +15,10 @@ export interface ClassifyResponse {
 export async function classifyPriority(
   request: ClassifyRequest
 ): Promise<ClassifyResponse> {
+  if (!OPENROUTER_API_KEY) {
+    throw new Error("OPENROUTER_API_KEY is not configured");
+  }
+
   const prompt = buildPrompt(request.category, request.description);
 
   const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
@@ -102,10 +106,13 @@ Não adicione explicações, apenas a prioridade.`;
 function parsePriority(
   response: string
 ): "baixa" | "media" | "alta" | "critica" | null {
-  const normalized = response.toLowerCase();
-  if (normalized.includes("crítica")) return "critica";
+  const normalized = response
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  if (normalized.includes("critica")) return "critica";
   if (normalized.includes("alta")) return "alta";
-  if (normalized.includes("média")) return "media";
   if (normalized.includes("media")) return "media";
   if (normalized.includes("baixa")) return "baixa";
   return null;

@@ -3,10 +3,10 @@
 ## Pre-Deployment
 
 ### Environment Variables
-- [ ] `OPENROUTER_API_KEY` set in production `.env` (not example)
-- [ ] `SUPABASE_EDGE_FUNCTION_URL` configured (production URL)
-- [ ] `SUPABASE_SERVICE_ROLE_KEY` secured in backend
-- [ ] `SUPABASE_ANON_KEY` available for frontend
+- [ ] `VITE_SUPABASE_URL` configured in production frontend
+- [ ] `VITE_SUPABASE_ANON_KEY` configured in production frontend
+- [ ] `OPENROUTER_API_KEY` configured as a Supabase Edge Function secret
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` remains only inside Supabase Edge Functions/server-side code
 
 ### Database
 - [ ] All 3 migrations applied to production Supabase:
@@ -71,6 +71,7 @@ supabase functions deploy classify-priority
 ### Step 3: Set Edge Function Secrets
 In Supabase dashboard → Edge Functions → classify-priority → Secrets:
 - Add `OPENROUTER_API_KEY` = your actual key
+- Do not add `OPENROUTER_API_KEY` as a `VITE_` variable in the frontend
 
 ### Step 4: Deploy Backend
 ```bash

@@ -1,15 +1,61 @@
 import { supabase } from './supabase';
 
+type Priority = 'baixa' | 'media' | 'alta' | 'critica';
+
 interface AiPriorityResponse {
-  priority: 'baixa' | 'media' | 'alta' | 'critica' | null;
+  priority: Priority | null;
   aiStatus: 'pending' | 'success' | 'failed';
   errorMessage?: string;
 }
 
-const EDGE_URL = import.meta.env.VITE_EDGE_FUNCTION_URL as string;
-const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+interface ClassifyProtocolPayload {
+  protocolId: string;
+  description: string;
+  category: string;
+}
+
+async function getFunctionErrorMessage(error: unknown): Promise<string> {
+  if (
+    error &&
+    typeof error === 'object' &&
+    'context' in error &&
+    (error as { context?: unknown }).context instanceof Response
+  ) {
+    return await (error as { context: Response }).context.text();
+  }
+
+  return error instanceof Error ? error.message : String(error);
+}
 
 export const aiPriorityService = {
+  async classifyProtocol({
+    protocolId,
+    description,
+    category,
+  }: ClassifyProtocolPayload): Promise<AiPriorityResponse> {
+    const { data, error } = await supabase.functions.invoke('classify-priority', {
+      body: {
+        protocol_id: protocolId,
+        description,
+        category,
+      },
+    });
+
+    if (error) {
+      const message = await getFunctionErrorMessage(error);
+      throw new Error(`Edge Function falhou: ${message}`);
+    }
+
+    if (!data?.success) {
+      throw new Error(data?.error ?? 'Classificação de IA não retornou sucesso.');
+    }
+
+    return {
+      priority: data.priority as Priority,
+      aiStatus: 'success',
+    };
+  },
+
   async getPriority(protocolId: string): Promise<AiPriorityResponse> {
     const { data, error } = await supabase
       .from('protocols')
@@ -20,7 +66,7 @@ export const aiPriorityService = {
     if (error) throw error;
 
     return {
-      priority: data.ai_priority as any,
+      priority: data.ai_priority as Priority | null,
       aiStatus: data.ai_status ?? 'pending',
     };
   },
@@ -53,26 +99,11 @@ export const aiPriorityService = {
 
     if (error || !protocol) throw new Error('Protocolo não encontrado');
 
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token ?? ANON_KEY;
-
-    const response = await fetch(EDGE_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        protocol_id: protocolId,
-        description: protocol.description,
-        category: protocol.category,
-      }),
+    await this.classifyProtocol({
+      protocolId,
+      description: protocol.description,
+      category: protocol.category,
     });
-
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`Edge Function falhou: ${text}`);
-    }
   },
 
   async getAuditLogs(days: number = 7): Promise<any[]> {
