@@ -1,26 +1,45 @@
-# Roteiro do Vídeo Pitch - Cidadão Informa
+# Roteiro do Video Pitch - Cidadao Informa
 
-Duração alvo: cerca de 5 minutos  
-Formato: vídeo no YouTube como não listado  
-Link final: https://youtu.be/INSERIR_LINK_DO_VIDEO_NAO_LISTADO
+**Duracao alvo:** cerca de 5 minutos  
+**Formato:** video no YouTube como nao listado  
+**Link final:** https://youtu.be/INSERIR_LINK_DO_VIDEO_NAO_LISTADO
 
 ## 0:00 a 0:25 - Abertura e grupo
-Apresentar os integrantes com nomes, RMs e fotos. Dizer que o projeto é o Cidadão Informa, desenvolvido para o HackGov/FIAP em parceria com a EGESP. Reforçar que a entrega mostra o avanço do protótipo com foco em Ciência de Dados e IA.
+
+Ola, somos Gabriel e Luis Gustavo, e este e o nosso projeto Cidadao Informa, desenvolvido para o HackGov/FIAP em parceria com a EGESP. A proposta e aproximar o cidadao da prefeitura, facilitando o registro e o acompanhamento de problemas urbanos, principalmente ligados a acessibilidade.
 
 ## 0:25 a 1:05 - Contexto do problema
-Explicar que demandas de zeladoria e acessibilidade urbana ainda podem ficar espalhadas em canais manuais, sem protocolo claro, sem retorno ao cidadão e sem indicadores para a prefeitura. Conectar isso à mentoria da EGESP em 05/05/2026: dados e IA precisam gerar valor público, transparência e melhoria real de gestão.
 
-## 1:05 a 1:55 - Solução e protótipo funcional
-Mostrar rapidamente a tela inicial, login/cadastro, abertura de solicitação, consulta de protocolos e área administrativa. Destacar que o sistema já tem front-end, banco Supabase/PostgreSQL, backend Java/Spring Boot, dashboard, mapa, relatórios e exportação em planilha.
+Muitas demandas de zeladoria e acessibilidade urbana ainda chegam por canais dispersos, sem protocolo claro, sem acompanhamento simples para o cidadao e sem indicadores consolidados para a prefeitura. Isso dificulta saber o que foi resolvido, o que esta atrasado e quais casos precisam de prioridade.
 
-## 1:55 a 3:05 - Ciência de Dados e IA
-Abrir o dashboard e explicar os KPIs: total, em análise, atrasados, resolução, distribuição por categoria e tendência mensal. Em seguida, mostrar a prioridade por IA: badges de baixa, média, alta e crítica, opção de regenerar IA, troca manual pelo gestor e logs de auditoria. Dizer que a IA apoia a triagem, mas a decisão final continua humana.
+## 1:05 a 1:55 - Solucao e prototipo funcional
 
-## 3:05 a 3:50 - Materiais e métodos
-Citar a stack: React, TypeScript, Vite, Tailwind, Recharts, Leaflet, Supabase/PostgreSQL, Java, Spring Boot, JPA, JWT, bcrypt, Supabase Edge Function, OpenRouter e Gemini 2.5 Flash. Explicar o método: coleta de protocolos, padronização de status/categorias, cálculo de indicadores, score explicável e classificação generativa por descrição e categoria.
+O Cidadao Informa resolve esse problema com uma jornada digital completa. O cidadao faz login, abre uma solicitacao, informa categoria, endereco e descricao, e depois acompanha o protocolo. Ja o servidor publico acessa a fila administrativa, dashboard, mapa, relatorios, exportacao em planilha e logs de IA.
 
-## 3:50 a 4:35 - Cronograma e status realista
-Apresentar o que já foi feito: fluxo cidadão, área admin, dashboards, banco, segurança, migrations de IA, Edge Function e logs. Apontar o que está em andamento: finalizar o disparo automático do job de IA no fluxo principal, melhorar geodados, filtrar por bairro e validar as sugestões de prioridade.
+Na tela de prototipo, mostramos essa jornada ponta a ponta: login, solicitacao, protocolo, fila admin e relatorios. Isso demonstra que o sistema nao e apenas uma ideia, mas uma solucao navegavel com telas para o cidadao e para a gestao.
 
-## 4:35 a 5:00 - Fechamento
-Concluir dizendo que o Cidadão Informa transforma solicitações públicas em dados acionáveis. O projeto melhora a transparência para o cidadão, ajuda a prefeitura a priorizar demandas e usa IA com responsabilidade, explicabilidade, auditoria e revisão humana.
+## 1:55 a 2:45 - Ciencia de Dados
+
+No dashboard administrativo, o sistema transforma os protocolos em dados para decisao. Ele mostra total de chamados, solicitacoes em analise, atrasos, taxa de resolucao, distribuicao por status, distribuicao por categoria e tendencia mensal. Tambem ha mapas e relatorios para observar concentracoes territoriais e exportar dados para analises externas.
+
+## 2:45 a 3:35 - IA finalizada e funcionando
+
+Nas ultimas atualizacoes, finalizamos a IA de prioridade. A IA analisa a categoria e a descricao do protocolo e classifica o chamado como baixa, media, alta ou critica. Esse resultado aparece como um badge na fila administrativa, ajudando o servidor a identificar rapidamente os casos que precisam de mais atencao.
+
+O servidor tambem pode clicar em Regenerar IA para pedir uma nova classificacao, ou pode trocar a prioridade manualmente quando entender que o contexto exige outra decisao. Essa alteracao pode ser justificada e fica registrada.
+
+## 3:35 a 4:15 - Auditoria e responsabilidade
+
+Como estamos falando de servico publico, a IA foi pensada com responsabilidade. Ela apoia a triagem, mas nao substitui o servidor. A decisao final continua humana. Alem disso, o sistema possui uma tela de Logs IA, que registra classificacoes feitas pela IA e alteracoes manuais feitas pela equipe administrativa.
+
+Isso traz transparencia, rastreabilidade e evita que a inteligencia artificial funcione como uma caixa-preta.
+
+## 4:15 a 4:40 - Tecnologias e evolucao
+
+O projeto usa React, TypeScript, Vite, Tailwind, Recharts, Leaflet, Supabase/PostgreSQL, Java, Spring Boot, autenticacao, seguranca e exportacao em planilhas. Para IA, usamos Supabase Edge Function, OpenRouter e Gemini 2.5 Flash.
+
+As proximas evolucoes incluem filtros por bairro e prioridade, analise territorial mais forte, resumos de protocolos e relatorios executivos automaticos.
+
+## 4:40 a 5:00 - Fechamento
+
+Com o Cidadao Informa, buscamos transformar problemas urbanos em dados organizados e uteis para a gestao publica. O cidadao ganha transparencia, a prefeitura ganha visao operacional, e a IA entra como apoio responsavel para tornar a triagem mais eficiente, auditavel e humana.
