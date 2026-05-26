@@ -1,19 +1,5 @@
-import bcrypt from 'bcryptjs';
-import { supabase } from './supabase';
 import { aiPriorityService } from './aiPriorityService';
-
-// ─── Tipos internos ────────────────────────────────────────────────────────────
-
-interface DbUser {
-    id: string;
-    full_name: string;
-    email: string;
-    cpf: string;
-    phone?: string;
-    role: string;
-    password_hash: string;
-    created_at: string;
-}
+import { supabase } from './supabase';
 
 interface DbProtocol {
     id: string;
@@ -24,31 +10,24 @@ interface DbProtocol {
     user_id: string;
     requester: string;
     created_at: string;
+    users?: { phone?: string };
 }
 
-// ─── Utilitários de sessão ─────────────────────────────────────────────────────
-
-/**
- * Gera um token de sessão simples (Base64) contendo os dados do usuário.
- * Não é um JWT assinado — serve apenas para persistir a sessão no localStorage.
- */
-function createSessionToken(user: DbUser): string {
-    const payload = {
-        userId: user.id,
-        cpf: user.cpf,
-        role: user.role,
-        name: user.full_name,
-        email: user.email,
-        phone: user.phone,
-        createdAt: user.created_at,
-        iat: Date.now()
-    };
-    return btoa(JSON.stringify(payload));
+interface AuthResponse {
+    token: string;
+    userId: string;
+    name: string;
+    email: string;
+    cpf: string;
+    phone?: string;
+    role: string;
+    createdAt: string;
 }
 
-/**
- * Decodifica o token de sessão armazenado no localStorage.
- */
+function firstRow<T>(rows: T[] | null): T | null {
+    return rows && rows.length > 0 ? rows[0] : null;
+}
+
 function decodeSessionToken(token: string): any {
     try {
         return JSON.parse(atob(token));
@@ -57,156 +36,80 @@ function decodeSessionToken(token: string): any {
     }
 }
 
-// ─── Módulo de API ────────────────────────────────────────────────────────────
+async function getFunctionErrorMessage(error: unknown): Promise<string> {
+    if (
+        error &&
+        typeof error === 'object' &&
+        'context' in error &&
+        (error as { context?: unknown }).context instanceof Response
+    ) {
+        const body = await (error as { context: Response }).context.json().catch(() => null);
+        return body?.error ?? 'Erro na Edge Function.';
+    }
 
-/**
- * Módulo de comunicação com o Supabase (banco de dados PostgreSQL).
- * Substitui as chamadas ao backend .NET local para funcionar em produção.
- */
+    return error instanceof Error ? error.message : String(error);
+}
+
+async function invokeAppAuth<T>(body: Record<string, unknown>): Promise<T> {
+    const { data, error } = await supabase.functions.invoke('app-auth', { body });
+
+    if (error) {
+        throw new Error(await getFunctionErrorMessage(error));
+    }
+
+    if (!data?.success) {
+        throw new Error(data?.error ?? 'Erro na autenticação. Tente novamente.');
+    }
+
+    return data.data as T;
+}
+
+function mapProtocol(item: DbProtocol) {
+    return {
+        ...item,
+        id: item.id,
+        service: item.category || 'Outros',
+        requester: item.requester || 'Usuário',
+        phone: item.users?.phone,
+        date: item.created_at
+            ? new Date(item.created_at).toLocaleDateString('pt-BR')
+            : 'Data não informada',
+        status: (item.status || 'Aberto') as 'Aberto' | 'Em Análise' | 'Concluído' | 'Atrasado',
+        category: item.category || 'Outros',
+        description: item.description,
+        address: item.address
+    };
+}
+
 export const api = {
-
-    // AUTHENTICATION
-
-    /**
-     * Autentica o usuário usando CPF e Senha (verificação bcrypt).
-     */
     async login(cpf: string, password: string) {
-        const { data, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('cpf', cpf)
-            .single();
-
-        if (error || !data) {
-            throw new Error('CPF ou senha inválidos.');
-        }
-
-        const user = data as DbUser;
-        const isValid = await bcrypt.compare(password, user.password_hash);
-
-        if (!isValid) {
-            throw new Error('CPF ou senha inválidos.');
-        }
-
-        const token = createSessionToken(user);
-
-        return {
-            token,
-            userId: user.id,
-            name: user.full_name,
-            email: user.email,
-            cpf: user.cpf,
-            phone: user.phone,
-            role: user.role,
-            createdAt: user.created_at
-        };
-    },
-
-    /**
-     * Registra um novo cidadão no sistema com senha hasheada via bcrypt.
-     */
-    async register(name: string, email: string, cpf: string, password: string) {
-        // Verificar duplicidade de CPF
-        const { data: existingCpf } = await supabase
-            .from('users')
-            .select('id')
-            .eq('cpf', cpf)
-            .maybeSingle();
-
-        if (existingCpf) {
-            throw new Error('Já existe uma conta cadastrada com este CPF.');
-        }
-
-        // Verificar duplicidade de e-mail
-        const normalizedEmail = email.trim().toLowerCase();
-        const { data: existingEmail } = await supabase
-            .from('users')
-            .select('id')
-            .eq('email', normalizedEmail)
-            .maybeSingle();
-
-        if (existingEmail) {
-            throw new Error('Já existe uma conta cadastrada com este E-mail.');
-        }
-
-        // Hash da senha com bcrypt (custo 10 é padrão seguro)
-        const passwordHash = await bcrypt.hash(password, 10);
-
-        const newUser = {
-            id: crypto.randomUUID(),
-            full_name: name,
-            email: normalizedEmail,
+        return invokeAppAuth<AuthResponse>({
+            action: 'login',
             cpf,
-            role: 'citizen',
-            password_hash: passwordHash,
-            created_at: new Date().toISOString()
-        };
-
-        const { data, error } = await supabase
-            .from('users')
-            .insert(newUser)
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Supabase insert error:', error);
-            throw new Error('Erro ao cadastrar usuário. Tente novamente.');
-        }
-
-        const user = data as DbUser;
-        const token = createSessionToken(user);
-
-        return {
-            token,
-            userId: user.id,
-            name: user.full_name,
-            email: user.email,
-            cpf: user.cpf,
-            phone: user.phone,
-            role: user.role,
-            createdAt: user.created_at
-        };
+            password
+        });
     },
 
-    /**
-     * Recupera os dados do usuário autenticado via token de sessão no localStorage.
-     */
+    async register(name: string, email: string, cpf: string, password: string) {
+        return invokeAppAuth<AuthResponse>({
+            action: 'register',
+            name,
+            email,
+            cpf,
+            password
+        });
+    },
+
     async getMe() {
         const token = localStorage.getItem('cidadaoinforma_token');
         if (!token) throw new Error('Sessão inválida ou expirada.');
 
-        const payload = decodeSessionToken(token);
-        if (!payload || !payload.userId) throw new Error('Sessão inválida ou expirada.');
-
-        // Confirma que o usuário ainda existe no banco
-        const { data, error } = await supabase
-            .from('users')
-            .select('id, full_name, email, cpf, phone, role, created_at')
-            .eq('id', payload.userId)
-            .single();
-
-        if (error || !data) {
-            throw new Error('Usuário não encontrado. Sessão encerrada.');
-        }
-
-        const user = data as Omit<DbUser, 'password_hash'>;
-
-        return {
-            userId: user.id,
-            name: user.full_name,
-            email: user.email,
-            cpf: user.cpf,
-            phone: user.phone,
-            role: user.role,
-            createdAt: user.created_at
-        };
+        return invokeAppAuth<Omit<AuthResponse, 'token'>>({
+            action: 'getMe',
+            token
+        });
     },
 
-    // PROTOCOLS
-
-    /**
-     * Recupera a lista de protocolos, opcionalmente filtrada por usuário.
-     */
     async getProtocols(userId?: string) {
         let query = supabase
             .from('protocols')
@@ -224,25 +127,9 @@ export const api = {
             throw new Error('Erro ao buscar protocolos');
         }
 
-        return (data as any[]).map((item) => ({
-            ...item,
-            id: item.id,
-            service: item.category || 'Outros',
-            requester: item.requester || 'Usuário',
-            phone: item.users?.phone,
-            date: item.created_at
-                ? new Date(item.created_at).toLocaleDateString('pt-BR')
-                : 'Data não informada',
-            status: (item.status || 'Aberto') as 'Aberto' | 'Em Análise' | 'Concluído' | 'Atrasado',
-            category: item.category || 'Outros',
-            description: item.description,
-            address: item.address
-        }));
+        return (data as DbProtocol[]).map(mapProtocol);
     },
 
-    /**
-     * Cria um novo protocolo/solicitação.
-     */
     async createProtocol(data: any) {
         const token = localStorage.getItem('cidadaoinforma_token');
         const payload = token ? decodeSessionToken(token) : null;
@@ -262,50 +149,40 @@ export const api = {
             .from('protocols')
             .insert(protocol)
             .select()
-            .single();
+            .limit(1);
 
         if (error) {
             console.error('Supabase createProtocol error:', error);
             throw new Error('Erro ao criar protocolo');
         }
 
+        const createdProtocol = firstRow(result as DbProtocol[]);
+        if (!createdProtocol) {
+            throw new Error('Protocolo criado, mas não foi possível carregar os dados.');
+        }
+
         void aiPriorityService.classifyProtocol({
-            protocolId: result.id,
-            description: result.description,
-            category: result.category,
+            protocolId: createdProtocol.id,
+            description: createdProtocol.description,
+            category: createdProtocol.category,
         }).catch((classificationError) => {
             console.error('Supabase AI classification error:', classificationError);
         });
 
-        return result;
+        return createdProtocol;
     },
 
-    /**
-     * Atualiza o número de telefone do usuário autenticado.
-     */
     async updatePhone(phone: string) {
         const token = localStorage.getItem('cidadaoinforma_token');
         if (!token) throw new Error('Sessão inválida ou expirada.');
 
-        const payload = decodeSessionToken(token);
-        if (!payload || !payload.userId) throw new Error('Sessão inválida ou expirada.');
-
-        const { data, error } = await supabase
-            .from('users')
-            .update({ phone })
-            .eq('id', payload.userId)
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Supabase updatePhone error:', error);
-            throw new Error('Erro ao atualizar telefone');
-        }
-
-        return data;
+        return invokeAppAuth({
+            action: 'updatePhone',
+            token,
+            phone
+        });
     },
 
-    // UTILS (mantido para compatibilidade com código existente)
     getAuthHeader(contentType?: string) {
         const token = localStorage.getItem('cidadaoinforma_token');
         const headers: HeadersInit = {
