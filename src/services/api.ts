@@ -64,6 +64,20 @@ async function invokeAppAuth<T>(body: Record<string, unknown>): Promise<T> {
     return data.data as T;
 }
 
+async function invokeAppProtocols<T>(body: Record<string, unknown>): Promise<T> {
+    const { data, error } = await supabase.functions.invoke('app-protocols', { body });
+
+    if (error) {
+        throw new Error(await getFunctionErrorMessage(error));
+    }
+
+    if (!data?.success) {
+        throw new Error(data?.error ?? 'Erro ao processar protocolo. Tente novamente.');
+    }
+
+    return data.data as T;
+}
+
 function mapProtocol(item: DbProtocol) {
     return {
         ...item,
@@ -111,55 +125,38 @@ export const api = {
     },
 
     async getProtocols(userId?: string) {
-        let query = supabase
-            .from('protocols')
-            .select('*, users!inner(phone)')
-            .order('created_at', { ascending: false });
+        const token = localStorage.getItem('cidadaoinforma_token');
 
-        if (userId) {
-            query = query.eq('user_id', userId);
-        }
+        const data = await invokeAppProtocols<DbProtocol[]>({
+            action: 'list',
+            token,
+            userId
+        });
 
-        const { data, error } = await query;
+        return data.map(mapProtocol);
+    },
 
-        if (error) {
-            console.error('Supabase getProtocols error:', error);
-            throw new Error('Erro ao buscar protocolos');
-        }
+    async getProtocolById(id: string) {
+        const data = await invokeAppProtocols<DbProtocol | null>({
+            action: 'getById',
+            id
+        });
 
-        return (data as DbProtocol[]).map(mapProtocol);
+        return data ? mapProtocol(data) : null;
     },
 
     async createProtocol(data: any) {
         const token = localStorage.getItem('cidadaoinforma_token');
-        const payload = token ? decodeSessionToken(token) : null;
+        if (!token) throw new Error('Sessão inválida ou expirada.');
 
-        const protocol = {
-            id: crypto.randomUUID(),
+        const createdProtocol = await invokeAppProtocols<DbProtocol>({
+            action: 'create',
+            token,
             category: data.category,
             description: data.description,
             address: data.address,
-            status: data.status || 'Aberto',
-            user_id: data.userId || payload?.userId,
-            requester: data.requester || payload?.name || 'Usuário',
-            created_at: new Date().toISOString()
-        };
-
-        const { data: result, error } = await supabase
-            .from('protocols')
-            .insert(protocol)
-            .select()
-            .limit(1);
-
-        if (error) {
-            console.error('Supabase createProtocol error:', error);
-            throw new Error('Erro ao criar protocolo');
-        }
-
-        const createdProtocol = firstRow(result as DbProtocol[]);
-        if (!createdProtocol) {
-            throw new Error('Protocolo criado, mas não foi possível carregar os dados.');
-        }
+            status: data.status || 'Aberto'
+        });
 
         void aiPriorityService.classifyProtocol({
             protocolId: createdProtocol.id,
