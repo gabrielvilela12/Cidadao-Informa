@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, MapPin, Search, CheckCircle, Image as ImageIcon, CloudUpload, X, Info, ArrowRight, LocateFixed, Plus, Minus, Loader2, Footprints, Eye, Ear, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, Check, MapPin, Search, CheckCircle, Image as ImageIcon, CloudUpload, X, Info, ArrowRight, LocateFixed, Loader2, Footprints, Eye, Ear, MoreHorizontal, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +17,12 @@ const DefaultIcon = L.icon({
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
+
+type SubmitStatus = 'idle' | 'submitting' | 'success' | 'error';
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
 
 async function fetchAddress(lat: number, lon: number, setAddressObj: (a: any) => void) {
   try {
@@ -65,6 +71,8 @@ export function NewRequest() {
   const { user } = useApp();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('idle');
+  const [submitMessage, setSubmitMessage] = useState('');
   const [addressObj, setAddressObj] = useState({
     street: '',
     number: '',
@@ -159,15 +167,20 @@ export function NewRequest() {
   };
 
   const handleNextStep = () => {
+    setSubmitStatus('idle');
+    setSubmitMessage('');
+
     if (currentStep === 1) {
       if (!category) {
-        alert("Por favor, selecione uma categoria.");
+        setSubmitStatus('error');
+        setSubmitMessage("Por favor, selecione uma categoria.");
         return;
       }
       setCurrentStep(2);
     } else if (currentStep === 2) {
       if (!addressObj.street || !serviceDesc) {
-        alert("Por favor, preencha o problema apontado e o endereço completo.");
+        setSubmitStatus('error');
+        setSubmitMessage("Por favor, preencha o problema apontado e o endereço completo.");
         return;
       }
       setCurrentStep(3);
@@ -175,11 +188,11 @@ export function NewRequest() {
   };
 
   const handleSubmit = async () => {
-    setLoading(true);
+    if (loading) return;
 
-    // TODO: Imagens devem ser enviadas para o C# no futuro e salvas em disco/cloud storage
-    // Por enquanto, enviamos arrays vazios, pois removemos o Supabase
-    const uploadedUrls: string[] = [];
+    setLoading(true);
+    setSubmitStatus('submitting');
+    setSubmitMessage('Enviando solicitação para a API...');
 
     const fullAddress = `${addressObj.street}${addressObj.number ? ', ' + addressObj.number : ''}${addressObj.neighborhood ? ' - ' + addressObj.neighborhood : ''}, ${addressObj.city} - ${addressObj.state}`;
 
@@ -189,14 +202,17 @@ export function NewRequest() {
         description: serviceDesc + (description ? ` - ${description}` : ''),
         address: fullAddress,
         userId: user?.id,
-        // Status and Date are handled by the C# backend by default
       });
       setLoading(false);
+      setSubmitStatus('success');
+      setSubmitMessage('Solicitação enviada com sucesso. Redirecionando para seus protocolos...');
+      await new Promise(resolve => setTimeout(resolve, 900));
       navigate('/meus-protocolos');
     } catch (error) {
       setLoading(false);
       console.error(error);
-      alert('Erro ao criar solicitação de acessibilidade.');
+      setSubmitStatus('error');
+      setSubmitMessage(getErrorMessage(error, 'Erro ao criar solicitação. Tente novamente.'));
     }
   };
 
@@ -511,33 +527,61 @@ export function NewRequest() {
           )}
 
           {/* Action Bar */}
-          <div className="sticky bottom-0 bg-[#101922] pt-4 pb-8 border-t border-slate-800 mt-4 flex items-center justify-between lg:justify-end gap-4 z-40">
-            <Button3D
-              variant="white"
-              onClick={() => {
-                if (currentStep > 1) {
-                  setCurrentStep((prev) => (prev - 1) as 1 | 2 | 3);
-                } else {
-                  navigate(-1);
-                }
-              }}
-              className="w-full lg:w-auto"
-            >
-              {currentStep > 1 ? 'Voltar' : 'Cancelar'}
-            </Button3D>
-            <Button3D
-              variant="blue"
-              onClick={currentStep < 3 ? handleNextStep : handleSubmit}
-              disabled={loading}
-              className="w-full lg:w-auto"
-            >
-              {loading && <Loader2 size={16} className="animate-spin" />}
-              {currentStep === 1 ? 'Continuar' : currentStep === 2 ? 'Revisar Solicitação' : (!loading && 'Finalizar Solicitação')}
-              {currentStep < 3 ? <ArrowRight size={16} /> : (!loading && <Check size={16} />)}
-            </Button3D>
+          <div className="sticky bottom-0 bg-[#101922] pt-4 pb-8 border-t border-slate-800 mt-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 z-40">
+            <SubmitStatusBanner status={submitStatus} message={submitMessage} />
+            <div className="flex items-center justify-between lg:justify-end gap-4 w-full lg:w-auto">
+              <Button3D
+                variant="white"
+                onClick={() => {
+                  if (currentStep > 1) {
+                    setCurrentStep((prev) => (prev - 1) as 1 | 2 | 3);
+                  } else {
+                    navigate(-1);
+                  }
+                }}
+                disabled={loading}
+                className="w-full lg:w-auto"
+              >
+                {currentStep > 1 ? 'Voltar' : 'Cancelar'}
+              </Button3D>
+              <Button3D
+                variant="blue"
+                onClick={currentStep < 3 ? handleNextStep : handleSubmit}
+                disabled={loading}
+                className="w-full lg:w-auto"
+              >
+                {loading && <Loader2 size={16} className="animate-spin" />}
+                {loading ? 'Enviando...' : currentStep === 1 ? 'Continuar' : currentStep === 2 ? 'Revisar Solicitação' : 'Finalizar Solicitação'}
+                {currentStep < 3 ? <ArrowRight size={16} /> : (!loading && <Check size={16} />)}
+              </Button3D>
+            </div>
           </div>
         </div>
       </main>
+    </div>
+  );
+}
+
+function SubmitStatusBanner({ status, message }: { status: SubmitStatus; message: string }) {
+  if (status === 'idle' || !message) return <div className="hidden lg:block flex-1" />;
+
+  const styles = {
+    submitting: 'border-blue-500/30 bg-blue-500/10 text-blue-200',
+    success: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200',
+    error: 'border-red-500/30 bg-red-500/10 text-red-200',
+  } as const;
+
+  const icon =
+    status === 'submitting'
+      ? <Loader2 size={16} className="animate-spin shrink-0" />
+      : status === 'success'
+        ? <CheckCircle size={16} className="shrink-0" />
+        : <AlertCircle size={16} className="shrink-0" />;
+
+  return (
+    <div className={`w-full lg:flex-1 min-h-11 rounded-xl border px-4 py-3 text-sm font-medium flex items-center gap-2 ${styles[status]}`}>
+      {icon}
+      <span>{message}</span>
     </div>
   );
 }
