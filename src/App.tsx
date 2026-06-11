@@ -63,11 +63,11 @@ function AppContent() {
           <Route path="/meus-protocolos" element={<CitizenProtocols />} />
           <Route path="/servicos" element={<CitizenServices />} />
 
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/solicitacoes" element={<AdminRequestsQueue />} />
-          <Route path="/admin/mapa" element={<AdminMap />} />
-          <Route path="/admin/relatorios" element={<AdminReports />} />
-          <Route path="/admin/ai-logs" element={<AiLogsPage />} />
+          <Route path="/admin" element={role === 'admin' ? <AdminDashboard /> : <Navigate to="/" replace />} />
+          <Route path="/admin/solicitacoes" element={role === 'admin' ? <AdminRequestsQueue /> : <Navigate to="/" replace />} />
+          <Route path="/admin/mapa" element={role === 'admin' ? <AdminMap /> : <Navigate to="/" replace />} />
+          <Route path="/admin/relatorios" element={role === 'admin' ? <AdminReports /> : <Navigate to="/" replace />} />
+          <Route path="/admin/ai-logs" element={role === 'admin' ? <AiLogsPage /> : <Navigate to="/" replace />} />
 
           {/* Shared Routes */}
           <Route path="/perfil" element={<Profile />} />

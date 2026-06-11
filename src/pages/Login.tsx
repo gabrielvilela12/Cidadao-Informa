@@ -185,7 +185,7 @@ function AdminPreviewMockup() {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export function Login({ initialMode = false }: { initialMode?: boolean }) {
-    const { setRole, loginSuccess } = useApp();
+    const { loginSuccess } = useApp();
     const navigate = useNavigate();
 
     const [isRegistering, setIsRegistering] = useState(initialMode);
@@ -193,7 +193,6 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [adminPassword, setAdminPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [errorDesc, setErrorDesc] = useState('');
     const [authMode, setAuthMode] = useState<'citizen' | 'admin'>('citizen');
@@ -221,11 +220,11 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
             if (isRegistering) {
                 if (!name.trim()) { setErrorDesc('O Nome Completo é obrigatório.'); setLoading(false); return; }
                 const data = await api.register(name, email, cleanCpf, password);
-                loginSuccess(data.token, { id: data.userId, cpf: data.cpf, full_name: data.name, email: data.email, created_at: data.createdAt }, data.role as 'citizen');
+                loginSuccess(data.token, { id: data.userId, cpf: data.cpf, full_name: data.name, email: data.email, phone: data.phone, created_at: data.createdAt }, data.role as 'citizen');
                 navigate('/');
             } else {
                 const data = await api.login(cleanCpf, password);
-                loginSuccess(data.token, { id: data.userId, cpf: data.cpf, full_name: data.name, email: data.email, created_at: data.createdAt }, data.role as 'citizen' | 'admin');
+                loginSuccess(data.token, { id: data.userId, cpf: data.cpf, full_name: data.name, email: data.email, phone: data.phone, created_at: data.createdAt }, data.role as 'citizen' | 'admin');
                 navigate(data.role === 'admin' ? '/admin' : '/');
             }
         } catch (err: any) {
@@ -235,10 +234,39 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
         }
     };
 
-    const handleAdminMock = (e: React.FormEvent) => {
+    const handleAdminAuth = async (e: React.FormEvent) => {
         e.preventDefault();
-        setRole('admin');
-        navigate('/admin');
+        setErrorDesc('');
+        setLoading(true);
+
+        const cleanCpf = sanitizeCPF(cpf);
+        if (cleanCpf.length !== 11) { setErrorDesc('O CPF deve ter 11 dígitos.'); setLoading(false); return; }
+        if (password.length < 6) { setErrorDesc('A senha deve ter pelo menos 6 caracteres.'); setLoading(false); return; }
+
+        try {
+            const data = await api.login(cleanCpf, password);
+            if (data.role !== 'admin') {
+                throw new Error('Acesso restrito a servidores autorizados.');
+            }
+
+            loginSuccess(
+                data.token,
+                {
+                    id: data.userId,
+                    cpf: data.cpf,
+                    full_name: data.name,
+                    email: data.email,
+                    phone: data.phone,
+                    created_at: data.createdAt
+                },
+                'admin'
+            );
+            navigate('/admin');
+        } catch (err: any) {
+            setErrorDesc(err.message || 'Erro na autenticação. Tente novamente.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const switchMode = (toRegister: boolean) => {
@@ -411,14 +439,17 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                             </form>
                         ) : (
                             /* Admin form */
-                            <form onSubmit={handleAdminMock} className="flex flex-col gap-4">
-                                <InputField label="Chave de Servidor" icon={Shield} type="password" value={adminPassword}
-                                    onChange={(e: any) => setAdminPassword(e.target.value)} placeholder="Insira a chave de acesso" />
+                            <form onSubmit={handleAdminAuth} className="flex flex-col gap-4">
+                                <InputField label="CPF do Servidor" icon={Shield} value={cpf}
+                                    onChange={(e: any) => setCpf(formatCPF(e.target.value))} placeholder="000.000.000-00" autoComplete="username" />
+                                <InputField label="Senha" icon={Key} type="password" value={password}
+                                    onChange={(e: any) => setPassword(e.target.value)} placeholder="••••••••" autoComplete="current-password" />
                                 <button
                                     type="submit"
-                                    className="flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 border border-amber-500 text-white py-3.5 rounded-xl font-bold text-sm transition-all hover:-translate-y-0.5 mt-1 shadow-lg shadow-amber-600/25"
+                                    disabled={loading}
+                                    className="flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 border border-amber-500 text-white py-3.5 rounded-xl font-bold text-sm transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 mt-1 shadow-lg shadow-amber-600/25"
                                 >
-                                    Acessar Painel <ArrowRight size={16} />
+                                    {loading ? <Loader2 size={18} className="animate-spin" /> : <>Acessar Painel <ArrowRight size={16} /></>}
                                 </button>
                                 <p className="text-center text-xs text-slate-600">Acesso restrito a servidores municipais autorizados.</p>
                             </form>

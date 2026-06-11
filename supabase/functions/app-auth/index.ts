@@ -3,6 +3,8 @@ import { createClient } from "supabase";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const SESSION_SECRET = Deno.env.get("APP_SESSION_SECRET") ?? SUPABASE_SERVICE_ROLE_KEY;
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
@@ -25,6 +27,18 @@ interface DbUser {
   created_at: string;
 }
 
+interface SessionPayload {
+  userId: string;
+  cpf: string;
+  role: string;
+  name: string;
+  email: string;
+  phone?: string;
+  createdAt: string;
+  iat: number;
+  exp: number;
+}
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -36,32 +50,92 @@ function firstRow<T>(rows: T[] | null): T | null {
   return rows && rows.length > 0 ? rows[0] : null;
 }
 
-function createSessionToken(user: DbUser): string {
-  const payload = {
+function bytesToBase64Url(bytes: Uint8Array): string {
+  let binary = "";
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function stringToBase64Url(value: string): string {
+  return bytesToBase64Url(new TextEncoder().encode(value));
+}
+
+function base64UrlToBytes(value: string): ArrayBuffer {
+  const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+  const binary = atob(padded);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+}
+
+async function getSigningKey() {
+  return crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(SESSION_SECRET),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign", "verify"],
+  );
+}
+
+async function createSessionToken(user: DbUser): Promise<string> {
+  const now = Date.now();
+  const header = stringToBase64Url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+  const payload = stringToBase64Url(JSON.stringify({
     userId: user.id,
     cpf: user.cpf,
-    role: user.role,
+    role: user.role === "admin" ? "admin" : "citizen",
     name: user.full_name,
     email: user.email,
     phone: user.phone,
     createdAt: user.created_at,
-    iat: Date.now(),
-  };
+    iat: now,
+    exp: now + SESSION_TTL_MS,
+  }));
 
-  return btoa(JSON.stringify(payload));
+  const unsignedToken = `${header}.${payload}`;
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    await getSigningKey(),
+    new TextEncoder().encode(unsignedToken),
+  );
+
+  return `${unsignedToken}.${bytesToBase64Url(new Uint8Array(signature))}`;
 }
 
-function decodeSessionToken(token: string): Record<string, unknown> | null {
+async function decodeSessionToken(token: string): Promise<SessionPayload | null> {
   try {
-    return JSON.parse(atob(token));
+    const [header, payload, signature] = token.split(".");
+    if (!header || !payload || !signature) return null;
+
+    const unsignedToken = `${header}.${payload}`;
+    const isValid = await crypto.subtle.verify(
+      "HMAC",
+      await getSigningKey(),
+      base64UrlToBytes(signature),
+      new TextEncoder().encode(unsignedToken),
+    );
+
+    if (!isValid) return null;
+
+    const parsed = JSON.parse(new TextDecoder().decode(base64UrlToBytes(payload))) as SessionPayload;
+    if (!parsed.exp || Date.now() > parsed.exp) return null;
+
+    return parsed;
   } catch {
     return null;
   }
 }
 
-function authPayload(user: DbUser) {
+async function authPayload(user: DbUser) {
   return {
-    token: createSessionToken(user),
+    token: await createSessionToken(user),
     userId: user.id,
     name: user.full_name,
     email: user.email,
@@ -82,10 +156,10 @@ async function login(cpf: string, password: string) {
   if (error) throw error;
 
   const user = firstRow(data as DbUser[]);
-  if (!user) throw new Error("CPF ou senha inválidos.");
+  if (!user) throw new Error("CPF ou senha invalidos.");
 
   const isValid = await bcrypt.compare(password, user.password_hash);
-  if (!isValid) throw new Error("CPF ou senha inválidos.");
+  if (!isValid) throw new Error("CPF ou senha invalidos.");
 
   return authPayload(user);
 }
@@ -100,7 +174,7 @@ async function register(name: string, email: string, cpf: string, password: stri
     .limit(1);
 
   if (cpfError) throw cpfError;
-  if (firstRow(existingCpf)) throw new Error("Já existe uma conta cadastrada com este CPF.");
+  if (firstRow(existingCpf)) throw new Error("Ja existe uma conta cadastrada com este CPF.");
 
   const { data: existingEmail, error: emailError } = await supabase
     .from("users")
@@ -109,7 +183,7 @@ async function register(name: string, email: string, cpf: string, password: stri
     .limit(1);
 
   if (emailError) throw emailError;
-  if (firstRow(existingEmail)) throw new Error("Já existe uma conta cadastrada com este E-mail.");
+  if (firstRow(existingEmail)) throw new Error("Ja existe uma conta cadastrada com este E-mail.");
 
   const passwordHash = await bcrypt.hash(password, 10);
 
@@ -130,17 +204,17 @@ async function register(name: string, email: string, cpf: string, password: stri
   if (error) throw error;
 
   const user = firstRow(data as DbUser[]);
-  if (!user) throw new Error("Cadastro criado, mas não foi possível carregar o usuário.");
+  if (!user) throw new Error("Cadastro criado, mas nao foi possivel carregar o usuario.");
 
   return authPayload(user);
 }
 
 async function getMe(token: string) {
-  const payload = decodeSessionToken(token);
+  const payload = await decodeSessionToken(token);
   const userId = payload?.userId;
 
-  if (!userId || typeof userId !== "string") {
-    throw new Error("Sessão inválida ou expirada.");
+  if (!userId) {
+    throw new Error("Sessao invalida ou expirada.");
   }
 
   const { data, error } = await supabase
@@ -152,7 +226,7 @@ async function getMe(token: string) {
   if (error) throw error;
 
   const user = firstRow(data as DbUser[]);
-  if (!user) throw new Error("Usuário não encontrado. Sessão encerrada.");
+  if (!user) throw new Error("Usuario nao encontrado. Sessao encerrada.");
 
   return {
     userId: user.id,
@@ -166,11 +240,11 @@ async function getMe(token: string) {
 }
 
 async function updatePhone(token: string, phone: string) {
-  const payload = decodeSessionToken(token);
+  const payload = await decodeSessionToken(token);
   const userId = payload?.userId;
 
-  if (!userId || typeof userId !== "string") {
-    throw new Error("Sessão inválida ou expirada.");
+  if (!userId) {
+    throw new Error("Sessao invalida ou expirada.");
   }
 
   const { data, error } = await supabase
@@ -183,7 +257,7 @@ async function updatePhone(token: string, phone: string) {
   if (error) throw error;
 
   const user = firstRow(data);
-  if (!user) throw new Error("Usuário não encontrado. Sessão encerrada.");
+  if (!user) throw new Error("Usuario nao encontrado. Sessao encerrada.");
 
   return user;
 }
@@ -197,7 +271,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: false, error: "Method not allowed" }, 405);
   }
 
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !SESSION_SECRET) {
     return jsonResponse({ success: false, error: "Supabase environment is not configured" }, 500);
   }
 

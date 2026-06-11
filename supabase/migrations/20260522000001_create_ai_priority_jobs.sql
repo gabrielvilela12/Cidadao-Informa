@@ -25,9 +25,5 @@ ALTER TABLE ai_priority_jobs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow read access to admins"
   ON ai_priority_jobs FOR SELECT
   USING (
-    EXISTS (
-      SELECT 1 FROM auth.users
-      WHERE auth.users.id = auth.uid()
-      AND auth.users.user_metadata->>'role' = 'admin'
-    )
+    auth.jwt() -> 'app_metadata' ->> 'role' = 'admin'
   );

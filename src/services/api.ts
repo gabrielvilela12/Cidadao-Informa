@@ -24,18 +24,6 @@ interface AuthResponse {
     createdAt: string;
 }
 
-function firstRow<T>(rows: T[] | null): T | null {
-    return rows && rows.length > 0 ? rows[0] : null;
-}
-
-function decodeSessionToken(token: string): any {
-    try {
-        return JSON.parse(atob(token));
-    } catch {
-        return null;
-    }
-}
-
 async function getFunctionErrorMessage(error: unknown): Promise<string> {
     if (
         error &&
@@ -124,7 +112,7 @@ export const api = {
         });
     },
 
-    async getProtocols(userId?: string, scope: 'citizen' | 'admin' | 'all' = 'all') {
+    async getProtocols(userId?: string, scope: 'citizen' | 'admin' | 'all' = 'citizen') {
         const token = localStorage.getItem('cidadaoinforma_token');
 
         const data = await invokeAppProtocols<DbProtocol[]>({

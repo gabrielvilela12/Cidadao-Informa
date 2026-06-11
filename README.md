@@ -87,6 +87,6 @@ npm run lint     # valida tipos TypeScript
 
 ## Observacoes
 
-- As Edge Functions dependem de variaveis configuradas no Supabase, como `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` e, para classificacao de prioridade, `OPENROUTER_API_KEY`.
+- As Edge Functions dependem de variaveis configuradas no Supabase, como `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `APP_SESSION_SECRET` e, para classificacao de prioridade, `OPENROUTER_API_KEY`.
 - O arquivo `.env.example` mostra as variaveis esperadas para o frontend.
 - O backend Java permanece no reposititorio como alternativa/apoio para APIs com Spring Boot.
