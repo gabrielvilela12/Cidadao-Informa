@@ -1,25 +1,15 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, Briefcase, User, LogOut, BarChart3, List, Accessibility as A11yIcon, X, Shield, UserCircle, Database } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, Briefcase, User, LogOut, BarChart3, List, Accessibility as A11yIcon, X, Database } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { CidadaoBrand } from './CidadaoBrand';
 
 export function Sidebar() {
-  const { role, setRole, logout, user, isMobileMenuOpen, toggleMobileMenu } = useApp();
+  const { role, logout, user, isMobileMenuOpen, toggleMobileMenu } = useApp();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
     navigate('/');
-  };
-
-  const handleSwitchRole = () => {
-    if (role === 'citizen') {
-      setRole('admin');
-      navigate('/admin');
-    } else {
-      setRole('citizen');
-      navigate('/');
-    }
   };
 
   const citizenLinks = [
@@ -110,19 +100,6 @@ export function Sidebar() {
             <User size={18} />
             <span>Perfil</span>
           </NavLink>
-
-          {/* Role switch button */}
-          <button
-            onClick={handleSwitchRole}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all mb-2 ${role === 'citizen'
-              ? 'text-slate-400 hover:bg-amber-500/10 hover:text-amber-400 border border-dashed border-white/8 hover:border-amber-500/30'
-              : 'text-slate-400 hover:bg-blue-500/10 hover:text-blue-400 border border-dashed border-white/8 hover:border-blue-500/30'
-              }`}
-            title={role === 'citizen' ? 'Trocar para modo Servidor' : 'Trocar para modo Cidadão'}
-          >
-            {role === 'citizen' ? <Shield size={18} /> : <UserCircle size={18} />}
-            <span>{role === 'citizen' ? 'Entrar como Servidor' : 'Voltar para Cidadão'}</span>
-          </button>
 
           {/* User card */}
           <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white/5 border border-white/8 mt-1">

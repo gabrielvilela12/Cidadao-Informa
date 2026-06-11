@@ -33,9 +33,7 @@ export function useProtocols(role: 'citizen' | 'admin' | 'all' = 'all') {
     // Specific single fetcher for details page
     const fetchProtocolById = async (id: string): Promise<Protocol | null> => {
         try {
-            const data = await api.getProtocols();
-            const protocol = data.find((p: any) => p.id?.toString() === id);
-            return protocol || null;
+            return await api.getProtocolById(id);
         } catch {
             return null;
         }

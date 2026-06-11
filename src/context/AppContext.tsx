@@ -23,7 +23,6 @@ interface AppUser {
  */
 interface AppContextType {
   role: UserRole;
-  setRole: (role: UserRole) => void;
   isAuthenticated: boolean;
   user: AppUser | null;
   loginSuccess: (token: string, user: AppUser, role: UserRole) => void;
@@ -33,6 +32,10 @@ interface AppContextType {
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
+
+function normalizeRole(role: unknown): UserRole {
+  return role === 'admin' ? 'admin' : 'citizen';
+}
 
 /**
  * Provedor de Contexto Global da Aplicação (AppProvider).
@@ -55,7 +58,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const validateSession = async () => {
       const token = localStorage.getItem('cidadaoinforma_token');
-      const savedRole = localStorage.getItem('cidadaoinforma_role') as UserRole | null;
 
       if (token) {
         try {
@@ -71,7 +73,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             phone: userData.phone,
             created_at: userData.createdAt
           });
-          setRoleState((userData.role as UserRole) || savedRole || 'citizen');
+          const validatedRole = normalizeRole(userData.role);
+          localStorage.setItem('cidadaoinforma_role', validatedRole);
+          setRoleState(validatedRole);
           setIsAuthenticated(true);
         } catch (error) {
           // Sessão inválida: limpa o cache local
@@ -90,16 +94,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loginSuccess = (token: string, user: AppUser, role: UserRole) => {
+    const validatedRole = normalizeRole(role);
     localStorage.setItem('cidadaoinforma_token', token);
     localStorage.setItem('cidadaoinforma_user', JSON.stringify(user));
-    localStorage.setItem('cidadaoinforma_role', role);
+    localStorage.setItem('cidadaoinforma_role', validatedRole);
     setUser(user);
-    setRoleState(role);
+    setRoleState(validatedRole);
     setIsAuthenticated(true);
-  };
-
-  const setRole = (newRole: UserRole) => {
-    setRoleState(newRole);
   };
 
   const logout = () => {
@@ -119,7 +120,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AppContext.Provider value={{ role, setRole, isAuthenticated, user, loginSuccess, logout, isMobileMenuOpen, toggleMobileMenu }}>
+    <AppContext.Provider value={{ role, isAuthenticated, user, loginSuccess, logout, isMobileMenuOpen, toggleMobileMenu }}>
       {children}
     </AppContext.Provider>
   );
