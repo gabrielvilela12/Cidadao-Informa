@@ -20,6 +20,7 @@ import { A11yProvider } from './context/A11yContext';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { PublicProtocol } from './pages/PublicProtocol';
 import { NotFound } from './pages/NotFound';
+import { PanelLeftOpen } from 'lucide-react';
 
 /**
  * Componente principal de roteamento e layout da aplicação.
@@ -32,7 +33,7 @@ import { NotFound } from './pages/NotFound';
  * @returns O layout e as rotas mapeadas de acordo com as permissões do usuário em sessão.
  */
 function AppContent() {
-  const { role, isAuthenticated } = useApp();
+  const { role, isAuthenticated, isSidebarCollapsed, toggleSidebarCollapsed } = useApp();
 
   useKeyboardShortcuts(role);
 
@@ -51,7 +52,17 @@ function AppContent() {
   return (
     <div className="flex min-h-screen bg-[#080d12] text-white font-sans">
       <Sidebar />
-      <main className="flex-1 ml-0 md:ml-72 flex flex-col h-screen overflow-hidden transition-all duration-300">
+      {isSidebarCollapsed && (
+        <button
+          type="button"
+          onClick={toggleSidebarCollapsed}
+          className="hidden md:flex fixed left-4 top-4 z-40 size-10 items-center justify-center rounded-xl bg-[#0d1520]/90 border border-white/10 text-slate-300 shadow-xl backdrop-blur hover:text-white hover:bg-[#111c29] transition-colors"
+          title="Abrir sidebar"
+        >
+          <PanelLeftOpen size={18} />
+        </button>
+      )}
+      <main className={`flex-1 ml-0 ${isSidebarCollapsed ? 'md:ml-0' : 'md:ml-72'} flex flex-col h-screen overflow-hidden transition-all duration-300`}>
         <Routes>
           {/* Default Route when authenticated */}
           <Route path="/login" element={<Navigate to={role === 'citizen' ? '/' : '/admin'} replace />} />

@@ -29,6 +29,8 @@ interface AppContextType {
   logout: () => void;
   isMobileMenuOpen: boolean;
   toggleMobileMenu: () => void;
+  isSidebarCollapsed: boolean;
+  toggleSidebarCollapsed: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -52,8 +54,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(prev => !prev);
+  const toggleSidebarCollapsed = () => setIsSidebarCollapsed(prev => !prev);
 
   useEffect(() => {
     const validateSession = async () => {
@@ -120,7 +124,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AppContext.Provider value={{ role, isAuthenticated, user, loginSuccess, logout, isMobileMenuOpen, toggleMobileMenu }}>
+    <AppContext.Provider value={{ role, isAuthenticated, user, loginSuccess, logout, isMobileMenuOpen, toggleMobileMenu, isSidebarCollapsed, toggleSidebarCollapsed }}>
       {children}
     </AppContext.Provider>
   );

@@ -6,7 +6,11 @@ interface CidadaoBrandProps {
   className?: string;
 }
 
-export function CidadaoBrand({ compact = false, showIcon = true, className = '' }: CidadaoBrandProps) {
+export function CidadaoBrand({
+  compact = false,
+  showIcon = true,
+  className = '',
+}: CidadaoBrandProps) {
   return (
     <div className={`flex items-center gap-3 ${className}`}>
       {showIcon && (
@@ -16,7 +20,7 @@ export function CidadaoBrand({ compact = false, showIcon = true, className = '' 
       )}
       <div className="leading-none">
         <div className="cidadao-wordmark font-black tracking-tight">
-          <span className="text-[#1351B4]">Cidadão</span>
+          <span className="text-[#1351B4]">Cidad&atilde;o</span>
           <span className="text-[#FFCD07]"> In</span>
           <span className="text-[#168821]">forma</span>
         </div>

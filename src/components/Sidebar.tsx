@@ -1,10 +1,10 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, Briefcase, User, LogOut, BarChart3, List, Accessibility as A11yIcon, X, Database } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, Briefcase, User, LogOut, BarChart3, List, Accessibility as A11yIcon, X, Database, PanelLeftClose } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { CidadaoBrand } from './CidadaoBrand';
 
 export function Sidebar() {
-  const { role, logout, user, isMobileMenuOpen, toggleMobileMenu } = useApp();
+  const { role, logout, user, isMobileMenuOpen, toggleMobileMenu, isSidebarCollapsed, toggleSidebarCollapsed } = useApp();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -44,11 +44,18 @@ export function Sidebar() {
       )}
 
       {/* Sidebar */}
-      <aside className={`w-72 bg-[#080d12] border-r border-white/8 flex flex-col h-screen fixed left-0 top-0 z-50 transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      <aside className={`w-72 bg-[#080d12] border-r border-white/8 flex flex-col h-screen fixed left-0 top-0 z-50 transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : isSidebarCollapsed ? '-translate-x-full' : '-translate-x-full md:translate-x-0'}`}>
 
         {/* Logo */}
         <div className="flex items-center justify-between px-6 h-16 border-b border-white/5">
-          <CidadaoBrand />
+          <CidadaoBrand compact />
+          <button
+            onClick={toggleSidebarCollapsed}
+            className="hidden md:flex text-slate-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+            title="Recolher sidebar"
+          >
+            <PanelLeftClose size={18} />
+          </button>
           <button
             onClick={toggleMobileMenu}
             className="md:hidden text-slate-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-colors"
