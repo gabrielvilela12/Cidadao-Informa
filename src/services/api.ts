@@ -10,7 +10,30 @@ interface DbProtocol {
     user_id: string;
     requester: string;
     created_at: string;
+    ai_priority?: 'baixa' | 'media' | 'alta' | 'critica' | null;
+    ai_status?: 'pending' | 'success' | 'failed';
     users?: { phone?: string };
+}
+
+export interface ProtocolAuditBlock {
+    id: string;
+    block_index: number | string;
+    protocol_id: string;
+    event_type: string;
+    actor_id: string | null;
+    actor_role: string;
+    previous_status: string | null;
+    new_status: string | null;
+    payload_hash: string;
+    previous_block_hash: string | null;
+    block_hash: string;
+    created_at: string;
+    is_valid: boolean;
+}
+
+export interface ProtocolAuditTrail {
+    valid: boolean;
+    blocks: ProtocolAuditBlock[];
 }
 
 interface AuthResponse {
@@ -156,6 +179,42 @@ export const api = {
         });
 
         return createdProtocol;
+    },
+
+    async getProtocolAuditTrail(protocolId: string) {
+        const token = localStorage.getItem('cidadaoinforma_token');
+        if (!token) throw new Error('SessÃ£o invÃ¡lida ou expirada.');
+
+        return invokeAppProtocols<ProtocolAuditTrail>({
+            action: 'auditTrail',
+            token,
+            protocolId
+        });
+    },
+
+    async verifyAuditChain() {
+        const token = localStorage.getItem('cidadaoinforma_token');
+        if (!token) throw new Error('SessÃ£o invÃ¡lida ou expirada.');
+
+        return invokeAppProtocols({
+            action: 'verifyAuditChain',
+            token
+        });
+    },
+
+    async updateProtocolStatus(protocolId: string, status: string, reason?: string) {
+        const token = localStorage.getItem('cidadaoinforma_token');
+        if (!token) throw new Error('SessÃ£o invÃ¡lida ou expirada.');
+
+        const data = await invokeAppProtocols<DbProtocol>({
+            action: 'setStatus',
+            token,
+            protocolId,
+            status,
+            reason
+        });
+
+        return mapProtocol(data);
     },
 
     async updatePhone(phone: string) {

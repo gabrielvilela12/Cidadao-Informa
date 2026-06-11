@@ -6,7 +6,7 @@ import { StatusBadge } from './CitizenDashboard';
 import { Link } from 'react-router-dom';
 
 export function CitizenProtocols() {
-    const { protocols, loading } = useProtocols('citizen');
+    const { protocols, loading, error } = useProtocols('citizen');
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
 
@@ -81,6 +81,9 @@ export function CitizenProtocols() {
                             </thead>
                             <tbody className="divide-y divide-white/5">
                                 {loading && <tr><td colSpan={5} className="px-5 py-12 text-center text-slate-500">Carregando...</td></tr>}
+                                {!loading && error && (
+                                    <tr><td colSpan={5} className="px-5 py-12 text-center text-amber-500">{error}</td></tr>
+                                )}
                                 {!loading && filteredProtocols.map((p) => (
                                     <tr key={p.id} className="hover:bg-white/5 transition-colors">
                                         <td className="px-5 py-3.5">
@@ -97,7 +100,7 @@ export function CitizenProtocols() {
                                         </td>
                                     </tr>
                                 ))}
-                                {!loading && filteredProtocols.length === 0 && (
+                                {!loading && !error && filteredProtocols.length === 0 && (
                                     <tr><td colSpan={5} className="px-5 py-12 text-center text-slate-500">Nenhum protocolo encontrado.</td></tr>
                                 )}
                             </tbody>

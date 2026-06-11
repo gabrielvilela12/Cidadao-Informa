@@ -76,18 +76,27 @@ export const aiPriorityService = {
     priority: string,
     reason?: string
   ): Promise<void> {
-    const { error: protocolError } = await supabase
-      .from('protocols')
-      .update({ ai_priority: priority, ai_status: 'success' })
-      .eq('id', protocolId);
+    const token = localStorage.getItem('cidadaoinforma_token');
+    if (!token) throw new Error('SessÃ£o invÃ¡lida ou expirada.');
 
-    if (protocolError) throw protocolError;
+    const { data, error } = await supabase.functions.invoke('app-protocols', {
+      body: {
+        action: 'setPriority',
+        token,
+        protocolId,
+        priority,
+        reason,
+      },
+    });
 
-    const { error: logError } = await supabase
-      .from('ai_job_logs')
-      .insert({ protocol_id: protocolId, priority, source: 'admin_manual', reason: reason ?? null });
+    if (error) {
+      const message = await getFunctionErrorMessage(error);
+      throw new Error(`Edge Function falhou: ${message}`);
+    }
 
-    if (logError) throw logError;
+    if (!data?.success) {
+      throw new Error(data?.error ?? 'Nao foi possivel alterar a prioridade.');
+    }
   },
 
   async regeneratePriority(protocolId: string): Promise<void> {
