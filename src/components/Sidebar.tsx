@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, Briefcase, User, LogOut, BarChart3, List, Accessibility as A11yIcon, X, Database, PanelLeftClose } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, Briefcase, User, LogOut, BarChart3, List, Accessibility as A11yIcon, X, Database, PanelLeftClose, WalletCards } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { CidadaoBrand } from './CidadaoBrand';
 
@@ -26,6 +26,7 @@ export function Sidebar() {
     { to: '/admin/solicitacoes', icon: List, label: 'Fila de Solicitações' },
     { to: '/admin/mapa', icon: MapIcon, label: 'Mapa Estratégico' },
     { to: '/admin/relatorios', icon: FileText, label: 'Relatórios' },
+    { to: '/finance', icon: WalletCards, label: 'Financeiro' },
     { to: '/admin/ai-logs', icon: Database, label: 'Logs IA' },
     { to: '/acessibilidade', icon: A11yIcon, label: 'Acessibilidade' },
   ];

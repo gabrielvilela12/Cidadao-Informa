@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { AppProvider, useApp } from './context/AppContext';
 import { CitizenDashboard } from './pages/CitizenDashboard';
@@ -21,6 +22,24 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { PublicProtocol } from './pages/PublicProtocol';
 import { NotFound } from './pages/NotFound';
 import { PanelLeftOpen } from 'lucide-react';
+import { Finance } from './pages/Finance';
+
+function getHashRoutePath() {
+  const hashPath = window.location.hash.replace(/^#/, '');
+  return hashPath.startsWith('/') ? hashPath : '';
+}
+
+function useHashRoutePath() {
+  const [hashPath, setHashPath] = useState(getHashRoutePath);
+
+  useEffect(() => {
+    const syncHashPath = () => setHashPath(getHashRoutePath());
+    window.addEventListener('hashchange', syncHashPath);
+    return () => window.removeEventListener('hashchange', syncHashPath);
+  }, []);
+
+  return hashPath;
+}
 
 /**
  * Componente principal de roteamento e layout da aplicação.
@@ -34,12 +53,15 @@ import { PanelLeftOpen } from 'lucide-react';
  */
 function AppContent() {
   const { role, isAuthenticated, isSidebarCollapsed, toggleSidebarCollapsed } = useApp();
+  const location = useLocation();
+  const hashPath = useHashRoutePath();
+  const routeLocation = hashPath ? { ...location, pathname: hashPath, search: '', hash: '' } : location;
 
   useKeyboardShortcuts(role);
 
   if (!isAuthenticated) {
     return (
-      <Routes>
+      <Routes location={routeLocation}>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login initialMode={false} />} />
         <Route path="/cadastro" element={<Login initialMode={true} />} />
@@ -63,7 +85,7 @@ function AppContent() {
         </button>
       )}
       <main className={`flex-1 ml-0 ${isSidebarCollapsed ? 'md:ml-0' : 'md:ml-72'} flex flex-col h-screen overflow-hidden transition-all duration-300`}>
-        <Routes>
+        <Routes location={routeLocation}>
           {/* Default Route when authenticated */}
           <Route path="/login" element={<Navigate to={role === 'citizen' ? '/' : '/admin'} replace />} />
 
@@ -79,6 +101,7 @@ function AppContent() {
           <Route path="/admin/mapa" element={role === 'admin' ? <AdminMap /> : <Navigate to="/" replace />} />
           <Route path="/admin/relatorios" element={role === 'admin' ? <AdminReports /> : <Navigate to="/" replace />} />
           <Route path="/admin/ai-logs" element={role === 'admin' ? <AiLogsPage /> : <Navigate to="/" replace />} />
+          <Route path="/finance" element={role === 'admin' ? <Finance /> : <Navigate to="/" replace />} />
 
           {/* Shared Routes */}
           <Route path="/perfil" element={<Profile />} />
