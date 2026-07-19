@@ -36,7 +36,7 @@
   --brand-green: #168821;
   --brand-yellow: #ffcd07;
   --brand-red: #e52207;
-  --brand-bg: #f7f9fc;
+  --brand-bg: #F7F9FC;
   --brand-surface: #ffffff;
   --brand-surface-alt: #eef3f8;
   --brand-border: #d7dce5;
@@ -783,4 +783,129 @@ a {
   select {
     font-size: 16px !important;
   }
+}
+.auth-mode-choice {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.auth-mode-choice > span {
+  position: relative;
+  z-index: 1;
+}
+
+.auth-mode-choice:not(.is-active)::before {
+  content: "";
+  position: absolute;
+  inset: -60% -35%;
+  z-index: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 35%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.04) 65%,
+    transparent 100%
+  );
+  transform: translateX(-62%) rotate(8deg);
+  animation: authModeWave 3.4s ease-in-out infinite;
+}
+
+@keyframes authModeWave {
+  0%,
+  100% {
+    transform: translateX(-62%) rotate(8deg);
+  }
+  55% {
+    transform: translateX(62%) rotate(8deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-mode-choice:not(.is-active)::before {
+    animation: none;
+    opacity: 0.35;
+    transform: translateX(0) rotate(8deg);
+  }
+}
+
+.auth-login-card {
+  position: relative;
+  isolation: isolate;
+}
+
+.auth-login-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  z-index: 2;
+  background: linear-gradient(90deg, #1351b4 0%, #ffcd07 52%, #168821 100%);
+}
+
+.auth-input {
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid #9aa6b2 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.auth-input:focus {
+  border-bottom-color: #1351b4 !important;
+  box-shadow: 0 1px 0 #1351b4 !important;
+}
+
+.auth-input::placeholder {
+  color: #9aa6b2 !important;
+}
+
+.auth-mode-choice:not(.is-active)::before {
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgba(19, 81, 180, 0.02) 35%,
+    rgba(19, 81, 180, 0.14) 50%,
+    rgba(19, 81, 180, 0.02) 65%,
+    transparent 100%
+  );
+}
+.auth-accessibility-strip {
+  background: #06142d;
+  color: #ffffff;
+}
+
+.auth-accessibility-link {
+  color: #ffcd07 !important;
+}
+
+.auth-accessibility-link:hover {
+  color: #ffe37a !important;
+}
+.auth-citizen-gradient {
+  background: linear-gradient(135deg, #EAF2FF 0%, #F7F9FC 100%) !important;
+}
+
+.landing-inverse-icon {
+  color: #ffffff !important;
+}
+
+.landing-dark-text {
+  color: #ffffff !important;
+}
+
+.landing-dark-muted {
+  color: #e7effc !important;
+}
+
+.landing-outline-button {
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+}
+
+.landing-outline-button:hover {
+  background-color: #ffffff !important;
+  color: #071a3a !important;
 }

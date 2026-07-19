@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Eye, Type, Palette, Sun, Moon, Contrast, AlignJustify, Activity, Volume2, Play, Pause, Square, Keyboard, LayoutTemplate } from 'lucide-react';
+import { Eye, Type, Palette, Sun, Moon, Contrast, AlignJustify, Activity, Volume2, Play, Pause, Square, Keyboard, LayoutTemplate, ArrowLeft } from 'lucide-react';
 import { useA11y } from '../context/A11yContext';
+import { useApp } from '../context/AppContext';
 import { motion } from 'framer-motion';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export function Accessibility() {
     const {
@@ -16,6 +18,19 @@ export function Accessibility() {
 
     const [isReading, setIsReading] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
+    const navigate = useNavigate();
+    const location = useLocation();
+    const { isAuthenticated, role } = useApp();
+
+    const fallbackPath = isAuthenticated ? (role === 'admin' ? '/admin' : '/') : '/login';
+    const handleBack = () => {
+        if (location.key !== 'default') {
+            navigate(-1);
+            return;
+        }
+
+        navigate(fallbackPath);
+    };
 
     // Screen Reader Logic
     const startReading = () => {
@@ -59,12 +74,27 @@ export function Accessibility() {
         <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#080d12] font-sans">
             <main className="flex-grow flex flex-col items-center py-8 px-4 md:px-8">
                 <div className="w-full max-w-[1000px] flex flex-col gap-6">
-                    <div className="flex flex-col gap-2 border-b border-white/5 pb-6">
-                        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white flex items-center gap-3">
-                            <Eye className="text-blue-500" size={36} />
-                            Acessibilidade
-                        </h1>
-                        <p className="text-slate-400">Personalize o sistema para atender às suas necessidades visuais, motoras e cognitivas.</p>
+                    <div className="flex flex-col gap-4 border-b border-white/5 pb-6">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="flex flex-col gap-2">
+                                <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white flex items-center gap-3">
+                                    <Eye className="text-blue-500" size={36} />
+                                    Acessibilidade
+                                </h1>
+                                <p className="text-slate-400">Personalize o sistema para atender às suas necessidades visuais, motoras e cognitivas.</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleBack}
+                                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition-colors hover:bg-blue-500 sm:shrink-0"
+                            >
+                                <ArrowLeft size={17} />
+                                Voltar
+                            </button>
+                        </div>
+                        <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm font-semibold text-slate-300">
+                            As preferências são salvas neste navegador, então já funcionam antes do login e continuam ativas depois que você entrar.
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
