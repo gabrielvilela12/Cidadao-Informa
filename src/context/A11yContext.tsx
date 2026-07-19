@@ -29,7 +29,7 @@ export function A11yProvider({ children }: { children: React.ReactNode }) {
         return stored ? parseInt(stored, 10) : 100;
     });
     const [theme, setThemeState] = useState<Theme>(() =>
-        (localStorage.getItem('a11y-theme') as Theme) || 'dark'
+        (localStorage.getItem('a11y-theme') as Theme) || 'light'
     );
     const [colorblindMode, setColorblindModeState] = useState<ColorblindMode>(() =>
         (localStorage.getItem('a11y-colorblind') as ColorblindMode) || 'none'
@@ -90,17 +90,19 @@ export function A11yProvider({ children }: { children: React.ReactNode }) {
         root.classList.remove('text-base', 'text-lg', 'text-xl');
         root.style.fontSize = `${(fontSize / 100) * 16}px`;
 
-        // 2. Theme (High Contrast and Light Inversion)
-        root.classList.remove('theme-light', 'theme-high-contrast');
+        // 2. Theme
+        root.classList.remove('theme-light', 'theme-dark', 'theme-high-contrast');
 
         let currentFilter = '';
 
-        if (theme === 'light') {
+        if (theme === 'dark') {
+            root.classList.add('theme-dark');
+            currentFilter = 'invert(1) hue-rotate(180deg) brightness(0.92) contrast(1.05)';
+        } else if (theme === 'light') {
             root.classList.add('theme-light');
-            // Improved light theme filter: adjusts brightness and contrast for a better look
-            currentFilter = 'invert(1) hue-rotate(180deg) brightness(1.05) contrast(0.95)';
         } else if (theme === 'high-contrast') {
             root.classList.add('theme-high-contrast');
+            currentFilter = 'grayscale(1) contrast(1.45)';
         }
 
         // 3. Colorblind Modes SVG Filter

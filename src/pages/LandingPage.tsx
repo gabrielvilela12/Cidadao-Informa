@@ -710,7 +710,7 @@ export function LandingPage() {
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setTheme(theme === 'high-contrast' ? 'dark' : 'high-contrast')}
+                                onClick={() => setTheme(theme === 'high-contrast' ? 'light' : 'high-contrast')}
                                 className="flex size-10 items-center justify-center rounded-full text-[#1351B4] transition-colors hover:bg-[#EAF2FF]"
                                 title="Alternar alto contraste"
                                 aria-label="Alternar alto contraste"

@@ -9,9 +9,11 @@ import { ThemeSwitch } from './ThemeSwitch';
 interface HeaderProps {
   title: string;
   subtitle?: string;
+  description?: string;
+  action?: React.ReactNode;
 }
 
-export function Header({ title, subtitle }: HeaderProps) {
+export function Header({ title, subtitle, description, action }: HeaderProps) {
   const { fontSize, setFontSize } = useA11y();
   const { role, toggleMobileMenu } = useApp();
   const navigate = useNavigate();
@@ -39,11 +41,11 @@ export function Header({ title, subtitle }: HeaderProps) {
   const unreadCount = notifications.filter(n => !n.read).length;
   const markAllAsRead = () => { setNotifications(prev => prev.map(n => ({ ...n, read: true }))); setShowNotifications(false); };
 
-  const iconBtnClass = "header-icon-btn flex items-center justify-center size-9 rounded-xl bg-white/5 border border-white/8 text-slate-400 transition-all";
+  const iconBtnClass = "header-icon-btn flex size-11 items-center justify-center rounded-lg border border-[#CDD8E7] bg-white text-slate-600 shadow-sm transition-all";
 
   return (
-    <header className="sticky top-0 z-30 bg-[#080d12]/80 backdrop-blur-md border-b border-white/5 px-4 sm:px-6 py-3 flex justify-between items-center w-full">
-      <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-30 flex w-full items-center justify-between gap-3 bg-[#F4F8FC]/95 px-4 py-5 backdrop-blur-md sm:px-6 lg:px-8">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
         <button
           onClick={toggleMobileMenu}
           className={`md:hidden ${iconBtnClass}`}
@@ -51,19 +53,21 @@ export function Header({ title, subtitle }: HeaderProps) {
           <Menu size={18} />
         </button>
         <div className="min-w-0">
-          {subtitle && <p className="text-slate-500 text-xs font-medium truncate">{subtitle}</p>}
-          <h2 className="text-xl font-black text-white tracking-tight truncate">{title}</h2>
+          {subtitle && <p className="truncate text-sm font-medium text-slate-600">{subtitle}</p>}
+          <h1 className="truncate text-xl font-black text-[#111827] sm:text-3xl">{title}</h1>
+          {description && <p className="mt-2 hidden truncate text-sm text-slate-600 sm:block">{description}</p>}
         </div>
       </div>
 
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex shrink-0 items-center gap-2">
+        {action && <div className="mr-1 hidden md:block">{action}</div>}
         {/* Keyboard shortcuts */}
-        <div className="relative" ref={shortcutsRef}>
+        <div className="relative hidden sm:block" ref={shortcutsRef}>
           <button onClick={() => setShowShortcuts(s => !s)} className={iconBtnClass} title="Atalhos de Teclado">
             <Keyboard size={16} />
           </button>
           {showShortcuts && (
-            <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1rem)] bg-[#0d1520] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50">
+            <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1rem)] bg-white border border-[#CDD8E7] rounded-lg shadow-2xl overflow-hidden z-50">
               <div className="px-4 py-3 border-b border-white/8 flex items-center gap-2">
                 <Keyboard size={14} className="text-blue-400" />
                 <h3 className="font-bold text-white text-sm">Atalhos de Teclado</h3>
@@ -106,12 +110,12 @@ export function Header({ title, subtitle }: HeaderProps) {
         </div>
 
         {/* Font size */}
-        <div className="relative" ref={fontSizeRef}>
+        <div className="relative hidden sm:block" ref={fontSizeRef}>
           <button onClick={() => setShowFontSize(!showFontSize)} className={iconBtnClass} title="Tamanho da Fonte">
             <Type size={16} />
           </button>
           {showFontSize && (
-            <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1rem)] bg-[#0d1520] border border-white/10 rounded-2xl shadow-2xl z-50 p-5">
+            <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1rem)] bg-white border border-[#CDD8E7] rounded-lg shadow-2xl z-50 p-5">
               <h3 className="font-bold text-white mb-1 text-sm">Tamanho do Texto</h3>
               <p className="text-xs text-slate-500 mb-4">Ajuste: <span className="text-white font-bold">{fontSize}%</span></p>
               <div className="flex items-center gap-4">
@@ -130,7 +134,7 @@ export function Header({ title, subtitle }: HeaderProps) {
 
         <ThemeSwitch />
 
-        <div className="h-5 w-px bg-white/10 mx-1" />
+        <div className="mx-1 hidden h-6 w-px bg-slate-300 sm:block" />
 
         {/* Notifications */}
         <div className="relative" ref={dropdownRef}>
@@ -141,7 +145,7 @@ export function Header({ title, subtitle }: HeaderProps) {
             )}
           </button>
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1rem)] bg-[#0d1520] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50">
+            <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1rem)] bg-white border border-[#CDD8E7] rounded-lg shadow-2xl overflow-hidden z-50">
               <div className="px-4 py-3 border-b border-white/8 flex justify-between items-center">
                 <h3 className="font-bold text-white text-sm">Notificações</h3>
                 {unreadCount > 0 && (

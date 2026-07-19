@@ -510,13 +510,17 @@ a {
 }
 
 /*
-  LIGHT THEME IMPROVEMENTS (Filter-based)
+  DARK THEME MEDIA CORRECTION (Filter-based)
 */
 
 /* Re-invert media and maps so they look natural under the invert filter */
-.theme-light img,
-.theme-light video,
-.theme-light .leaflet-container {
+.theme-dark img,
+.theme-dark video,
+.theme-dark .leaflet-container {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+.theme-dark .a11y-theme-preview {
   filter: invert(1) hue-rotate(180deg);
 }
 
@@ -908,4 +912,50 @@ a {
 .landing-outline-button:hover {
   background-color: #ffffff !important;
   color: #071a3a !important;
+}
+.dashboard-inverse-text {
+  color: #ffffff !important;
+}
+
+.dashboard-inverse-muted {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+/* Leaflet protocol pins */
+.protocol-marker-icon {
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.protocol-marker-pin {
+  display: flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #ffffff;
+  border-radius: 50% 50% 50% 0;
+  background: var(--marker-color);
+  box-shadow: 0 4px 10px rgba(7, 22, 47, 0.3);
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 900;
+  transform: rotate(-45deg);
+  transition: transform 160ms ease;
+}
+
+.protocol-marker-pin > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff !important;
+  font-family: 'Segoe UI Symbol', sans-serif;
+  font-size: 19px;
+  line-height: 1;
+  transform: rotate(45deg);
+}
+
+
+.protocol-marker-pin.is-selected {
+  outline: 4px solid rgba(255, 255, 255, 0.75);
+  transform: rotate(-45deg) scale(1.16);
 }
