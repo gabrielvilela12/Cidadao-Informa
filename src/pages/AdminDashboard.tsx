@@ -1,236 +1,329 @@
+import { useMemo, useState } from 'react';
+import {
+  Activity,
+  AlertCircle,
+  CalendarDays,
+  CheckCircle2,
+  ChevronDown,
+  Download,
+  Inbox,
+  MapPin,
+  Menu,
+  Search,
+  Timer,
+  Users,
+} from 'lucide-react';
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import { useApp } from '../context/AppContext';
 import { useProtocols } from '../hooks/useProtocols';
-import { useMemo } from 'react';
-import { Download, Calendar, Inbox, Timer, AlertCircle, CheckCircle } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, CartesianGrid } from 'recharts';
+import { type Protocol } from '../constants';
 import { exportToExcel } from '../utils/exportUtils';
-import { motion } from 'motion/react';
 
 const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
+const statusMatches = (status: Protocol['status'], expected: 'open' | 'analysis' | 'resolved' | 'late') => {
+  const groups = {
+    open: ['Aberto', 'Open'],
+    analysis: ['Em Análise', 'InProgress'],
+    resolved: ['Concluído', 'Resolved', 'Closed'],
+    late: ['Atrasado'],
+  };
+  return groups[expected].includes(status);
+};
+
+function protocolDate(protocol: Protocol) {
+  const raw = (protocol as Protocol & { created_at?: string }).created_at;
+  if (raw) return new Date(raw);
+
+  const parts = protocol.date?.split('/');
+  if (parts?.length === 3) return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+  return null;
+}
+
 export function AdminDashboard() {
   const { protocols, loading } = useProtocols('admin');
+  const { toggleMobileMenu } = useApp();
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(currentYear.toString());
+  const [neighborhood, setNeighborhood] = useState('all');
 
-  const totalCount = protocols.length;
-  const delayedCount = protocols.filter(p => p.status === 'Atrasado').length;
-  const resolvedCount = protocols.filter(p => p.status === 'Concluído').length;
-  const resolutionRate = totalCount > 0 ? Math.round((resolvedCount / totalCount) * 100) : 0;
-  const inProgressCount = protocols.filter(p => p.status === 'Em Análise').length;
-  const openCount = protocols.filter(p => p.status === 'Aberto').length;
+  const counts = useMemo(() => ({
+    open: protocols.filter((item) => statusMatches(item.status, 'open')).length,
+    analysis: protocols.filter((item) => statusMatches(item.status, 'analysis')).length,
+    resolved: protocols.filter((item) => statusMatches(item.status, 'resolved')).length,
+    late: protocols.filter((item) => statusMatches(item.status, 'late')).length,
+  }), [protocols]);
 
-  // Category breakdown for PieChart
-  const categories = ['Física', 'Visual', 'Auditiva', 'Outros'];
-  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#a855f7'];
-  const categoryData = categories.map((cat, i) => ({
-    name: cat, value: protocols.filter(p => p.category === cat).length, color: colors[i]
-  })).filter(c => c.value > 0);
+  const total = protocols.length;
+  const resolutionRate = total ? Math.round((counts.resolved / total) * 100) : 0;
 
-  // Monthly trend derived from real protocol created_at dates
+  const categoryData = useMemo(() => {
+    const definitions = [
+      { name: 'Física', color: '#0758BD' },
+      { name: 'Visual', color: '#168821' },
+      { name: 'Auditiva', color: '#F5B700' },
+      { name: 'Outros', color: '#8B3DFF' },
+    ];
+
+    return definitions.map((definition) => ({
+      ...definition,
+      value: protocols.filter((item) => item.category === definition.name).length,
+    }));
+  }, [protocols]);
+
   const trendData = useMemo(() => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
+    const selectedYear = Number(year);
+    const opened = Array(12).fill(0);
+    const resolved = Array(12).fill(0);
 
-    // Count protocols per month for current year
-    const monthlyCounts = Array(12).fill(0);
-    protocols.forEach(p => {
-      // p.date is formatted 'DD/MM/YYYY' by api.ts
-      const raw = (p as any).created_at || '';
-      if (raw) {
-        const d = new Date(raw);
-        if (d.getFullYear() === currentYear) {
-          monthlyCounts[d.getMonth()] += 1;
-        }
-      }
+    protocols.forEach((protocol) => {
+      const date = protocolDate(protocol);
+      if (!date || date.getFullYear() !== selectedYear) return;
+      opened[date.getMonth()] += 1;
+      if (statusMatches(protocol.status, 'resolved')) resolved[date.getMonth()] += 1;
     });
 
-    // Only show months up to current month
-    return MONTH_LABELS.slice(0, now.getMonth() + 1).map((name, i) => ({
+    const lastMonth = selectedYear === currentYear ? new Date().getMonth() : 11;
+    return MONTH_LABELS.slice(0, lastMonth + 1).map((name, index) => ({
       name,
-      abertas: monthlyCounts[i],
-      resolvidas: Math.round(monthlyCounts[i] * (resolutionRate / 100 || 0)),
+      abertas: opened[index],
+      resolvidas: resolved[index],
     }));
-  }, [protocols, resolutionRate]);
+  }, [currentYear, protocols, year]);
 
-  const kpis = [
-    { label: 'Total', value: totalCount.toString(), icon: Inbox, color: 'text-blue-400', bg: 'bg-blue-500/10', trend: '● Ao vivo', trendColor: 'text-green-400' },
-    { label: 'Em Análise', value: inProgressCount.toString(), icon: Timer, color: 'text-sky-400', bg: 'bg-sky-500/10', trend: '● Ao vivo', trendColor: 'text-green-400' },
-    { label: 'Em Atraso', value: delayedCount.toString(), icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-500/10', trend: '● Ao vivo', trendColor: 'text-red-400' },
-    { label: 'Resolução', value: `${resolutionRate}%`, icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10', trend: '● Ao vivo', trendColor: 'text-green-400' },
+  const miniSeries = (value: number) => [
+    { value: Math.max(0, value - 3) },
+    { value: Math.max(0, value - 1) },
+    { value: Math.max(0, value - 2) },
+    { value },
+    { value: Math.max(0, value - 1) },
+    { value },
   ];
 
+  const kpis = [
+    { label: 'Total', value: total, icon: Inbox, tone: 'blue', series: miniSeries(total) },
+    { label: 'Em análise', value: counts.analysis, icon: Timer, tone: 'blue', series: miniSeries(counts.analysis) },
+    { label: 'Em atraso', value: counts.late, icon: AlertCircle, tone: 'red', series: miniSeries(counts.late) },
+    { label: 'Resolução', value: `${resolutionRate}%`, icon: CheckCircle2, tone: 'green', series: miniSeries(resolutionRate) },
+  ] as const;
+
+  const neighborhoods = useMemo(() => {
+    const values = protocols
+      .map((item) => item.address?.split('-')[0]?.trim())
+      .filter((value): value is string => Boolean(value));
+    return Array.from(new Set(values)).slice(0, 8);
+  }, [protocols]);
+
+  const statusSegments = [
+    { label: 'Abertos', value: counts.open, color: '#0758BD' },
+    { label: 'Em análise', value: counts.analysis, color: '#FFB800' },
+    { label: 'Concluídos', value: counts.resolved, color: '#168821' },
+    { label: 'Atrasados', value: counts.late, color: '#E52207' },
+  ];
+
+  const tooltipStyle = {
+    background: '#FFFFFF',
+    border: '1px solid #CDD8E7',
+    borderRadius: 8,
+    color: '#17233A',
+    boxShadow: '0 10px 28px rgba(15,45,85,0.12)',
+  };
+
   return (
-    <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#080d12] p-4 sm:p-6 md:p-8">
-
-      {/* Header */}
-      <div className="flex flex-wrap justify-between items-end gap-4 mb-8">
-        <div>
-          <p className="text-slate-500 text-sm mb-1">Portal do Servidor</p>
-          <h2 className="text-3xl font-black text-white tracking-tight">Visão Geral Executiva</h2>
-          <p className="text-slate-500 text-sm mt-1">Monitoramento em tempo real da acessibilidade pública</p>
-        </div>
-        <div className="flex gap-2">
-          <div className="flex items-center gap-2 bg-white/5 border border-white/8 rounded-xl px-3 h-10 text-sm text-slate-400">
-            <Calendar size={16} />
-            <span>{new Date().getFullYear()}</span>
-          </div>
-          <button onClick={() => exportToExcel(protocols, 'dashboard_data.xlsx')}
-            className="flex items-center gap-2 h-10 px-4 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-blue-600/25 hover:-translate-y-0.5">
-            <Download size={16} /> Exportar
-          </button>
-        </div>
-      </div>
-
-      {/* KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        {kpis.map((k, i) => (
-          <motion.div key={k.label}
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
-            className="bg-white/5 border border-white/8 rounded-2xl p-5 hover:border-white/15 transition-colors">
-            <div className="flex justify-between items-start mb-4">
-              <div className={`size-10 rounded-xl flex items-center justify-center ${k.bg} ${k.color}`}>
-                <k.icon size={20} />
-              </div>
-              <span className={`text-[10px] font-bold ${k.trendColor}`}>{k.trend}</span>
+    <div className="h-full flex-1 overflow-y-auto bg-[#F4F8FC] text-[#0B1B33]">
+      <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-4 px-4 py-5 sm:px-6 lg:px-8">
+        <header className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
+            <button
+              type="button"
+              onClick={toggleMobileMenu}
+              className="mt-1 flex size-11 shrink-0 items-center justify-center rounded-lg border border-[#CDD8E7] bg-white text-[#1351B4] md:hidden"
+              aria-label="Abrir menu"
+            >
+              <Menu size={20} />
+            </button>
+            <div>
+              <p className="text-sm font-medium text-slate-600">Portal do Servidor</p>
+              <h1 className="mt-1 text-2xl font-black leading-tight sm:text-3xl">Visão Geral Executiva</h1>
+              <p className="mt-1 text-sm text-slate-600">Monitoramento em tempo real da acessibilidade pública</p>
             </div>
-            <p className="text-slate-500 text-xs mb-1">{k.label}</p>
-            <p className="text-2xl font-black text-white tracking-tight">{k.value}</p>
-          </motion.div>
-        ))}
-      </div>
+          </div>
 
-      {/* Status breakdown mini-bar */}
-      {totalCount > 0 && (
-        <div className="mb-6 bg-white/5 border border-white/8 rounded-2xl p-5">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="font-black text-white text-sm">Distribuição por Status</h3>
-            <span className="text-[10px] text-slate-500 uppercase tracking-wide">{totalCount} total</span>
+          <div className="flex flex-col items-stretch gap-2 sm:items-end">
+            <div className="flex flex-wrap gap-2">
+              <label className="relative min-w-[145px] flex-1 sm:flex-none">
+                <CalendarDays className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" size={17} />
+                <select value={year} onChange={(event) => setYear(event.target.value)} className="h-11 w-full appearance-none rounded-lg border border-[#CDD8E7] bg-white pl-10 pr-9 text-sm font-semibold text-slate-700">
+                  {[currentYear - 2, currentYear - 1, currentYear].map((item) => <option key={item} value={item}>Ano {item}</option>)}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+              </label>
+              <label className="relative min-w-[180px] flex-1 sm:flex-none">
+                <MapPin className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" size={17} />
+                <select value={neighborhood} onChange={(event) => setNeighborhood(event.target.value)} className="h-11 w-full appearance-none rounded-lg border border-[#CDD8E7] bg-white pl-10 pr-9 text-sm font-semibold text-slate-700">
+                  <option value="all">Todos os bairros</option>
+                  {neighborhoods.map((item) => <option key={item} value={item}>{item}</option>)}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+              </label>
+              <button
+                type="button"
+                onClick={() => exportToExcel(protocols, 'dashboard_executivo.xlsx')}
+                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white shadow-[0_8px_18px_rgba(19,81,180,0.18)] hover:bg-blue-700 sm:flex-none"
+              >
+                <Download size={17} />
+                Exportar dados
+              </button>
+            </div>
+            <p className="flex items-center justify-end gap-2 text-xs font-bold text-[#168821]">
+              <span className="size-2 rounded-full bg-green-600" />
+              Dados atualizados agora
+            </p>
           </div>
-          <div className="flex rounded-xl overflow-hidden h-3 gap-0.5">
-            {openCount > 0 && (
-              <div className="bg-blue-500" style={{ width: `${(openCount / totalCount) * 100}%` }} title={`Aberto: ${openCount}`} />
-            )}
-            {inProgressCount > 0 && (
-              <div className="bg-yellow-500" style={{ width: `${(inProgressCount / totalCount) * 100}%` }} title={`Em Análise: ${inProgressCount}`} />
-            )}
-            {resolvedCount > 0 && (
-              <div className="bg-emerald-500" style={{ width: `${(resolvedCount / totalCount) * 100}%` }} title={`Concluído: ${resolvedCount}`} />
-            )}
-            {delayedCount > 0 && (
-              <div className="bg-red-500" style={{ width: `${(delayedCount / totalCount) * 100}%` }} title={`Atrasado: ${delayedCount}`} />
-            )}
+        </header>
+
+        <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          {kpis.map((kpi) => {
+            const Icon = kpi.icon;
+            const color = kpi.tone === 'red' ? '#E52207' : kpi.tone === 'green' ? '#168821' : '#0758BD';
+            const iconBg = kpi.tone === 'red' ? 'bg-red-50 text-red-600' : kpi.tone === 'green' ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700';
+            return (
+              <article key={kpi.label} className="min-h-[132px] rounded-lg border border-[#CDD8E7] bg-white p-4 shadow-[0_7px_20px_rgba(15,45,85,0.035)]">
+                <div className="flex items-start gap-3">
+                  <div className={`flex size-11 shrink-0 items-center justify-center rounded-lg ${iconBg}`}><Icon size={22} /></div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-slate-600">{kpi.label}</p>
+                      <span className="hidden items-center gap-1 text-[10px] font-bold text-[#168821] sm:flex"><span className="size-1.5 rounded-full bg-green-600" />Ao vivo</span>
+                    </div>
+                    <p className="mt-1 text-2xl font-black">{loading ? '—' : kpi.value}</p>
+                  </div>
+                </div>
+                <div className="mt-3 h-7">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={kpi.series}>
+                      <Area type="monotone" dataKey="value" stroke={color} strokeWidth={2} fill={color} fillOpacity={0.08} isAnimationActive={false} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+
+        <section className="rounded-lg border border-[#CDD8E7] bg-white px-5 py-4 shadow-[0_7px_20px_rgba(15,45,85,0.035)]">
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="font-black">Distribuição por status</h2>
+            <span className="text-sm text-slate-600">{total} total</span>
           </div>
-          <div className="flex flex-wrap gap-4 mt-3">
-            {[
-              { label: 'Aberto', count: openCount, color: 'bg-blue-500' },
-              { label: 'Em Análise', count: inProgressCount, color: 'bg-yellow-500' },
-              { label: 'Concluído', count: resolvedCount, color: 'bg-emerald-500' },
-              { label: 'Atrasado', count: delayedCount, color: 'bg-red-500' },
-            ].filter(s => s.count > 0).map(s => (
-              <div key={s.label} className="flex items-center gap-1.5">
-                <span className={`size-2 rounded-full ${s.color}`} />
-                <span className="text-xs text-slate-400">{s.label}</span>
-                <span className="text-xs font-bold text-white">{s.count}</span>
-              </div>
+          <div className="mt-3 flex h-3 overflow-hidden rounded-full bg-slate-100">
+            {statusSegments.filter((item) => item.value > 0).map((item) => (
+              <span key={item.label} style={{ width: `${total ? (item.value / total) * 100 : 0}%`, backgroundColor: item.color }} title={`${item.label}: ${item.value}`} />
             ))}
           </div>
-        </div>
-      )}
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+            {statusSegments.filter((item) => item.value > 0).map((item) => (
+              <span key={item.label} className="flex items-center gap-2 text-sm text-slate-600">
+                <span className="size-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                <strong className="text-[#17233A]">{item.value}</strong> {item.label}
+              </span>
+            ))}
+          </div>
+        </section>
 
-      {/* Charts row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-5">
+          <article className="rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-[0_7px_20px_rgba(15,45,85,0.035)] xl:col-span-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="font-black">Fluxo de solicitações</h2>
+                <p className="mt-1 text-sm text-slate-600">Abertas por mês em {year}</p>
+              </div>
+              <div className="flex gap-4 text-xs font-semibold text-slate-600">
+                <span className="flex items-center gap-2"><span className="size-2.5 rounded-full bg-blue-600" />Abertas</span>
+                <span className="flex items-center gap-2"><span className="size-2.5 rounded-full bg-green-600" />Resolvidas</span>
+              </div>
+            </div>
+            <div className="mt-4 h-[245px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trendData} margin={{ left: -22, right: 8, top: 8 }}>
+                  <defs>
+                    <linearGradient id="adminFlowBlue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#0758BD" stopOpacity={0.24} />
+                      <stop offset="95%" stopColor="#0758BD" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="#D8E1ED" strokeDasharray="4 4" vertical={false} />
+                  <XAxis dataKey="name" tickLine={false} axisLine={false} fontSize={12} stroke="#64748B" />
+                  <YAxis tickLine={false} axisLine={false} fontSize={12} stroke="#64748B" allowDecimals={false} />
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Area type="monotone" dataKey="abertas" name="Abertas" stroke="#0758BD" strokeWidth={2.5} fill="url(#adminFlowBlue)" />
+                  <Area type="monotone" dataKey="resolvidas" name="Resolvidas" stroke="#168821" strokeWidth={2} fill="transparent" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </article>
 
-        {/* Pie — by category (real data) */}
-        <div className="bg-white/5 border border-white/8 rounded-2xl p-5 flex flex-col">
-          <h3 className="font-black text-white mb-4">Por Categoria</h3>
-          {loading ? (
-            <div className="flex-1 flex items-center justify-center min-h-[180px]">
-              <p className="text-slate-500 text-sm">Carregando...</p>
-            </div>
-          ) : categoryData.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center min-h-[180px]">
-              <p className="text-slate-500 text-sm">Nenhum dado ainda</p>
-            </div>
-          ) : (
-            <>
-              <div className="relative flex-1 flex items-center justify-center min-h-[180px]">
-                <ResponsiveContainer width="100%" height={180}>
+          <article className="rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-[0_7px_20px_rgba(15,45,85,0.035)] xl:col-span-2">
+            <h2 className="font-black">Por categoria</h2>
+            <div className="mt-3 grid min-h-[255px] grid-cols-1 items-center gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_150px]">
+              <div className="relative h-[210px]">
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie
-                      data={categoryData}
-                      cx="50%" cy="50%" innerRadius={55} outerRadius={75} paddingAngle={4} dataKey="value"
-                    >
-                      {categoryData.map((entry, index) => (
-                        <Cell key={index} fill={entry.color} />
-                      ))}
+                    <Pie data={categoryData} innerRadius={62} outerRadius={88} paddingAngle={2} dataKey="value">
+                      {categoryData.map((item) => <Cell key={item.name} fill={item.color} />)}
                     </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: '#0d1520', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff' }} />
+                    <Tooltip contentStyle={tooltipStyle} />
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-                  <p className="text-xs text-slate-500">Total</p>
-                  <p className="text-xl font-black text-white">{totalCount}</p>
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                  <strong className="text-3xl font-black">{total}</strong>
+                  <span className="text-xs text-slate-600">total</span>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2 mt-4">
-                {categoryData.map(cat => (
-                  <div key={cat.name} className="flex items-center gap-2">
-                    <div className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+              <div className="space-y-3">
+                {categoryData.map((item) => (
+                  <div key={item.name} className="flex items-start gap-2">
+                    <span className="mt-1 size-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                     <div>
-                      <p className="text-white text-xs font-medium">{cat.name}</p>
-                      <p className="text-slate-500 text-[10px]">{totalCount > 0 ? Math.round((cat.value / totalCount) * 100) : 0}% · {cat.value}</p>
+                      <p className="text-sm font-bold">{item.name}</p>
+                      <p className="text-xs text-slate-600">{total ? Math.round((item.value / total) * 100) : 0}% · {item.value}</p>
                     </div>
                   </div>
                 ))}
               </div>
-            </>
-          )}
-        </div>
+            </div>
+          </article>
+        </section>
 
-        {/* Area chart — monthly from real data */}
-        <div className="lg:col-span-2 bg-white/5 border border-white/8 rounded-2xl p-5 flex flex-col">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h3 className="font-black text-white">Fluxo de Solicitações</h3>
-              <p className="text-slate-500 text-xs mt-0.5">Abertas por mês em {new Date().getFullYear()}</p>
-            </div>
-            <div className="flex gap-4">
-              <span className="flex items-center gap-1.5 text-xs text-slate-300"><span className="size-2 rounded-full bg-blue-500" /> Abertas</span>
-              <span className="flex items-center gap-1.5 text-xs text-slate-600"><span className="size-2 rounded-full bg-emerald-500" /> Resolvidas</span>
-            </div>
-          </div>
-          <div className="flex-1 min-h-[200px]">
-            {loading ? (
-              <div className="h-full flex items-center justify-center">
-                <p className="text-slate-500 text-sm">Carregando...</p>
-              </div>
-            ) : trendData.length === 0 ? (
-              <div className="h-full flex items-center justify-center">
-                <p className="text-slate-500 text-sm">Nenhum protocolo registrado ainda</p>
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trendData}>
-                  <defs>
-                    <linearGradient id="colorAbertas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="colorResolvidas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
-                  <Tooltip contentStyle={{ backgroundColor: '#0d1520', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: '#fff' }} />
-                  <Area type="monotone" dataKey="abertas" name="Abertas" stroke="#3b82f6" strokeWidth={2.5} fillOpacity={1} fill="url(#colorAbertas)" />
-                  <Area type="monotone" dataKey="resolvidas" name="Resolvidas" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorResolvidas)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
+        <section className="grid grid-cols-1 divide-y divide-[#D8E1ED] rounded-lg border border-[#CDD8E7] bg-white px-5 py-4 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <OperationalIndicator icon={<Users size={23} />} value={counts.open} label="aguardando triagem" />
+          <OperationalIndicator icon={<Search size={23} />} value={counts.analysis} label="em análise" />
+          <OperationalIndicator icon={<AlertCircle size={23} />} value={counts.late} label="em atraso" danger />
+        </section>
       </div>
+    </div>
+  );
+}
 
+function OperationalIndicator({ icon, value, label, danger = false }: { icon: React.ReactNode; value: number; label: string; danger?: boolean }) {
+  return (
+    <div className="flex items-center justify-center gap-4 px-4 py-3">
+      <span className={`flex size-11 items-center justify-center rounded-full ${danger ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-700'}`}>{icon}</span>
+      <div>
+        <p className="text-2xl font-black">{value}</p>
+        <p className="text-xs text-slate-600">{label}</p>
+      </div>
     </div>
   );
 }

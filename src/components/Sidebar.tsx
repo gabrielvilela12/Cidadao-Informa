@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, Briefcase, User, LogOut, BarChart3, List, Accessibility as A11yIcon, X, Database, PanelLeftClose, WalletCards } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, Briefcase, User, LogOut, BarChart3, List, Accessibility as A11yIcon, X, Database, PanelLeftClose } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { CidadaoBrand } from './CidadaoBrand';
 
@@ -26,7 +26,6 @@ export function Sidebar() {
     { to: '/admin/solicitacoes', icon: List, label: 'Fila de Solicitações' },
     { to: '/admin/mapa', icon: MapIcon, label: 'Mapa Estratégico' },
     { to: '/admin/relatorios', icon: FileText, label: 'Relatórios' },
-    { to: '/finance', icon: WalletCards, label: 'Financeiro' },
     { to: '/admin/ai-logs', icon: Database, label: 'Logs IA' },
     { to: '/acessibilidade', icon: A11yIcon, label: 'Acessibilidade' },
   ];
@@ -45,35 +44,35 @@ export function Sidebar() {
       )}
 
       {/* Sidebar */}
-      <aside className={`w-72 bg-[#080d12] border-r border-white/8 flex flex-col h-screen fixed left-0 top-0 z-50 transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : isSidebarCollapsed ? '-translate-x-full' : '-translate-x-full md:translate-x-0'}`}>
+      <aside className={`fixed left-0 top-0 z-50 flex h-screen w-72 flex-col border-r border-[#D3DDEA] bg-white shadow-[4px_0_18px_rgba(35,65,110,0.03)] transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : isSidebarCollapsed ? '-translate-x-full' : '-translate-x-full md:translate-x-0'}`}>
 
         {/* Logo */}
-        <div className="flex items-center justify-between px-6 h-16 border-b border-white/5">
+        <div className="flex h-20 items-center justify-between border-b border-[#D9E1EC] px-6">
           <CidadaoBrand compact />
           <button
             onClick={toggleSidebarCollapsed}
-            className="hidden md:flex text-slate-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+            className="hidden rounded-lg p-2 text-slate-500 transition-colors hover:bg-[#EAF2FF] hover:text-[#1351B4] md:flex"
             title="Recolher sidebar"
           >
             <PanelLeftClose size={18} />
           </button>
           <button
             onClick={toggleMobileMenu}
-            className="md:hidden text-slate-500 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+            className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-[#EAF2FF] hover:text-[#1351B4] md:hidden"
           >
             <X size={18} />
           </button>
         </div>
 
         {/* Role badge */}
-        <div className="px-5 pt-5 pb-2">
+        <div className="px-7 pb-2 pt-6">
           <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">
             {role === 'citizen' ? 'Portal do Cidadão' : 'Portal do Servidor'}
           </span>
         </div>
 
         {/* Nav */}
-        <nav className="flex flex-col gap-1 px-3 flex-1 overflow-y-auto">
+        <nav className="flex flex-1 flex-col gap-1.5 overflow-y-auto px-4">
           {links.map((link) => (
             <NavLink
               key={link.to}
@@ -81,9 +80,9 @@ export function Sidebar() {
               end
               onClick={() => { if (isMobileMenuOpen) toggleMobileMenu(); }}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
-                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                `flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold transition-all ${isActive
+                  ? 'bg-blue-600 text-white shadow-[0_7px_16px_rgba(19,81,180,0.2)]'
+                  : 'text-slate-600 hover:bg-[#EAF2FF] hover:text-[#1351B4]'
                 }`
               }
             >
@@ -94,14 +93,14 @@ export function Sidebar() {
         </nav>
 
         {/* Bottom: profile + logout */}
-        <div className="p-4 border-t border-white/5">
+        <div className="border-t border-[#D9E1EC] p-4">
           <NavLink
             to="/perfil"
             onClick={() => { if (isMobileMenuOpen) toggleMobileMenu(); }}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all mb-1 ${isActive
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
-                : 'text-slate-400 hover:bg-white/5 hover:text-white'
+              `flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold transition-all mb-1 ${isActive
+                ? 'bg-blue-600 text-white shadow-[0_7px_16px_rgba(19,81,180,0.2)]'
+                : 'text-slate-600 hover:bg-[#EAF2FF] hover:text-[#1351B4]'
               }`
             }
           >
@@ -110,17 +109,17 @@ export function Sidebar() {
           </NavLink>
 
           {/* User card */}
-          <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white/5 border border-white/8 mt-1">
+          <div className="mt-1 flex items-center gap-3 rounded-lg border border-[#CDD8E7] bg-white px-3 py-3 shadow-sm">
             <div className="size-9 rounded-full bg-blue-600 flex items-center justify-center text-xs font-black text-white shrink-0 shadow-lg shadow-blue-600/30">
               {initials}
             </div>
             <div className="flex flex-col min-w-0 flex-1">
-              <p className="text-sm font-semibold text-white truncate">{user?.full_name || 'Usuário'}</p>
+              <p className="truncate text-sm font-bold text-[#111827]">{user?.full_name || 'Usuário'}</p>
               <p className="text-xs text-slate-500 truncate">{user?.email || (role === 'citizen' ? 'Cidadão' : 'Servidor')}</p>
             </div>
             <button
               onClick={handleLogout}
-              className="text-slate-500 hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-red-400/10 shrink-0"
+              className="shrink-0 rounded-lg p-2 text-slate-500 transition-colors hover:bg-[#FDE9E7] hover:text-[#C00F0C]"
               title="Sair"
             >
               <LogOut size={16} />

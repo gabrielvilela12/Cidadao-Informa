@@ -1,541 +1,473 @@
-import { MapPin, Search as SearchIcon, ChevronDown, SlidersHorizontal, Info, Share2, X, Navigation, Plus, Minus, Layers as LayersIcon, Loader2, Menu, Check } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Crosshair,
+  List,
+  Loader2,
+  Menu,
+  Minus,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  X,
+} from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { Link, useNavigate } from 'react-router-dom';
+import { Protocol } from '../constants';
+import { useApp } from '../context/AppContext';
 import { useProtocols } from '../hooks/useProtocols';
 import { getMarkerPosition } from '../utils/mapUtils';
-import { useApp } from '../context/AppContext';
-import { useNavigate } from 'react-router-dom';
+import { StatusBadge } from './CitizenDashboard';
 
-// Fix for default Leaflet marker icons
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
+type CanonicalStatus = 'Aberto' | 'Em Análise' | 'Concluído' | 'Atrasado';
 
-// Component to handle map center changes
+type AddressSuggestion = {
+  lat: string;
+  lon: string;
+  display_name: string;
+};
+
+const allCategories = ['Física', 'Visual', 'Auditiva', 'Outros'];
+const allStatuses: CanonicalStatus[] = ['Aberto', 'Em Análise', 'Concluído', 'Atrasado'];
+
+function canonicalStatus(status: string): CanonicalStatus {
+  if (status === 'Open' || status === 'Aberto') return 'Aberto';
+  if (status === 'InProgress' || status === 'Em Análise') return 'Em Análise';
+  if (status === 'Resolved' || status === 'Concluído') return 'Concluído';
+  return 'Atrasado';
+}
+
+function markerConfig(status: string) {
+  const normalized = canonicalStatus(status);
+  if (normalized === 'Em Análise') return { color: '#F9B900', symbol: '♿' };
+  if (normalized === 'Concluído') return { color: '#168821', symbol: '✓' };
+  if (normalized === 'Atrasado') return { color: '#C00F0C', symbol: '!' };
+  return { color: '#D7191C', symbol: '!' };
+}
+
 function MapController({ center }: { center: [number, number] }) {
   const map = useMap();
-  React.useEffect(() => {
+
+  useEffect(() => {
     map.setView(center, map.getZoom());
   }, [center, map]);
+
   return null;
 }
 
-// Component to expose map instance to parent
-function MapInstanceTracker({ setMap }: { setMap: (m: L.Map) => void }) {
+function MapInstanceTracker({ onReady }: { onReady: (map: L.Map) => void }) {
   const map = useMap();
-  React.useEffect(() => {
-    setMap(map);
-  }, [map, setMap]);
+
+  useEffect(() => {
+    onReady(map);
+  }, [map, onReady]);
+
   return null;
 }
-
-// Emits map center whenever user stops moving the map
-function MapMoveTracker({ onMoveEnd }: { onMoveEnd: (center: [number, number]) => void }) {
-  useMapEvents({
-    moveend(e) {
-      const c = e.target.getCenter();
-      onMoveEnd([c.lat, c.lng]);
-    },
-  });
-  return null;
-}
-
-// Custom Zoom Controls Component
-function CustomZoomControl({ map }: { map: L.Map | null }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <button
-        onClick={() => map?.setZoom(map.getZoom() + 1)}
-        className="bg-[#1c2127]/90 backdrop-blur-sm border border-slate-700 text-white p-2 rounded-lg shadow-lg hover:bg-[#283039] transition-colors"
-        title="Aumentar zoom"
-      >
-        <Plus size={20} />
-      </button>
-      <button
-        onClick={() => map?.setZoom(map.getZoom() - 1)}
-        className="bg-[#1c2127]/90 backdrop-blur-sm border border-slate-700 text-white p-2 rounded-lg shadow-lg hover:bg-[#283039] transition-colors"
-        title="Diminuir zoom"
-      >
-        <Minus size={20} />
-      </button>
-    </div>
-  );
-}
-
 
 export function CitizenMap() {
-  const [selectedIncident, setSelectedIncident] = useState<any>(null);
-  const [selectedIndex, setSelectedIndex] = useState<number>(-1);
+  const { protocols, loading } = useProtocols('citizen');
+  const { toggleMobileMenu } = useApp();
+  const navigate = useNavigate();
+  const [selectedIncident, setSelectedIncident] = useState<Protocol | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const [showFilters, setShowFilters] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([-15.7942, -47.8822]);
   const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const { toggleMobileMenu } = useApp();
-  const navigate = useNavigate();
-
-  // Region info state
-  const [regionInfo, setRegionInfo] = useState<{ neighbourhood?: string; suburb?: string; city?: string; state?: string } | null>(null);
-  const regionTimeout = useRef<NodeJS.Timeout | null>(null);
-
-  const fetchRegionInfo = useCallback(async (lat: number, lon: number) => {
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&addressdetails=1`,
-        { headers: { 'Accept-Language': 'pt-BR' } }
-      );
-      const data = await res.json();
-      if (data?.address) {
-        setRegionInfo({
-          neighbourhood: data.address.neighbourhood || data.address.quarter || data.address.suburb,
-          suburb: data.address.suburb || data.address.district,
-          city: data.address.city || data.address.town || data.address.municipality,
-          state: data.address.state,
-        });
-      }
-    } catch { /* ignore */ }
-  }, []);
-
-  const handleMapMoveEnd = useCallback((center: [number, number]) => {
-    if (regionTimeout.current) clearTimeout(regionTimeout.current);
-    regionTimeout.current = setTimeout(() => fetchRegionInfo(center[0], center[1]), 600);
-  }, [fetchRegionInfo]);
-
-  // Load region info on first render
-  useEffect(() => {
-    fetchRegionInfo(mapCenter[0], mapCenter[1]);
-  }, []);
-
-  const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
+  const [activeCategories, setActiveCategories] = useState(allCategories);
+  const [activeStatuses, setActiveStatuses] = useState<CanonicalStatus[]>(allStatuses);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
-  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+  const searchTimeout = useRef<number | null>(null);
 
-  const { protocols, loading } = useProtocols('citizen');
-  const [activeCategories, setActiveCategories] = useState<string[]>(['Física', 'Visual', 'Auditiva', 'Outros']);
-  const [activeStatuses, setactiveStatuses] = useState<string[]>(['Aberto', 'Em Análise', 'Concluído', 'Atrasado']);
+  const filteredProtocols = useMemo(() => {
+    return protocols.filter((protocol) => {
+      const category = protocol.category || 'Outros';
+      return activeCategories.includes(category) && activeStatuses.includes(canonicalStatus(protocol.status));
+    });
+  }, [protocols, activeCategories, activeStatuses]);
 
-  const filteredProtocols = protocols.filter(p => activeCategories.includes(p.category || 'Outros') && activeStatuses.includes(p.status));
-
-  // Handle sequential navigation
-  const handleNavigate = (direction: 'next' | 'prev') => {
-    if (filteredProtocols.length === 0) return;
-
-    let newIndex;
-    if (direction === 'next') {
-      newIndex = selectedIndex >= filteredProtocols.length - 1 ? 0 : selectedIndex + 1;
-    } else {
-      newIndex = selectedIndex <= 0 ? filteredProtocols.length - 1 : selectedIndex - 1;
+  useEffect(() => {
+    if (filteredProtocols.length === 0) {
+      setSelectedIncident(null);
+      setSelectedIndex(-1);
+      return;
     }
 
-    setSelectedIndex(newIndex);
-    const incident = filteredProtocols[newIndex];
-    setSelectedIncident(incident);
-
-    // Pan to incident if we have coordinates
-    if (mapInstance && incident) {
-      getMarkerPosition(incident.id.toString(), incident.address || '').then(pos => {
-        if (pos) mapInstance.flyTo(pos, 16);
-      });
+    const selectedStillVisible = selectedIncident && filteredProtocols.some((protocol) => protocol.id === selectedIncident.id);
+    if (!selectedStillVisible) {
+      setSelectedIncident(filteredProtocols[0]);
+      setSelectedIndex(0);
     }
+  }, [filteredProtocols, selectedIncident]);
+
+  useEffect(() => {
+    return () => {
+      if (searchTimeout.current) window.clearTimeout(searchTimeout.current);
+    };
+  }, []);
+
+  const focusProtocol = async (protocol: Protocol, index?: number) => {
+    const targetIndex = index ?? filteredProtocols.findIndex((item) => item.id === protocol.id);
+    setSelectedIncident(protocol);
+    setSelectedIndex(targetIndex);
+    const position = await getMarkerPosition(protocol.id, protocol.address || '');
+    mapInstance?.flyTo(position, Math.max(mapInstance.getZoom(), 15), { duration: 0.7 });
   };
 
-  const handleMarkerClick = (incident: any, index: number) => {
-    setSelectedIncident(incident);
-    setSelectedIndex(index);
+  const navigateProtocols = (direction: 'next' | 'previous') => {
+    if (filteredProtocols.length === 0) return;
+    const nextIndex = direction === 'next'
+      ? (selectedIndex + 1) % filteredProtocols.length
+      : (selectedIndex <= 0 ? filteredProtocols.length - 1 : selectedIndex - 1);
+    focusProtocol(filteredProtocols[nextIndex], nextIndex);
   };
 
   const handleAddressSearch = (value: string) => {
-    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    setSearchQuery(value);
+    if (searchTimeout.current) window.clearTimeout(searchTimeout.current);
 
-    if (value.length > 3) {
-      setIsSearchingAddress(true);
-      searchTimeout.current = setTimeout(async () => {
-        try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&limit=5&addressdetails=1`, {
-            headers: { 'Accept-Language': 'pt-BR' }
-          });
-          const data = await res.json();
-          setAddressSuggestions(data || []);
-        } catch (e) {
-          console.error(e);
-        } finally {
-          setIsSearchingAddress(false);
-        }
-      }, 800);
-    } else {
+    if (value.trim().length <= 3) {
       setAddressSuggestions([]);
       setIsSearchingAddress(false);
+      return;
     }
+
+    setIsSearchingAddress(true);
+    searchTimeout.current = window.setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&limit=5&addressdetails=1`,
+          { headers: { 'Accept-Language': 'pt-BR' } },
+        );
+        setAddressSuggestions((await response.json()) || []);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsSearchingAddress(false);
+      }
+    }, 800);
   };
 
-  const selectAddress = (sug: any) => {
+  const selectAddress = (suggestion: AddressSuggestion) => {
+    const nextCenter: [number, number] = [Number.parseFloat(suggestion.lat), Number.parseFloat(suggestion.lon)];
+    setSearchQuery(suggestion.display_name);
     setAddressSuggestions([]);
-    const lat = parseFloat(sug.lat);
-    const lon = parseFloat(sug.lon);
-    setMapCenter([lat, lon]);
+    setMapCenter(nextCenter);
+    mapInstance?.flyTo(nextCenter, 15, { duration: 0.7 });
+  };
+
+  const useMyLocation = () => {
+    navigator.geolocation?.getCurrentPosition(({ coords }) => {
+      const nextCenter: [number, number] = [coords.latitude, coords.longitude];
+      setMapCenter(nextCenter);
+      mapInstance?.flyTo(nextCenter, 16, { duration: 0.7 });
+    });
+  };
+
+  const toggleCategory = (category: string) => {
+    setActiveCategories((current) => current.includes(category)
+      ? current.filter((item) => item !== category)
+      : [...current, category]);
+  };
+
+  const toggleStatus = (status: string) => {
+    setActiveStatuses((current) => current.includes(status as CanonicalStatus)
+      ? current.filter((item) => item !== status)
+      : [...current, status as CanonicalStatus]);
   };
 
   return (
-    <div className="map-theme flex-1 relative bg-[#1c2127] h-screen overflow-hidden font-sans">
-      {/* Map Area */}
+    <div className="map-theme relative h-full flex-1 overflow-hidden bg-[#dbe7d6] font-sans">
       <div className="absolute inset-0 z-0" style={{ colorScheme: 'light' }}>
-        <MapContainer
-          center={mapCenter} // Center of Brasília
-          zoom={14}
-          style={{ width: '100%', height: '100%' }}
-          zoomControl={false}
-        >
+        <MapContainer center={mapCenter} zoom={13} zoomControl={false} style={{ width: '100%', height: '100%' }}>
           <MapController center={mapCenter} />
-          <MapInstanceTracker setMap={setMapInstance} />
-          <MapMoveTracker onMoveEnd={handleMapMoveEnd} />
-          {/* Fixed Voyager Tiles - unaffected by app theme */}
+          <MapInstanceTracker onReady={setMapInstance} />
           <TileLayer
             url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           />
-
-          {/* Render interactive markers */}
-          {!loading && filteredProtocols.map((incident, idx) => (
-            <ProtocolMarker key={incident.id} incident={incident} onClick={() => handleMarkerClick(incident, idx)} />
+          {!loading && filteredProtocols.map((protocol, index) => (
+            <ProtocolMarker
+              key={protocol.id}
+              protocol={protocol}
+              selected={selectedIncident?.id === protocol.id}
+              onClick={() => focusProtocol(protocol, index)}
+            />
           ))}
         </MapContainer>
       </div>
 
-      {/* Map Controls - Right side (zoom only) */}
-      <div className="absolute top-20 md:top-4 right-4 flex flex-col gap-2 z-10">
-        <button className="bg-[#1c2127]/90 backdrop-blur-sm border border-slate-700 text-white p-2 rounded-lg shadow-lg hover:bg-[#283039] transition-colors" title="Minha localização">
-          <Navigation size={20} />
+      <div className="pointer-events-none absolute left-3 right-3 top-3 z-30 flex items-start gap-2 md:left-5 md:right-auto md:top-5">
+        <button
+          type="button"
+          onClick={toggleMobileMenu}
+          aria-label="Abrir menu"
+          className="pointer-events-auto flex size-12 shrink-0 items-center justify-center rounded-md border border-[#CDD8E7] bg-white text-slate-600 shadow-lg md:hidden"
+        >
+          <Menu size={20} />
         </button>
-        <div className="mt-2 hidden md:block" />
-        <div className="hidden md:block">
-          <CustomZoomControl map={mapInstance} />
-        </div>
-      </div>
 
-      {/* Top bar: Mobile menu + Filtros button + Search */}
-      <div className="absolute top-4 left-4 right-16 md:right-auto z-10 flex flex-col gap-3 pointer-events-none">
-
-        {/* Row 1: Mobile menu + Filtros + Search */}
-        <div className="flex items-center gap-2 pointer-events-auto">
-
-          {/* Mobile menu button */}
+        <div className="relative pointer-events-auto">
           <button
-            onClick={toggleMobileMenu}
-            className="md:hidden flex items-center justify-center size-10 rounded-xl bg-[#1c2127]/90 backdrop-blur-md border border-slate-700 text-slate-300 hover:text-white shadow-lg transition-colors shrink-0"
+            type="button"
+            onClick={() => setShowFilters((current) => !current)}
+            className="flex min-h-12 items-center gap-2 rounded-md border border-[#CDD8E7] bg-white px-3 text-sm font-semibold text-[#0b1b33] shadow-lg sm:px-4"
           >
-            <Menu size={20} />
+            <SlidersHorizontal size={18} />
+            <span className="hidden sm:inline">Filtros</span>
+            <span className="dashboard-inverse-text flex size-6 items-center justify-center rounded-full bg-[#0758bd] text-xs font-bold text-white">2</span>
           </button>
 
-          {/* Filtros button */}
-          <div className="relative">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-3 h-10 rounded-xl border text-sm font-semibold shadow-lg transition-all backdrop-blur-sm ${showFilters
-                ? 'bg-blue-600 border-blue-500 text-white'
-                : 'bg-[#1c2127]/90 border-slate-700 text-slate-200 hover:bg-[#283039]'
-                }`}
-            >
-              <SlidersHorizontal size={15} />
-              Filtros
-              {/* Badge: number of active filters */}
-              {(() => {
-                const total = activeCategories.length + activeStatuses.length;
-                const max = 4 + 4;
-                return total < max ? (
-                  <span className="flex items-center justify-center size-5 rounded-full bg-blue-500 text-white text-[10px] font-bold">
-                    {max - total}
-                  </span>
-                ) : null;
-              })()}
-            </button>
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                className="absolute left-0 top-14 z-50 w-[290px] rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-2xl"
+              >
+                <div className="flex items-center justify-between border-b border-[#E3E9F1] pb-3">
+                  <h2 className="font-bold text-[#0b1b33]">Filtros do mapa</h2>
+                  <button type="button" onClick={() => setShowFilters(false)} className="flex size-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100" aria-label="Fechar filtros"><X size={17} /></button>
+                </div>
+                <FilterGroup
+                  title="Categoria"
+                  items={[
+                    { label: 'Física', value: 'Física', color: '#0758BD' },
+                    { label: 'Visual', value: 'Visual', color: '#633BB1' },
+                    { label: 'Auditiva', value: 'Auditiva', color: '#8A42C7' },
+                    { label: 'Outros', value: 'Outros', color: '#168821' },
+                  ]}
+                  selectedItems={activeCategories}
+                  onChange={toggleCategory}
+                />
+                <FilterGroup
+                  title="Status"
+                  items={[
+                    { label: 'Aberto', value: 'Aberto', color: '#D7191C' },
+                    { label: 'Em análise', value: 'Em Análise', color: '#F9B900' },
+                    { label: 'Concluído', value: 'Concluído', color: '#168821' },
+                    { label: 'Atrasado', value: 'Atrasado', color: '#C00F0C' },
+                  ]}
+                  selectedItems={activeStatuses}
+                  onChange={toggleStatus}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
-            {/* Filters Dropdown */}
-            <AnimatePresence>
-              {showFilters && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8, scale: 0.97 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -8, scale: 0.97 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute top-12 left-0 w-64 bg-[#111418]/97 backdrop-blur-md border border-slate-700 shadow-2xl rounded-xl p-4 z-20 flex flex-col gap-3"
+        <div className="pointer-events-auto relative flex min-h-12 min-w-0 flex-1 items-center gap-2 rounded-md border border-[#CDD8E7] bg-white px-3 shadow-lg md:w-[480px] md:flex-none">
+          <Search className="shrink-0 text-slate-500" size={19} />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(event) => handleAddressSearch(event.target.value)}
+            placeholder="Buscar no mapa (ex: Águas Claras)"
+            aria-label="Buscar endereço no mapa"
+            className="min-w-0 flex-1 border-0 bg-transparent p-0 text-base text-[#0b1b33] outline-none placeholder:text-slate-500 focus:ring-0"
+          />
+          {isSearchingAddress && <Loader2 className="shrink-0 animate-spin text-[#0758bd]" size={17} />}
+          {addressSuggestions.length > 0 && (
+            <div className="absolute left-0 right-0 top-14 overflow-hidden rounded-lg border border-[#CDD8E7] bg-white shadow-2xl">
+              {addressSuggestions.map((suggestion) => (
+                <button
+                  type="button"
+                  key={`${suggestion.lat}-${suggestion.lon}`}
+                  onClick={() => selectAddress(suggestion)}
+                  className="flex w-full items-start gap-3 border-b border-[#E3E9F1] px-4 py-3 text-left text-sm text-slate-700 last:border-b-0 hover:bg-blue-50"
                 >
-                  <div className="flex items-center justify-between border-b border-slate-700 pb-2 mb-1">
-                    <h3 className="text-sm font-bold text-white">Filtros do Mapa</h3>
-                    <button onClick={() => setShowFilters(false)} className="text-slate-500 hover:text-white transition-colors">
-                      <X size={14} />
-                    </button>
-                  </div>
-                  <FilterGroup
-                    title="Categoria"
-                    items={[
-                      { label: 'Física', value: 'Física', color: 'bg-orange-500' },
-                      { label: 'Visual', value: 'Visual', color: 'bg-blue-500' },
-                      { label: 'Auditiva', value: 'Auditiva', color: 'bg-purple-500' },
-                      { label: 'Outros', value: 'Outros', color: 'bg-slate-400' }
-                    ]}
-                    selectedItems={activeCategories}
-                    onChange={(val) => setActiveCategories(prev => prev.includes(val) ? prev.filter(p => p !== val) : [...prev, val])}
-                  />
-                  <FilterGroup
-                    title="Status"
-                    items={[
-                      { label: 'Aberto', value: 'Aberto', color: 'bg-blue-500' },
-                      { label: 'Em Análise', value: 'Em Análise', color: 'bg-yellow-500' },
-                      { label: 'Concluído', value: 'Concluído', color: 'bg-green-500' },
-                      { label: 'Atrasado', value: 'Atrasado', color: 'bg-red-500' }
-                    ]}
-                    selectedItems={activeStatuses}
-                    onChange={(val) => setactiveStatuses(prev => prev.includes(val) ? prev.filter(p => p !== val) : [...prev, val])}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Search Bar */}
-          <div className="flex-1 md:w-72 bg-[#1c2127]/90 backdrop-blur-sm border border-slate-700 rounded-xl shadow-lg px-3 h-10 flex items-center gap-2 relative">
-            <SearchIcon className="text-slate-400 shrink-0" size={16} />
-            <input
-              className="bg-transparent border-none focus:ring-0 text-white placeholder-slate-400 text-sm w-full p-0"
-              placeholder="Buscar no mapa (ex: Águas Claras)"
-              type="text"
-              onChange={(e) => handleAddressSearch(e.target.value)}
-            />
-            {isSearchingAddress && <Loader2 size={14} className="text-blue-500 animate-spin shrink-0" />}
-
-            {/* Suggestions Dropdown */}
-            {addressSuggestions.length > 0 && (
-              <div className="absolute top-full mt-2 left-0 right-0 bg-[#1c2632] border border-slate-700 rounded-lg shadow-xl overflow-hidden divide-y divide-slate-800/50 z-30">
-                {addressSuggestions.map((sug, i) => (
-                  <button
-                    key={i}
-                    onClick={() => selectAddress(sug)}
-                    className="w-full text-left px-4 py-3 hover:bg-[#283039] transition-colors text-sm text-slate-200 flex items-start gap-3"
-                  >
-                    <SearchIcon size={16} className="text-slate-500 mt-0.5 shrink-0" />
-                    <span className="line-clamp-2">{sug.display_name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+                  <Search className="mt-0.5 shrink-0 text-slate-400" size={16} />
+                  <span className="line-clamp-2">{suggestion.display_name}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Row 2: Navigation Controls */}
-        {filteredProtocols.length > 0 && (
-          <div className="bg-[#1c2127]/90 backdrop-blur-sm border border-slate-700 rounded-lg p-2 shadow-lg flex items-center justify-between w-44 pointer-events-auto">
-            <button
-              onClick={() => handleNavigate('prev')}
-              className="p-1.5 hover:bg-slate-800 rounded text-slate-300 hover:text-white transition-colors"
-              title="Anterior"
-            >
-              <ChevronDown size={20} className="rotate-90" />
-            </button>
-            <span className="text-sm font-bold text-white">
-              {selectedIndex >= 0 ? selectedIndex + 1 : 0} <span className="text-slate-500 font-normal">/ {filteredProtocols.length}</span>
-            </span>
-            <button
-              onClick={() => handleNavigate('next')}
-              className="p-1.5 hover:bg-slate-800 rounded text-slate-300 hover:text-white transition-colors"
-              title="Próximo"
-            >
-              <ChevronDown size={20} className="-rotate-90" />
-            </button>
-          </div>
-        )}
+        <button
+          type="button"
+          onClick={useMyLocation}
+          title="Minha localização"
+          className="pointer-events-auto hidden size-12 shrink-0 items-center justify-center rounded-md border border-[#CDD8E7] bg-white text-slate-700 shadow-lg sm:flex"
+        >
+          <Crosshair size={20} />
+        </button>
       </div>
 
-      {/* Issue Details Card */}
-      <AnimatePresence>
-        {selectedIncident && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-30 w-[360px] max-w-[90vw] bg-[#111418] border border-slate-700 rounded-xl shadow-2xl flex flex-col overflow-hidden"
-          >
-            <div
-              className="h-32 bg-cover bg-center relative"
-              style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuAwreGr0yWcb42WeE2WtgpUht19vlZGzZK3T90ufPKo40VsxeB_6be3eNcGh4J5o0yd6L84qR-IzkezE4K7nyrpH1gSFoGNFSMfp1SDDXFSFGnyEl1EUyJjXFH69kKVU02abL8FS_YwNzN1GGFs_-vJLCgeM0_r-eRzbLqso9jC8jJGH9UHh25Poz_f8c_x-BIUDbE6dg1-F-Z3V7if9SrX34XMboHxhYnd4ly1T5H31hbX58rWDcKNgktMRYF_3dtOg3yjgxFKecA')" }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-t from-[#111418] to-transparent"></div>
-              <div className="absolute top-2 right-2">
-                <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${selectedIncident.status === 'Aberto' || selectedIncident.status === 'Open' ? 'bg-blue-500/20 text-blue-400 ring-blue-500/40' :
-                  selectedIncident.status === 'Em Análise' || selectedIncident.status === 'InProgress' ? 'bg-yellow-500/20 text-yellow-500 ring-yellow-500/40' :
-                    selectedIncident.status === 'Concluído' || selectedIncident.status === 'Resolved' ? 'bg-green-500/20 text-green-400 ring-green-500/40' :
-                      'bg-red-500/20 text-red-400 ring-red-500/40'
-                  }`}>
-                  {selectedIncident.status === 'Aberto' || selectedIncident.status === 'Open' ? 'Aberto' : selectedIncident.status === 'Em Análise' || selectedIncident.status === 'InProgress' ? 'Em Análise' : selectedIncident.status === 'Concluído' || selectedIncident.status === 'Resolved' ? 'Concluído' : selectedIncident.status}
-                </span>
-              </div>
-            </div>
+      <NearbyPanel
+        protocols={filteredProtocols}
+        loading={loading}
+        selected={selectedIncident}
+        selectedIndex={selectedIndex}
+        onSelect={focusProtocol}
+        onNavigate={navigateProtocols}
+        onDetails={(protocol) => navigate(`/protocolo/${protocol.id}`)}
+      />
 
-            <div className="p-4 -mt-4 relative z-10">
-              <div className="flex items-center gap-2 mb-1">
-                <MapPin className="text-slate-400" size={14} />
-                <span className="text-xs text-slate-400 uppercase tracking-wide truncate pr-2" title={selectedIncident.address}>{selectedIncident.address}</span>
-              </div>
-              <h3 className="text-white text-lg font-bold leading-tight mb-2 max-w-[90%] truncate" title={selectedIncident.description}>{selectedIncident.description || 'Problema de Acessibilidade'}</h3>
-              <p className="text-slate-400 text-sm leading-relaxed mb-4">
-                {selectedIncident.category}
-              </p>
-
-              <div className="flex items-center justify-between border-t border-slate-700 pt-3 mb-4">
-                <div className="flex flex-col w-1/2">
-                  <span className="text-[10px] text-slate-400 uppercase">Protocolo</span>
-                  <span className="text-sm text-white font-mono truncate mr-2" title={selectedIncident.id.toString()}>#{selectedIncident.id.toString().split('-')[0]}</span>
-                </div>
-                <div className="flex flex-col items-end">
-                  <span className="text-[10px] text-slate-400 uppercase">Data</span>
-                  <span className="text-sm text-white">{selectedIncident.date}</span>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => navigate(`/protocolo/${selectedIncident.id}`)}
-                  className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold py-2 px-4 rounded-lg transition-colors">
-                  Acompanhar
-                </button>
-                <button
-                  onClick={() => {
-                    const url = `${window.location.origin}/p/${selectedIncident.id}`;
-                    navigator.clipboard.writeText(url);
-                    setCopiedId(selectedIncident.id);
-                    setTimeout(() => setCopiedId(null), 2500);
-                  }}
-                  title="Copiar link público"
-                  className={`p-2 rounded-lg transition-colors flex items-center justify-center ${copiedId === selectedIncident.id
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-[#283039] hover:bg-[#3b4754] text-white'
-                    }`}>
-                  {copiedId === selectedIncident.id ? <Check size={18} /> : <Share2 size={18} />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedIncident(null);
-              }}
-              className="absolute top-2 left-2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 transition-colors"
-            >
-              <X size={14} />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Legend */}
-      <div className="absolute bottom-20 md:bottom-4 right-4 z-10 bg-[#1c2127]/90 backdrop-blur-sm border border-slate-700 p-3 rounded-lg shadow-lg max-w-[120px] md:max-w-none">
-        <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Legenda</h4>
-        <div className="flex flex-col gap-2">
-          <LegendItem color="bg-red-500" label="Problema Aberto" />
-          <LegendItem color="bg-yellow-500" label="Em Análise" />
-          <LegendItem color="bg-green-500" label="Resolvido" />
-          <LegendItem color="bg-blue-600" label="Transporte" />
-        </div>
+      <div className="absolute right-3 top-20 z-20 md:right-5 md:top-5">
+        <ZoomControls map={mapInstance} />
       </div>
 
-      {/* Region Info Panel */}
-      {regionInfo && (
-        <div className="absolute bottom-20 md:bottom-4 left-1/2 -translate-x-1/2 z-10 bg-[#1c2127]/90 backdrop-blur-sm border border-slate-700 rounded-xl shadow-lg px-4 py-2.5 flex items-center gap-3 pointer-events-none">
-          <MapPin size={14} className="text-blue-400 shrink-0" />
-          <div className="flex flex-col">
-            {regionInfo.neighbourhood && (
-              <span className="text-white text-xs font-bold leading-tight">{regionInfo.neighbourhood}</span>
-            )}
-            <span className="text-slate-400 text-[11px] leading-tight">
-              {[regionInfo.suburb, regionInfo.city, regionInfo.state].filter(Boolean).join(' · ')}
-            </span>
-          </div>
-        </div>
-      )}
+      <Legend />
     </div>
   );
 }
 
-function LegendItem({ color, label }: { color: string; label: string }) {
+function NearbyPanel({ protocols, loading, selected, selectedIndex, onSelect, onNavigate, onDetails }: {
+  protocols: Protocol[];
+  loading: boolean;
+  selected: Protocol | null;
+  selectedIndex: number;
+  onSelect: (protocol: Protocol, index?: number) => void;
+  onNavigate: (direction: 'next' | 'previous') => void;
+  onDetails: (protocol: Protocol) => void;
+}) {
+  const visibleProtocols = selected
+    ? [selected, ...protocols.filter((protocol) => protocol.id !== selected.id)].slice(0, 3)
+    : protocols.slice(0, 3);
+
   return (
-    <div className="flex items-center gap-2">
-      <div className={`w-3 h-3 rounded-full ${color}`}></div>
-      <span className="text-xs text-white">{label}</span>
+    <section className="absolute bottom-3 left-3 right-3 z-20 flex max-h-[48vh] flex-col overflow-hidden rounded-lg border border-[#CDD8E7] bg-white/97 shadow-2xl backdrop-blur md:bottom-20 md:left-5 md:right-auto md:top-24 md:max-h-none md:w-[360px]">
+      <div className="border-b border-[#E3E9F1] px-5 py-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-black text-[#0b1b33]">Solicitações próximas</h2>
+          <button type="button" className="hidden size-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 md:flex" aria-label="Recolher painel"><ChevronLeft size={18} /></button>
+        </div>
+        <div className="mt-3 flex items-center justify-between text-sm text-slate-600">
+          <span>{protocols.length} encontrada{protocols.length !== 1 ? 's' : ''}</span>
+          {protocols.length > 0 && (
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => onNavigate('previous')} className="flex size-8 items-center justify-center rounded-md hover:bg-slate-100" aria-label="Solicitação anterior"><ChevronLeft size={17} /></button>
+              <span className="font-semibold text-[#0b1b33]">{selectedIndex + 1} de {protocols.length}</span>
+              <button type="button" onClick={() => onNavigate('next')} className="flex size-8 items-center justify-center rounded-md hover:bg-slate-100" aria-label="Próxima solicitação"><ChevronRight size={17} /></button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex-1 space-y-3 overflow-y-auto p-4">
+        {loading && <p className="py-10 text-center text-sm text-slate-500">Carregando solicitações...</p>}
+        {!loading && visibleProtocols.map((protocol) => {
+          const index = protocols.findIndex((item) => item.id === protocol.id);
+          const isSelected = selected?.id === protocol.id;
+          return (
+            <article key={protocol.id} className={`rounded-lg border bg-white p-4 transition ${isSelected ? 'border-[#F9B900] shadow-[0_6px_18px_rgba(177,126,0,0.10)]' : 'border-[#CDD8E7]'}`}>
+              <button type="button" onClick={() => onSelect(protocol, index)} className="flex w-full items-start gap-3 text-left">
+                <MarkerBadge status={protocol.status} />
+                <span className="min-w-0 flex-1">
+                  <strong className="block truncate text-base text-[#0b1b33]">{protocol.description || protocol.service}</strong>
+                  <span className="mt-1 block truncate text-sm text-slate-600">{protocol.address}</span>
+                  <span className="mt-2 block"><StatusBadge status={protocol.status} /></span>
+                  <span className="mt-2 block text-sm text-slate-600">Protocolo: {protocol.id.slice(0, 8)}</span>
+                </span>
+                <ChevronRight className="mt-5 shrink-0 text-slate-600" size={20} />
+              </button>
+              {isSelected && (
+                <button type="button" onClick={() => onDetails(protocol)} className="mt-4 min-h-10 w-full rounded-md border border-[#0758bd] bg-white text-sm font-semibold text-[#0758bd] transition hover:bg-blue-50">Ver detalhes</button>
+              )}
+            </article>
+          );
+        })}
+        {!loading && protocols.length === 0 && <p className="py-10 text-center text-sm text-slate-500">Nenhuma solicitação encontrada com estes filtros.</p>}
+      </div>
+
+      <Link to="/meus-protocolos" className="flex min-h-12 items-center gap-2 border-t border-[#E3E9F1] px-5 text-sm font-semibold text-[#0758bd] hover:bg-blue-50">
+        <List size={18} />
+        Ver lista completa
+      </Link>
+    </section>
+  );
+}
+
+function MarkerBadge({ status }: { status: string }) {
+  const config = markerConfig(status);
+  return (
+    <span className="flex size-11 shrink-0 items-center justify-center rounded-full text-lg font-black" style={{ backgroundColor: `${config.color}1A`, color: config.color }}>
+      {config.symbol}
+    </span>
+  );
+}
+
+function ProtocolMarker({ protocol, selected, onClick }: { protocol: Protocol; selected: boolean; onClick: () => void }) {
+  const [position, setPosition] = useState<[number, number] | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    getMarkerPosition(protocol.id, protocol.address || '')
+      .then((result) => { if (mounted) setPosition(result); })
+      .catch(console.error);
+    return () => { mounted = false; };
+  }, [protocol.id, protocol.address]);
+
+  if (!position) return null;
+
+  const config = markerConfig(protocol.status);
+  const icon = L.divIcon({
+    className: 'protocol-marker-icon',
+    html: `<span class="protocol-marker-pin${selected ? ' is-selected' : ''}" style="--marker-color:${config.color}"><span>${config.symbol}</span></span>`,
+    iconSize: [42, 48],
+    iconAnchor: [21, 46],
+  });
+
+  return <Marker position={position} icon={icon} title={protocol.description || protocol.service} eventHandlers={{ click: onClick }} />;
+}
+
+function ZoomControls({ map }: { map: L.Map | null }) {
+  return (
+    <div className="overflow-hidden rounded-md border border-[#CDD8E7] bg-white shadow-lg">
+      <button type="button" onClick={() => map?.zoomIn()} className="flex size-12 items-center justify-center border-b border-[#E3E9F1] text-[#0b1b33] hover:bg-slate-50" title="Aumentar zoom"><Plus size={21} /></button>
+      <button type="button" onClick={() => map?.zoomOut()} className="flex size-12 items-center justify-center text-[#0b1b33] hover:bg-slate-50" title="Diminuir zoom"><Minus size={21} /></button>
     </div>
   );
 }
 
 function FilterGroup({ title, items, selectedItems, onChange }: {
   title: string;
-  items: { label: string; value: string; color?: string }[];
+  items: Array<{ label: string; value: string; color: string }>;
   selectedItems: string[];
-  onChange: (val: string) => void;
+  onChange: (value: string) => void;
 }) {
   return (
-    <details className="group" open>
-      <summary className="flex cursor-pointer items-center justify-between text-sm font-semibold text-slate-200 hover:text-white transition-colors py-1">
-        {title}
-        <ChevronDown size={16} className="text-slate-500 transition group-open:rotate-180" />
-      </summary>
-      <div className="pt-2 pl-1 space-y-1.5">
+    <fieldset className="mt-4">
+      <legend className="text-sm font-bold text-[#0b1b33]">{title}</legend>
+      <div className="mt-3 space-y-2.5">
         {items.map((item) => {
-          const isChecked = selectedItems.includes(item.value);
+          const checked = selectedItems.includes(item.value);
           return (
-            <label key={item.value} className="flex items-center gap-2.5 cursor-pointer group/item">
-              {/* Custom checkbox */}
-              <span className={`flex items-center justify-center size-4 rounded border transition-all shrink-0 ${isChecked
-                ? `${item.color ? item.color.replace('bg-', 'bg-').replace('/20', '') : 'bg-blue-600'} border-transparent`
-                : 'bg-transparent border-slate-600 group-hover/item:border-slate-400'
-                }`}>
-                {isChecked && (
-                  <svg viewBox="0 0 10 8" className="w-2.5 h-2.5 fill-none stroke-white stroke-[2]">
-                    <path d="M1 4l2.5 2.5L9 1" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
+            <label key={item.value} className="flex cursor-pointer items-center gap-3 text-sm text-slate-700">
+              <input type="checkbox" checked={checked} onChange={() => onChange(item.value)} className="sr-only" />
+              <span className={`flex size-5 items-center justify-center rounded border ${checked ? 'border-[#0758bd] bg-[#0758bd] text-white dashboard-inverse-text' : 'border-slate-300 bg-white'}`}>
+                {checked && <Check size={14} />}
               </span>
-              <input
-                type="checkbox"
-                checked={isChecked}
-                onChange={() => onChange(item.value)}
-                className="sr-only"
-              />
-              {/* Color dot */}
-              {item.color && (
-                <span className={`size-2.5 rounded-full shrink-0 ${item.color} ${!isChecked ? 'opacity-40' : ''}`} />
-              )}
-              <span className={`text-sm transition-colors ${isChecked ? 'text-white font-medium' : 'text-slate-400 group-hover/item:text-slate-300'}`}>
-                {item.label}
-              </span>
+              <span className="size-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+              <span>{item.label}</span>
             </label>
           );
         })}
       </div>
-    </details>
+    </fieldset>
   );
 }
 
-function ProtocolMarker({ incident, onClick }: { key?: any; incident: any; onClick: () => void }) {
-  const [position, setPosition] = useState<[number, number] | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-    getMarkerPosition(incident.id.toString(), incident.address || '').then(pos => {
-      if (isMounted) setPosition(pos);
-    }).catch(console.error);
-    return () => { isMounted = false; };
-  }, [incident.id, incident.address]);
-
-  if (!position) return null;
+function Legend() {
+  const items = [
+    { label: 'Aberto', color: '#D7191C' },
+    { label: 'Em análise', color: '#F9B900' },
+    { label: 'Resolvido', color: '#168821' },
+    { label: 'Transporte', color: '#0758BD' },
+  ];
 
   return (
-    <Marker
-      position={position}
-      eventHandlers={{ click: onClick }}
-    />
+    <div className="absolute bottom-5 left-1/2 z-10 hidden -translate-x-1/2 items-center gap-6 rounded-full border border-[#CDD8E7] bg-white/95 px-6 py-3 text-sm text-[#0b1b33] shadow-lg backdrop-blur sm:flex">
+      {items.map((item) => <span key={item.label} className="flex items-center gap-2 whitespace-nowrap"><span className="size-3 rounded-full" style={{ backgroundColor: item.color }} />{item.label}</span>)}
+    </div>
   );
 }

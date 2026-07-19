@@ -22,7 +22,6 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { PublicProtocol } from './pages/PublicProtocol';
 import { NotFound } from './pages/NotFound';
 import { PanelLeftOpen } from 'lucide-react';
-import { Finance } from './pages/Finance';
 import { TermsOfUse } from './pages/TermsOfUse';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 
@@ -106,7 +105,6 @@ function AppContent() {
           <Route path="/admin/mapa" element={role === 'admin' ? <AdminMap /> : <Navigate to="/" replace />} />
           <Route path="/admin/relatorios" element={role === 'admin' ? <AdminReports /> : <Navigate to="/" replace />} />
           <Route path="/admin/ai-logs" element={role === 'admin' ? <AiLogsPage /> : <Navigate to="/" replace />} />
-          <Route path="/finance" element={role === 'admin' ? <Finance /> : <Navigate to="/" replace />} />
 
           {/* Shared Routes */}
           <Route path="/perfil" element={<Profile />} />

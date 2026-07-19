@@ -1,10 +1,9 @@
 import { ArrowLeft, Check, MapPin, Search, CheckCircle, Image as ImageIcon, CloudUpload, X, Info, ArrowRight, LocateFixed, Loader2, Footprints, Eye, Ear, MoreHorizontal, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
-import { Button3D } from '../components/Button3D';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -70,6 +69,8 @@ function MapController({ center }: { center: [number, number] }) {
 export function NewRequest() {
   const { user } = useApp();
   const navigate = useNavigate();
+  const location = useLocation();
+  const requestPreset = location.state as { category?: string; serviceDesc?: string } | null;
   const [loading, setLoading] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('idle');
   const [submitMessage, setSubmitMessage] = useState('');
@@ -82,8 +83,8 @@ export function NewRequest() {
   });
   const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
-  const [category, setCategory] = useState('Física');
-  const [serviceDesc, setServiceDesc] = useState('');
+  const [category, setCategory] = useState(requestPreset?.category || 'Física');
+  const [serviceDesc, setServiceDesc] = useState(requestPreset?.serviceDesc || '');
   const [description, setDescription] = useState('');
   const [images, setImages] = useState<File[]>([]);
   const [mapCenter, setMapCenter] = useState<[number, number]>([-23.5505, -46.6333]);
@@ -217,387 +218,399 @@ export function NewRequest() {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#101922] font-sans">
-      <main className="flex-grow flex flex-col items-center py-8 px-4 md:px-8">
-        <div className="w-full max-w-[1200px] flex flex-col gap-6">
-          {/* Page Title & Progress */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-800 pb-6">
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-blue-500 font-medium text-sm">
-                <ArrowLeft size={16} />
-                <a className="hover:underline" href="#">Voltar para Início</a>
-              </div>
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">Nova Solicitação</h1>
-              <p className="text-slate-400">Ajude a melhorar a acessibilidade da sua cidade.</p>
-            </div>
-
-            {/* Stepper */}
-            <div className="flex items-center w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-              <Step number={1} label="Tipo" status={currentStep === 1 ? "active" : currentStep > 1 ? "completed" : "pending"} />
-              <div className={`w-12 h-0.5 mx-3 ${currentStep >= 2 ? 'bg-green-500' : 'bg-slate-700'}`}></div>
-              <Step number={2} label="Localização" status={currentStep === 2 ? "active" : currentStep > 2 ? "completed" : "pending"} />
-              <div className={`w-12 h-0.5 mx-3 ${currentStep >= 3 ? 'bg-green-500' : 'bg-slate-700'}`}></div>
-              <Step number={3} label="Revisão" status={currentStep === 3 ? "active" : "pending"} />
-            </div>
+    <div className="flex-1 overflow-y-auto bg-[#f4f8fc] text-[#0b1b33]">
+      <main className="mx-auto flex min-h-full w-full max-w-[1480px] flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+        <section className="flex flex-col justify-between gap-6 lg:flex-row lg:items-start">
+          <div>
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="mb-4 inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#0758bd] transition hover:text-[#0b3f88] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+            >
+              <ArrowLeft size={18} />
+              Voltar para início
+            </button>
+            <h1 className="text-3xl font-bold tracking-normal text-[#07162f] sm:text-4xl lg:text-[42px]">
+              Nova Solicitação
+            </h1>
+            <p className="mt-2 text-base text-slate-600 sm:text-lg">
+              Ajude a melhorar a acessibilidade da sua cidade.
+            </p>
           </div>
 
-          {/* Content Area */}
-          {/* Step 1: Tipo */}
-          {currentStep === 1 && (
-            <div className="bg-[#1c2632] rounded-xl p-4 sm:p-8 shadow-sm border border-slate-700 flex flex-col gap-6 sm:gap-8 min-h-[400px]">
-              <div className="flex items-center gap-4 border-b border-slate-800 pb-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-white">Categoria de Acessibilidade</h2>
-                  <p className="text-slate-400">Selecione o tipo de problema que você deseja relatar.</p>
+          <div className="w-full lg:max-w-[520px]">
+            <p className="mb-4 text-left text-sm font-medium text-slate-700 lg:text-right">
+              Etapa {currentStep} de 3
+            </p>
+            <StepRail currentStep={currentStep} />
+          </div>
+        </section>
+
+        <div className="grid flex-1 items-start gap-5 xl:grid-cols-[minmax(0,1.72fr)_minmax(320px,0.95fr)]">
+          <div className="min-w-0">
+            {currentStep === 1 && (
+              <motion.section
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-lg border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgba(15,42,73,0.04)] sm:p-7 lg:p-9"
+              >
+                <h2 className="text-2xl font-bold text-[#0b1b33]">Categoria de acessibilidade</h2>
+                <p className="mt-1 text-slate-600">Selecione o tipo de problema que você deseja relatar.</p>
+
+                <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
+                  {[
+                    { id: 'Física', Icon: Footprints, desc: 'Buracos na calçada, rampas bloqueadas, etc.', card: 'border-blue-200 from-white to-blue-50/80', icon: 'text-[#1460c9]' },
+                    { id: 'Visual', Icon: Eye, desc: 'Piso tátil ausente ou danificado, etc.', card: 'border-emerald-200 from-white to-emerald-50/70', icon: 'text-[#3d8737]' },
+                    { id: 'Auditiva', Icon: Ear, desc: 'Falta de sinalização adequada, etc.', card: 'border-violet-200 from-white to-violet-50/70', icon: 'text-[#5b35a6]' },
+                    { id: 'Outros', Icon: MoreHorizontal, desc: 'Outros problemas de acessibilidade.', card: 'border-amber-200 from-white to-amber-50/80', icon: 'text-[#dc9800]' },
+                  ].map(({ id, Icon, desc, card, icon }) => {
+                    const selected = category === id;
+                    return (
+                      <button
+                        type="button"
+                        key={id}
+                        aria-pressed={selected}
+                        onClick={() => setCategory(id)}
+                        className={`relative flex min-h-[190px] flex-col items-start justify-center overflow-hidden rounded-lg border bg-gradient-to-br p-6 text-left transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1260c9] focus-visible:ring-offset-2 ${card} ${selected ? 'border-[#1260c9] shadow-[0_10px_30px_rgba(18,96,201,0.12)]' : ''}`}
+                      >
+                        {selected && (
+                          <span className="absolute right-5 top-4 flex size-8 items-center justify-center rounded-full bg-[#1260c9] text-white dashboard-inverse-text shadow-sm">
+                            <Check size={20} strokeWidth={3} />
+                          </span>
+                        )}
+                        <Icon className={icon} size={44} strokeWidth={1.8} />
+                        <h3 className="mt-4 text-xl font-bold text-[#0b1b33]">{id}</h3>
+                        <p className="mt-2 max-w-[250px] text-base leading-6 text-slate-600">{desc}</p>
+                        {selected && (
+                          <span className="mt-4 rounded bg-blue-100 px-2.5 py-1 text-sm font-semibold text-[#0758bd]">
+                            Selecionado
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
-              </div>
+              </motion.section>
+            )}
 
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                {[
-                  { id: 'Física', icon: <Footprints size={40} className={category === 'Física' ? 'text-blue-400' : 'text-slate-400'} />, title: 'Física', desc: 'Buracos na calçada, rampas bloqueadas, etc.' },
-                  { id: 'Visual', icon: <Eye size={40} className={category === 'Visual' ? 'text-blue-400' : 'text-slate-400'} />, title: 'Visual', desc: 'Piso tátil ausente ou danificado, etc.' },
-                  { id: 'Auditiva', icon: <Ear size={40} className={category === 'Auditiva' ? 'text-blue-400' : 'text-slate-400'} />, title: 'Auditiva', desc: 'Falta de sinalização adequada, etc.' },
-                  { id: 'Outros', icon: <MoreHorizontal size={40} className={category === 'Outros' ? 'text-blue-400' : 'text-slate-400'} />, title: 'Outros', desc: 'Outros problemas de acessibilidade.' }
-                ].map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setCategory(cat.id)}
-                    className={`category-card p-6 rounded-xl border text-left flex flex-col gap-4 ${category === cat.id ? 'is-selected bg-blue-600/10 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.15)]' : 'bg-[#111418] border-slate-700'}`}
-                  >
-                    <div>{cat.icon}</div>
+            {currentStep === 2 && (
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+                <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgba(15,42,73,0.04)] sm:p-7">
+                  <div className="flex flex-col gap-2 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <h3 className="text-white font-bold text-lg">{cat.title}</h3>
-                      <p className="text-slate-400 text-sm mt-1">{cat.desc}</p>
+                      <h2 className="text-2xl font-bold text-[#0b1b33]">Localização e detalhes</h2>
+                      <p className="mt-1 text-slate-600">Informe onde está o problema e descreva o que encontrou.</p>
                     </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Step 2: Form */}
-          {currentStep === 2 && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 min-h-[600px]">
-              {/* Left Column */}
-              <div className="lg:col-span-5 flex flex-col gap-6 order-2 lg:order-1">
-                <div className="bg-[#1c2632] rounded-xl p-6 shadow-sm border border-slate-700 flex flex-col gap-5">
-                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                    <MapPin className="text-blue-500" size={20} />
-                    Detalhes do Local
-                  </h2>
-
-                  {/* Informação da Categoria Selecionada */}
-                  <div className="flex flex-col gap-1">
-                    <span className="text-sm font-medium text-slate-400">Categoria Selecionada:</span>
-                    <span className="text-white font-bold">{category}</span>
+                    <span className="w-fit rounded bg-blue-50 px-3 py-1.5 text-sm font-semibold text-[#0758bd]">{category}</span>
                   </div>
 
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-slate-300">Qual é o problema apontado?</label>
-                    <input
-                      className="block w-full p-3 rounded-lg bg-[#111418] border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
-                      placeholder="Ex: Buraco na calçada, rampa bloqueada..."
-                      value={serviceDesc}
-                      onChange={(e) => setServiceDesc(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-2 relative">
-                    <label className="text-sm font-medium text-slate-300">Rua / Avenida</label>
-                    <div className="relative group">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors z-10">
-                        <MapPin size={20} />
-                      </div>
+                  <div className="mt-6 grid gap-5 lg:grid-cols-2">
+                    <Field label="Qual é o problema apontado?" id="problem" wide>
                       <input
-                        className="block w-full pl-10 pr-3 py-3 rounded-lg bg-[#111418] border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm relative z-0"
-                        placeholder="Ex: Av. Paulista"
-                        value={addressObj.street}
-                        onChange={(e) => {
-                          setAddressObj({ ...addressObj, street: e.target.value });
-                          handleAddressSearch(e.target.value);
-                        }}
+                        id="problem"
+                        className={fieldClass}
+                        placeholder="Ex: Buraco na calçada ou rampa bloqueada"
+                        value={serviceDesc}
+                        onChange={(event) => setServiceDesc(event.target.value)}
                       />
-                      {isSearchingAddress && (
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-500">
-                          <Loader2 size={16} className="animate-spin" />
+                    </Field>
+
+                    <div className="relative lg:col-span-2">
+                      <label htmlFor="street" className="mb-2 block text-sm font-semibold text-slate-700">Rua / Avenida</label>
+                      <div className="relative">
+                        <MapPin className="pointer-events-none absolute left-3 top-3.5 text-slate-400" size={20} />
+                        <input
+                          id="street"
+                          className={`${fieldClass} pl-10 pr-10`}
+                          placeholder="Ex: Avenida Paulista"
+                          value={addressObj.street}
+                          autoComplete="street-address"
+                          onChange={(event) => {
+                            setAddressObj({ ...addressObj, street: event.target.value });
+                            handleAddressSearch(event.target.value);
+                          }}
+                        />
+                        {isSearchingAddress && <Loader2 className="absolute right-3 top-3.5 animate-spin text-[#1260c9]" size={20} />}
+                      </div>
+                      {addressSuggestions.length > 0 && (
+                        <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-md border border-slate-200 bg-white shadow-xl">
+                          {addressSuggestions.map((suggestion, index) => (
+                            <button
+                              type="button"
+                              key={`${suggestion.lat}-${suggestion.lon}-${index}`}
+                              onClick={() => selectAddress(suggestion)}
+                              className="flex min-h-12 w-full items-start gap-3 border-b border-slate-100 px-4 py-3 text-left text-sm text-slate-700 transition last:border-b-0 hover:bg-blue-50"
+                            >
+                              <Search className="mt-0.5 shrink-0 text-slate-400" size={16} />
+                              <span>{suggestion.display_name}</span>
+                            </button>
+                          ))}
                         </div>
                       )}
                     </div>
 
-                    {/* Suggestions Dropdown */}
-                    {addressSuggestions.length > 0 && (
-                      <div className="absolute top-full mt-1 left-0 right-0 bg-[#1c2632] border border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden divide-y divide-slate-800/50">
-                        {addressSuggestions.map((sug, i) => (
-                          <button
-                            key={i}
-                            onClick={() => selectAddress(sug)}
-                            className="w-full text-left px-4 py-3 hover:bg-[#283039] transition-colors text-sm text-slate-200 flex items-start gap-3"
-                          >
-                            <Search size={16} className="text-slate-500 mt-0.5 shrink-0" />
-                            <span className="line-clamp-2">{sug.display_name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-slate-300">Número</label>
-                      <input
-                        className="block w-full p-3 rounded-lg bg-[#111418] border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
-                        placeholder="Ex: 1578"
-                        value={addressObj.number}
-                        onChange={(e) => setAddressObj({ ...addressObj, number: e.target.value })}
+                    <Field label="Número" id="number">
+                      <input id="number" className={fieldClass} placeholder="Ex: 1578" value={addressObj.number} onChange={(event) => setAddressObj({ ...addressObj, number: event.target.value })} />
+                    </Field>
+                    <Field label="Bairro" id="neighborhood">
+                      <input id="neighborhood" className={fieldClass} placeholder="Ex: Centro" value={addressObj.neighborhood} onChange={(event) => setAddressObj({ ...addressObj, neighborhood: event.target.value })} />
+                    </Field>
+                    <Field label="Cidade" id="city">
+                      <input id="city" className={fieldClass} placeholder="São Paulo" value={addressObj.city} onChange={(event) => setAddressObj({ ...addressObj, city: event.target.value })} />
+                    </Field>
+                    <Field label="Estado" id="state">
+                      <input id="state" className={fieldClass} placeholder="SP" value={addressObj.state} onChange={(event) => setAddressObj({ ...addressObj, state: event.target.value })} />
+                    </Field>
+                    <Field label="Descrição detalhada (opcional)" id="details" wide>
+                      <textarea
+                        id="details"
+                        className={`${fieldClass} min-h-28 resize-y`}
+                        placeholder="Inclua detalhes que ajudem a equipe responsável"
+                        value={description}
+                        onChange={(event) => setDescription(event.target.value)}
                       />
-                    </div>
-                    <div className="flex flex-col gap-2 col-span-1 sm:col-span-2">
-                      <label className="text-sm font-medium text-slate-300">Bairro</label>
-                      <input
-                        className="block w-full p-3 rounded-lg bg-[#111418] border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
-                        placeholder="Ex: Centro"
-                        value={addressObj.neighborhood}
-                        onChange={(e) => setAddressObj({ ...addressObj, neighborhood: e.target.value })}
-                      />
-                    </div>
+                    </Field>
                   </div>
+                </section>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-slate-300">Cidade</label>
-                      <input
-                        className="block w-full p-3 rounded-lg bg-[#111418] border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
-                        placeholder="São Paulo"
-                        value={addressObj.city}
-                        onChange={(e) => setAddressObj({ ...addressObj, city: e.target.value })}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-slate-300">Estado</label>
-                      <input
-                        className="block w-full p-3 rounded-lg bg-[#111418] border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
-                        placeholder="SP"
-                        value={addressObj.state}
-                        onChange={(e) => setAddressObj({ ...addressObj, state: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-slate-300">
-                      Descrição Detalhada <span className="text-slate-500 font-normal">(Opcional)</span>
-                    </label>
-                    <textarea
-                      className="block w-full p-3 rounded-lg bg-[#111418] border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none shadow-sm"
-                      placeholder="Por favor, forneça mais detalhes sobre o incidente..."
-                      rows={4}
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="bg-[#1c2632] rounded-xl p-6 shadow-sm border border-slate-700 flex flex-col gap-4">
-                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                    <ImageIcon className="text-blue-500" size={20} />
-                    Evidências
-                  </h2>
-                  <label className="border-2 border-dashed border-slate-700 rounded-xl p-8 flex flex-col items-center justify-center text-center hover:bg-[#283039] hover:border-blue-500/50 transition-colors cursor-pointer group">
-                    <input
-                      className="hidden"
-                      multiple
-                      type="file"
-                      accept="image/png, image/jpeg"
-                      onChange={handleImageUpload}
-                    />
-                    <div className="bg-[#111418] p-4 rounded-full mb-3 group-hover:bg-blue-500/10 transition-colors duration-300">
-                      <CloudUpload className="text-slate-400 group-hover:text-blue-500 transition-colors" size={32} />
-                    </div>
-                    <p className="text-white font-medium mb-1">Arraste fotos aqui ou clique para selecionar</p>
-                    <p className="text-slate-400 text-xs">JPG, PNG até 5MB</p>
-                  </label>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
-                    {images.map((file, index) => (
-                      <div key={index} className="aspect-square rounded-lg bg-[#283039] relative overflow-hidden group">
-                        <img
-                          alt={`Evidência ${index + 1}`}
-                          className="w-full h-full object-cover"
-                          src={URL.createObjectURL(file)}
-                        />
-                        <button
-                          onClick={() => removeImage(index)}
-                          className="absolute top-1 right-1 bg-black/60 hover:bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ))}
-                    <div className="aspect-square rounded-lg bg-[#283039] relative overflow-hidden flex items-center justify-center text-slate-500 border border-slate-700">
-                      <ImageIcon size={24} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column: Map */}
-              <div className="lg:col-span-7 flex flex-col h-full order-1 lg:order-2">
-                <div className="bg-[#1c2632] rounded-xl shadow-sm border border-slate-700 overflow-hidden flex flex-col h-full min-h-[400px]">
-                  <div className="p-3 border-b border-slate-700 bg-[#1c2632] flex justify-between items-center z-10">
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400 pl-2">Mapa Interativo</span>
-                    <button onClick={handleUseMyLocation} className="pill-btn flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#283039] border border-slate-700 text-slate-200 text-xs font-medium shadow-sm focus:outline-none">
-                      <LocateFixed size={16} />
-                      Usar minha localização atual
-                    </button>
-                  </div>
-
-                  <div className="relative w-full flex-grow bg-[#101922] overflow-hidden group z-0">
-                    <MapContainer center={mapCenter} zoom={14} style={{ height: '100%', width: '100%', zIndex: 1 }} zoomControl={true}>
-                      <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                      />
-                      <LocationMarker position={position} setPosition={setPosition} setAddressObj={setAddressObj} />
-                      <MapController center={mapCenter} />
-                    </MapContainer>
-                  </div>
-
-                  <div className="bg-blue-500/10 p-3 text-center border-t border-blue-500/20">
-                    <p className="text-xs text-blue-400 flex items-center justify-center gap-2">
-                      <Info size={14} />
-                      Dica: Clique no mapa para indicar a posição exata do problema.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Review Step */}
-          {currentStep === 3 && (
-            <div className="bg-[#1c2632] rounded-xl p-4 sm:p-8 shadow-sm border border-slate-700 flex flex-col gap-6 sm:gap-8 min-h-[400px]">
-              <div className="flex items-center gap-4 border-b border-slate-800 pb-4">
-                <CheckCircle className="text-green-500 shrink-0" size={32} />
-                <div>
-                  <h2 className="text-2xl font-bold text-white">Revise os Dados da Solicitação</h2>
-                  <p className="text-slate-400">Verifique se as informações abaixo estão corretas antes de finalizar.</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="flex flex-col gap-4">
-                  <div>
-                    <span className="text-sm text-slate-500 font-bold uppercase tracking-wider">Categoria</span>
-                    <p className="text-white text-lg">{category}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm text-slate-500 font-bold uppercase tracking-wider">Problema Relatado</span>
-                    <p className="text-white text-lg">{serviceDesc}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm text-slate-500 font-bold uppercase tracking-wider">Endereço Completo</span>
-                    <p className="text-white text-lg">
-                      {`${addressObj.street}${addressObj.number ? ', ' + addressObj.number : ''}${addressObj.neighborhood ? ' - ' + addressObj.neighborhood : ''}, ${addressObj.city} - ${addressObj.state}`}
-                    </p>
-                  </div>
-                  {description && (
+                <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgba(15,42,73,0.04)] sm:p-7">
+                  <div className="flex items-center gap-3">
+                    <ImageIcon className="text-[#1260c9]" size={24} />
                     <div>
-                      <span className="text-sm text-slate-500 font-bold uppercase tracking-wider">Descrição Detalhada</span>
-                      <p className="text-slate-300 leading-relaxed max-w-xl">{description}</p>
+                      <h2 className="text-xl font-bold text-[#0b1b33]">Fotos do local</h2>
+                      <p className="text-sm text-slate-600">Adicione imagens que mostrem o problema.</p>
                     </div>
-                  )}
-                </div>
-
-                <div className="flex flex-col gap-4">
-                  <span className="text-sm text-slate-500 font-bold uppercase tracking-wider">Imagens Anexadas ({images.length})</span>
-                  {images.length > 0 ? (
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-                      {images.map((file, idx) => (
-                        <div key={idx} className="aspect-square rounded-lg overflow-hidden border border-slate-700 bg-[#111418]">
-                          <img src={URL.createObjectURL(file)} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                  <label className="mt-5 flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-blue-200 bg-blue-50/50 p-6 text-center transition hover:border-[#1260c9] hover:bg-blue-50">
+                    <input className="sr-only" multiple type="file" accept="image/png,image/jpeg" onChange={handleImageUpload} />
+                    <CloudUpload className="text-[#1260c9]" size={34} />
+                    <span className="mt-3 font-semibold text-[#0b1b33]">Selecionar fotos</span>
+                    <span className="mt-1 text-sm text-slate-500">JPG ou PNG</span>
+                  </label>
+                  {images.length > 0 && (
+                    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      {images.map((file, index) => (
+                        <div key={`${file.name}-${file.lastModified}-${index}`} className="group relative aspect-square overflow-hidden rounded-md border border-slate-200 bg-slate-100">
+                          <FileThumbnail file={file} alt={`Foto ${index + 1} do local`} />
+                          <button type="button" onClick={() => removeImage(index)} title="Remover foto" className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-[#07162f]/85 text-white shadow transition hover:bg-red-600">
+                            <X size={16} />
+                          </button>
                         </div>
                       ))}
                     </div>
-                  ) : (
-                    <p className="text-slate-400 italic">Nenhuma imagem anexada.</p>
                   )}
-                </div>
-              </div>
-            </div>
-          )}
+                </section>
+              </motion.div>
+            )}
 
-          {/* Action Bar */}
-          <div className="sticky bottom-0 bg-[#101922] pt-4 pb-8 border-t border-slate-800 mt-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 z-40">
+            {currentStep === 3 && (
+              <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-lg border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgba(15,42,73,0.04)] sm:p-7 lg:p-9">
+                <div className="flex items-start gap-4 border-b border-slate-200 pb-6">
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"><CheckCircle size={24} /></span>
+                  <div>
+                    <h2 className="text-2xl font-bold text-[#0b1b33]">Revise sua solicitação</h2>
+                    <p className="mt-1 text-slate-600">Confira as informações antes de enviar.</p>
+                  </div>
+                </div>
+                <dl className="divide-y divide-slate-200">
+                  <ReviewItem label="Categoria" value={category} />
+                  <ReviewItem label="Problema relatado" value={serviceDesc} />
+                  <ReviewItem label="Endereço" value={formatAddress(addressObj)} />
+                  {description && <ReviewItem label="Descrição" value={description} />}
+                </dl>
+                <div className="border-t border-slate-200 pt-6">
+                  <h3 className="font-bold text-[#0b1b33]">Fotos anexadas ({images.length})</h3>
+                  {images.length > 0 ? (
+                    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      {images.map((file, index) => (
+                        <div key={`${file.name}-${file.lastModified}-${index}`} className="aspect-square overflow-hidden rounded-md border border-slate-200 bg-slate-100">
+                          <FileThumbnail file={file} alt={`Foto ${index + 1} anexada`} />
+                        </div>
+                      ))}
+                    </div>
+                  ) : <p className="mt-2 text-sm text-slate-500">Nenhuma foto anexada.</p>}
+                </div>
+              </motion.section>
+            )}
+          </div>
+
+          <aside className="space-y-5">
+            {currentStep === 1 && <CategoryGuide />}
+            {currentStep === 2 && (
+              <MapGuide
+                mapCenter={mapCenter}
+                position={position}
+                setPosition={setPosition}
+                setAddressObj={setAddressObj}
+                onUseLocation={handleUseMyLocation}
+              />
+            )}
+            {currentStep === 3 && <ReviewGuide />}
+            <ProgressCard currentStep={currentStep} />
+          </aside>
+        </div>
+
+        <section className="sticky bottom-0 z-40 rounded-lg border border-slate-200 bg-white/95 p-4 shadow-[0_-6px_24px_rgba(15,42,73,0.08)] backdrop-blur sm:p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <SubmitStatusBanner status={submitStatus} message={submitMessage} />
-            <div className="flex items-center justify-between lg:justify-end gap-4 w-full lg:w-auto">
-              <Button3D
-                variant="white"
-                onClick={() => {
-                  if (currentStep > 1) {
-                    setCurrentStep((prev) => (prev - 1) as 1 | 2 | 3);
-                  } else {
-                    navigate(-1);
-                  }
-                }}
+            <div className="flex w-full gap-3 sm:justify-end lg:w-auto">
+              <button
+                type="button"
+                onClick={() => currentStep > 1 ? setCurrentStep((currentStep - 1) as 1 | 2 | 3) : navigate('/')}
                 disabled={loading}
-                className="w-full lg:w-auto"
+                className="min-h-12 flex-1 rounded-md border border-slate-300 bg-white px-6 text-base font-semibold text-[#0b1b33] transition hover:bg-slate-50 disabled:opacity-60 sm:flex-none sm:min-w-40"
               >
                 {currentStep > 1 ? 'Voltar' : 'Cancelar'}
-              </Button3D>
-              <Button3D
-                variant="blue"
+              </button>
+              <button
+                type="button"
                 onClick={currentStep < 3 ? handleNextStep : handleSubmit}
                 disabled={loading}
-                className="w-full lg:w-auto"
+                className="flex min-h-12 flex-[1.4] items-center justify-center gap-3 rounded-md bg-[#0758bd] px-7 text-base font-semibold text-white dashboard-inverse-text shadow-[0_8px_18px_rgba(7,88,189,0.22)] transition hover:bg-[#064c9f] disabled:opacity-60 sm:flex-none sm:min-w-56"
               >
-                {loading && <Loader2 size={16} className="animate-spin" />}
-                {loading ? 'Enviando...' : currentStep === 1 ? 'Continuar' : currentStep === 2 ? 'Revisar Solicitação' : 'Finalizar Solicitação'}
-                {currentStep < 3 ? <ArrowRight size={16} /> : (!loading && <Check size={16} />)}
-              </Button3D>
+                {loading && <Loader2 size={18} className="animate-spin" />}
+                {loading ? 'Enviando...' : currentStep === 1 ? 'Continuar' : currentStep === 2 ? 'Revisar' : 'Enviar solicitação'}
+                {!loading && (currentStep < 3 ? <ArrowRight size={19} /> : <Check size={19} />)}
+              </button>
             </div>
           </div>
-        </div>
+        </section>
       </main>
     </div>
   );
 }
 
-function SubmitStatusBanner({ status, message }: { status: SubmitStatus; message: string }) {
-  if (status === 'idle' || !message) return <div className="hidden lg:block flex-1" />;
+const fieldClass = 'block min-h-12 w-full rounded-md border border-slate-300 bg-white px-3 py-3 text-base text-[#0b1b33] outline-none transition placeholder:text-slate-400 focus:border-[#1260c9] focus:ring-2 focus:ring-blue-100';
 
-  const styles = {
-    submitting: 'border-blue-500/30 bg-blue-500/10 text-blue-200',
-    success: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200',
-    error: 'border-red-500/30 bg-red-500/10 text-red-200',
-  } as const;
+function formatAddress(address: { street: string; number: string; neighborhood: string; city: string; state: string }) {
+  return `${address.street}${address.number ? `, ${address.number}` : ''}${address.neighborhood ? ` - ${address.neighborhood}` : ''}${address.city ? `, ${address.city}` : ''}${address.state ? ` - ${address.state}` : ''}`;
+}
 
-  const icon =
-    status === 'submitting'
-      ? <Loader2 size={16} className="animate-spin shrink-0" />
-      : status === 'success'
-        ? <CheckCircle size={16} className="shrink-0" />
-        : <AlertCircle size={16} className="shrink-0" />;
+function FileThumbnail({ file, alt }: { file: File; alt: string }) {
+  const [source, setSource] = useState('');
+  React.useEffect(() => {
+    const objectUrl = URL.createObjectURL(file);
+    setSource(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+  return source ? <img src={source} alt={alt} className="h-full w-full object-cover" /> : null;
+}
 
+function Field({ label, id, wide = false, children }: { label: string; id: string; wide?: boolean; children: React.ReactNode }) {
   return (
-    <div className={`w-full lg:flex-1 min-h-11 rounded-xl border px-4 py-3 text-sm font-medium flex items-center gap-2 ${styles[status]}`}>
-      {icon}
-      <span>{message}</span>
+    <div className={wide ? 'lg:col-span-2' : ''}>
+      <label htmlFor={id} className="mb-2 block text-sm font-semibold text-slate-700">{label}</label>
+      {children}
     </div>
   );
 }
 
-function Step({ number, label, status }: { number: number; label: string; status: 'completed' | 'active' | 'pending' }) {
+function StepRail({ currentStep }: { currentStep: 1 | 2 | 3 }) {
+  const steps = [{ number: 1, label: 'Tipo' }, { number: 2, label: 'Localização' }, { number: 3, label: 'Revisão' }];
   return (
-    <div className={`flex items-center group min-w-fit ${status === 'pending' ? 'opacity-50' : ''}`}>
-      <div className={`flex items-center justify-center size-8 rounded-full font-bold text-sm ${status === 'completed' ? 'bg-green-500 text-white' :
-        status === 'active' ? 'bg-blue-600 text-white shadow-[0_0_0_4px_rgba(37,99,235,0.2)]' :
-          'bg-slate-700 text-slate-400'
-        }`}>
-        {status === 'completed' ? <Check size={18} /> : number}
-      </div>
-      <span className={`ml-3 text-sm whitespace-nowrap ${status === 'active' ? 'font-bold text-blue-500' : 'font-medium text-white'}`}>
-        {label}
-      </span>
-    </div>
+    <ol className="flex w-full items-center" aria-label="Etapas da solicitação">
+      {steps.map((step, index) => {
+        const active = currentStep === step.number;
+        const complete = currentStep > step.number;
+        return (
+          <React.Fragment key={step.number}>
+            <li className="flex min-w-fit items-center gap-2 sm:gap-3">
+              <span className={`flex size-9 items-center justify-center rounded-full border text-sm font-bold sm:size-10 ${active || complete ? 'border-[#0758bd] bg-[#0758bd] text-white dashboard-inverse-text' : 'border-slate-300 bg-white text-slate-700'}`}>
+                {complete ? <Check size={18} /> : step.number}
+              </span>
+              <span className={`hidden text-sm sm:block ${active ? 'font-bold text-[#0758bd]' : 'text-slate-600'}`}>{step.label}</span>
+            </li>
+            {index < steps.length - 1 && <span className={`mx-2 h-px flex-1 sm:mx-4 ${currentStep > step.number ? 'bg-[#0758bd]' : 'bg-slate-300'}`} />}
+          </React.Fragment>
+        );
+      })}
+    </ol>
   );
+}
+
+function CategoryGuide() {
+  const tips = [
+    { Icon: ImageIcon, text: 'Você poderá adicionar fotos', tone: 'bg-blue-100 text-[#0758bd]' },
+    { Icon: MapPin, text: 'O endereço será confirmado na próxima etapa', tone: 'bg-emerald-100 text-emerald-700' },
+    { Icon: CheckCircle, text: 'Revise tudo antes de enviar', tone: 'bg-amber-100 text-amber-700' },
+  ];
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgba(15,42,73,0.04)] sm:p-6">
+      <h2 className="text-xl font-bold text-[#0b1b33]">Qual categoria escolher?</h2>
+      <img src="/new-request-category-visual.png" alt="Esquina acessível com rampa, piso tátil e sinalização" className="mx-auto mt-2 aspect-[16/9] w-full max-w-[420px] object-contain" />
+      <p className="border-b border-slate-200 pb-4 text-base leading-6 text-slate-600">Escolha a opção que melhor representa o problema encontrado.</p>
+      <ul className="mt-4 space-y-3">
+        {tips.map(({ Icon, text, tone }) => (
+          <li key={text} className="flex items-center gap-3 text-sm text-slate-600 sm:text-base">
+            <span className={`flex size-9 shrink-0 items-center justify-center rounded-full ${tone}`}><Icon size={18} /></span>
+            <span>{text}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function MapGuide({ mapCenter, position, setPosition, setAddressObj, onUseLocation }: { mapCenter: [number, number]; position: { lat: number; lng: number } | null; setPosition: (position: { lat: number; lng: number }) => void; setAddressObj: (address: any) => void; onUseLocation: () => void }) {
+  return (
+    <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_10px_30px_rgba(15,42,73,0.04)]">
+      <div className="flex flex-col gap-3 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div><h2 className="text-xl font-bold text-[#0b1b33]">Confirme no mapa</h2><p className="mt-1 text-sm text-slate-600">Toque no ponto exato do problema.</p></div>
+        <button type="button" onClick={onUseLocation} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 text-sm font-semibold text-[#0758bd] hover:bg-blue-100"><LocateFixed size={17} />Minha localização</button>
+      </div>
+      <div className="h-[390px] w-full bg-slate-100">
+        <MapContainer center={mapCenter} zoom={14} style={{ height: '100%', width: '100%', zIndex: 1 }}>
+          <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
+          <LocationMarker position={position} setPosition={setPosition} setAddressObj={setAddressObj} />
+          <MapController center={mapCenter} />
+        </MapContainer>
+      </div>
+      <p className="flex items-center justify-center gap-2 border-t border-blue-100 bg-blue-50 px-4 py-3 text-center text-sm text-[#0758bd]"><Info size={16} />O marcador define a posição enviada à equipe.</p>
+    </section>
+  );
+}
+
+function ReviewGuide() {
+  return (
+    <section className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-6">
+      <span className="flex size-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"><CheckCircle size={27} /></span>
+      <h2 className="mt-5 text-xl font-bold text-[#0b1b33]">Tudo pronto para conferir</h2>
+      <p className="mt-2 leading-6 text-slate-600">Ao enviar, sua solicitação receberá um protocolo para acompanhamento.</p>
+    </section>
+  );
+}
+
+function ProgressCard({ currentStep }: { currentStep: 1 | 2 | 3 }) {
+  const rows = [{ number: 1, label: 'Tipo selecionado' }, { number: 2, label: 'Localização' }, { number: 3, label: 'Revisão' }];
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgba(15,42,73,0.04)] sm:p-6">
+      <h2 className="text-xl font-bold text-[#0b1b33]">Seu progresso</h2>
+      <ol className="mt-5">
+        {rows.map((row, index) => {
+          const complete = currentStep > row.number;
+          const active = currentStep === row.number;
+          return (
+            <li key={row.number} className="relative flex min-h-13 items-center gap-3 pb-5 last:min-h-0 last:pb-0">
+              {index < rows.length - 1 && <span className={`absolute left-[14px] top-8 h-[calc(100%-22px)] border-l border-dashed ${complete ? 'border-[#0758bd]' : 'border-slate-300'}`} />}
+              <span className={`relative z-10 flex size-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${active || complete ? 'border-[#0758bd] bg-[#0758bd] text-white dashboard-inverse-text' : 'border-slate-300 bg-white text-slate-600'}`}>{complete ? <Check size={14} /> : row.number}</span>
+              <span className={`text-sm ${active ? 'font-semibold text-[#0758bd]' : 'text-slate-600'}`}>{row.label}</span>
+              {!active && !complete && <span className="ml-auto rounded bg-slate-100 px-2 py-1 text-xs text-slate-500">Pendente</span>}
+              {complete && <span className="ml-auto rounded bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">Concluído</span>}
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
+function ReviewItem({ label, value }: { label: string; value: string }) {
+  return <div className="grid gap-2 py-5 sm:grid-cols-[170px_1fr] sm:gap-6"><dt className="text-sm font-semibold uppercase text-slate-500">{label}</dt><dd className="text-base leading-6 text-[#0b1b33]">{value || 'Não informado'}</dd></div>;
+}
+
+function SubmitStatusBanner({ status, message }: { status: SubmitStatus; message: string }) {
+  if (status === 'idle' || !message) return <div className="hidden flex-1 lg:block" />;
+  const styles = { submitting: 'border-blue-200 bg-blue-50 text-[#0758bd]', success: 'border-emerald-200 bg-emerald-50 text-emerald-700', error: 'border-red-200 bg-red-50 text-red-700' } as const;
+  const icon = status === 'submitting' ? <Loader2 size={17} className="shrink-0 animate-spin" /> : status === 'success' ? <CheckCircle size={17} className="shrink-0" /> : <AlertCircle size={17} className="shrink-0" />;
+  return <div aria-live="polite" className={`flex min-h-11 w-full items-center gap-2 rounded-md border px-4 py-3 text-sm font-medium lg:flex-1 ${styles[status]}`}>{icon}<span>{message}</span></div>;
 }

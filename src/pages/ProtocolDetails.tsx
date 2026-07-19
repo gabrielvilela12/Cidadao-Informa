@@ -1,561 +1,518 @@
-import { useParams, Link } from 'react-router-dom';
-import { Header } from '../components/Header';
-import { ArrowLeft, Clock, MapPin, User, FileText, CheckCircle, AlertCircle, Calendar, Image as ImageIcon, ShieldCheck, Hash, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { StatusBadge } from './CitizenDashboard';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  AlertCircle, ArrowLeft, ArrowRight, Box, Calendar, Check, CheckCircle2,
+  ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Copy, ExternalLink,
+  FileText, Hash, Info, Link2, Loader2, LockKeyhole, MapPin, MoreHorizontal,
+  Paperclip, RefreshCw, Settings, ShieldCheck, Tag, User,
+} from 'lucide-react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet';
+import { Header } from '../components/Header';
 import { PrioritySection } from '../components/admin/PrioritySection';
-import { api, ProtocolAuditTrail } from '../services/api';
 import { useApp } from '../context/AppContext';
+import type { Protocol } from '../constants';
+import { api, type ProtocolAuditTrail } from '../services/api';
+import { getMarkerPosition } from '../utils/mapUtils';
 
-export function ProtocolDetails() {
-    const { id } = useParams();
-    const { role } = useApp();
-    const [protocol, setProtocol] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const [auditTrail, setAuditTrail] = useState<ProtocolAuditTrail | null>(null);
-    const [auditLoading, setAuditLoading] = useState(false);
-    const [auditError, setAuditError] = useState('');
-    const [statusUpdating, setStatusUpdating] = useState(false);
-    const [statusError, setStatusError] = useState('');
-    const [activeTab, setActiveTab] = useState<'details' | 'blockchain'>('details');
+type DetailsTab = 'details' | 'blockchain';
+type DetailedProtocol = Protocol & { image_urls?: string[] };
 
-    useEffect(() => {
-        if (id) {
-            setLoading(true);
-            api.getProtocolById(id)
-                .then(data => setProtocol(data))
-                .catch(() => setProtocol(null))
-                .finally(() => setLoading(false));
-        }
-    }, [id]);
+const DETAIL_MARKER_ICON = L.divIcon({
+  className: '',
+  html: '<span style="display:flex;width:42px;height:42px;align-items:center;justify-content:center;border:4px solid white;border-radius:50%;background:#0758BD;color:white;font-size:22px;box-shadow:0 5px 15px rgba(7,88,189,.35)">♿</span>',
+  iconSize: [42, 42],
+  iconAnchor: [21, 21],
+});
 
-    const loadAuditTrail = useCallback(async () => {
-        if (!id || role !== 'admin') {
-            setAuditTrail(null);
-            setAuditError('');
-            setAuditLoading(false);
-            return;
-        }
+const STATUS_OPTIONS = ['Aberto', 'Em Análise', 'Concluído', 'Atrasado'];
 
-        setAuditLoading(true);
-        setAuditError('');
-        try {
-            setAuditTrail(await api.getProtocolAuditTrail(id));
-        } catch (error) {
-            setAuditTrail(null);
-            setAuditError(formatAuditError(error));
-        } finally {
-            setAuditLoading(false);
-        }
-    }, [id, role]);
-
-    useEffect(() => {
-        if (role !== 'admin') {
-            setActiveTab('details');
-            return;
-        }
-
-        if (activeTab === 'blockchain') {
-            loadAuditTrail();
-        }
-    }, [activeTab, loadAuditTrail, role]);
-
-    const handleStatusChange = async (newStatus: string) => {
-        if (!id || !protocol || newStatus === protocol.status) return;
-
-        setStatusUpdating(true);
-        setStatusError('');
-
-        try {
-            const updatedProtocol = await api.updateProtocolStatus(
-                id,
-                newStatus,
-                'Atualizacao de status pelo painel administrativo'
-            );
-            setProtocol(updatedProtocol);
-            await loadAuditTrail();
-        } catch (error) {
-            setStatusError(error instanceof Error ? error.message : 'Nao foi possivel alterar o status.');
-        } finally {
-            setStatusUpdating(false);
-        }
-    };
-
-    if (loading) {
-        return <div className="flex-1 flex flex-col h-full bg-[#101922] text-white p-8 items-center justify-center">Carregando detalhes do protocolo...</div>;
-    }
-
-    if (!protocol) {
-        return (
-            <div className="flex-1 flex flex-col h-full bg-[#101922] text-white p-8 items-center justify-center">
-                <AlertCircle size={48} className="text-red-500 mb-4" />
-                <h2 className="text-2xl font-bold mb-2">Protocolo não encontrado</h2>
-                <p className="text-slate-400 mb-6">O protocolo solicitado não existe ou você não tem acesso.</p>
-                <Link to="/" className="text-blue-500 hover:text-blue-400 font-bold flex items-center gap-2">
-                    <ArrowLeft size={20} />
-                    Voltar para o Dashboard
-                </Link>
-            </div>
-        );
-    }
-
-    // Mock timeline based on status
-    const events = [
-        { type: 'Criado', date: protocol.date, desc: 'Protocolo aberto pelo cidadão', completed: true },
-        { type: 'Em Análise', date: protocol.date, desc: 'Solicitação em análise técnica', completed: protocol.status !== 'Aberto' },
-        { type: 'Finalizado', date: '---', desc: 'Conclusão do serviço', completed: protocol.status === 'Concluído' }
-    ];
-
-    return (
-        <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#101922]">
-            <Header title={`Protocolo ${protocol.id}`} subtitle="Detalhes da Solicitação" />
-
-            <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6">
-                <Link to={-1 as any} className="text-slate-400 hover:text-white flex items-center gap-2 w-fit mb-2 transition-colors">
-                    <ArrowLeft size={18} />
-                    Voltar
-                </Link>
-
-                {role === 'admin' && (
-                    <ProtocolTabs
-                        activeTab={activeTab}
-                        onChange={setActiveTab}
-                        auditCount={auditTrail?.blocks.length ?? 0}
-                    />
-                )}
-
-                {role === 'admin' && activeTab === 'blockchain' ? (
-                    <BlockchainAuditPanel
-                        auditTrail={auditTrail}
-                        loading={auditLoading}
-                        error={auditError}
-                        onRefresh={loadAuditTrail}
-                    />
-                ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Main Content Area */}
-                    <div className="lg:col-span-2 flex flex-col gap-6">
-
-                        {/* Header Info Banner */}
-                        <div className="bg-[#1a242f] border border-[#283039] rounded-xl p-6 flex flex-wrap justify-between items-start gap-4">
-                            <div>
-                                <h2 className="text-2xl font-bold text-white mb-2">{protocol.service || `Acessibilidade ${protocol.category}`}</h2>
-                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-[#9dabb9]">
-                                    <span className="flex items-center gap-1.5 whitespace-nowrap"><Calendar size={16} /> Aberto em: {protocol.date}</span>
-                                    <span className="flex items-center gap-1.5 min-w-0"><MapPin size={16} className="shrink-0" /> <span className="truncate">{protocol.address || 'Av. Central, São Paulo'}</span></span>
-                                </div>
-                            </div>
-                            <StatusBadge status={protocol.status} />
-                        </div>
-
-                        {/* Map Area */}
-                        <div className="bg-[#1a242f] border border-[#283039] rounded-xl overflow-hidden h-[300px] relative z-0">
-                            <MapContainer
-                                center={[-23.5505, -46.6333]}
-                                zoom={15}
-                                style={{ height: '100%', width: '100%', zIndex: 0 }}
-                                zoomControl={false}
-                            >
-                                <TileLayer
-                                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                                />
-                                <Marker position={[-23.5505, -46.6333]}>
-                                    <Popup>Local do Incidente apontado pelo Cidadão</Popup>
-                                </Marker>
-                            </MapContainer>
-                        </div>
-
-                        {/* Description */}
-                        <div className="bg-[#1a242f] border border-[#283039] rounded-xl p-6">
-                            <h3 className="text-white text-lg font-bold mb-4 flex items-center gap-2">
-                                <FileText size={20} className="text-blue-500" />
-                                Descrição Relatada
-                            </h3>
-                            <p className="text-slate-300 leading-relaxed">
-                                {(protocol as any).description || 'O cidadão relatou um problema de sinalização e danos na via que afeta a mobilidade e o tráfego local. O problema foi identificado em vistoria prévia e requer atenção imediata para restauração da rota acessível.'}
-                            </p>
-                        </div>
-
-                        {/* Photos */}
-                        {protocol.image_urls && protocol.image_urls.length > 0 && (
-                            <div className="bg-[#1a242f] border border-[#283039] rounded-xl p-6">
-                                <h3 className="text-white text-lg font-bold mb-4 flex items-center gap-2">
-                                    <ImageIcon size={20} className="text-blue-500" />
-                                    Fotos Anexadas
-                                </h3>
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                    {protocol.image_urls.map((url: string, index: number) => (
-                                        <a key={index} href={url} target="_blank" rel="noopener noreferrer" className="block w-full aspect-video rounded-lg overflow-hidden border border-slate-700 hover:border-blue-500 transition-colors bg-[#111418]">
-                                            <img src={url} alt={`Evidência ${index + 1}`} className="w-full h-full object-cover" />
-                                        </a>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                    </div>
-
-                    {/* Sidebar Area */}
-                    <div className="lg:col-span-1 flex flex-col gap-6">
-
-                        {/* Requester Info */}
-                        <div className="bg-[#1a242f] border border-[#283039] rounded-xl p-6">
-                            <h3 className="text-white text-lg font-bold mb-4 flex items-center gap-2">
-                                <User size={20} className="text-blue-500" />
-                                Solicitante
-                            </h3>
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className="w-12 h-12 rounded-full bg-[#3b4754] flex items-center justify-center text-lg font-bold text-white shadow-inner">
-                                    {('requester' in protocol ? protocol.requester : 'Carlos').split(' ').map((n: string) => n[0]).join('')}
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-white font-bold">{('requester' in protocol ? protocol.requester : 'Carlos')}</span>
-                                    <span className="text-sm text-slate-400">Cidadão Verificado</span>
-                                </div>
-                            </div>
-                            <div className="text-sm text-slate-400 italic">
-                                Contato preservado por regras de privacidade da LGPD.
-                            </div>
-                        </div>
-
-                        {role === 'admin' && (
-                            <>
-                                <StatusControlCard
-                                    status={protocol.status}
-                                    loading={statusUpdating}
-                                    error={statusError}
-                                    onChange={handleStatusChange}
-                                />
-
-                                <PrioritySection
-                                    protocolId={protocol.id}
-                                    initialPriority={protocol.ai_priority}
-                                    initialStatus={protocol.ai_status}
-                                />
-
-                            </>
-                        )}
-
-                        {/* Timeline */}
-                        <div className="bg-[#1a242f] border border-[#283039] rounded-xl p-6">
-                            <h3 className="text-white text-lg font-bold mb-6 flex items-center gap-2">
-                                <Clock size={20} className="text-blue-500" />
-                                Andamento
-                            </h3>
-                            <div className="flex flex-col gap-6 relative">
-                                {/* Connecting Line */}
-                                <div className="absolute left-3 top-2 bottom-6 w-0.5 bg-[#283039] z-0"></div>
-
-                                {events.map((evt, idx) => (
-                                    <div key={idx} className={`flex gap-4 relative z-10 ${evt.completed ? 'opacity-100' : 'opacity-50'}`}>
-                                        <div className={`mt-0.5 w-6 h-6 rounded-full flex items-center justify-center shrink-0 border-4 border-[#1a242f] ${evt.completed ? 'bg-blue-500 text-white' : 'bg-[#283039] text-transparent'}`}>
-                                            {evt.completed && <CheckCircle size={10} strokeWidth={4} />}
-                                        </div>
-                                        <div>
-                                            <h4 className={`font-bold ${evt.completed ? 'text-white' : 'text-slate-500'}`}>{evt.type}</h4>
-                                            <p className="text-xs text-slate-500 mt-0.5">{evt.date}</p>
-                                            <p className="text-sm text-slate-400 mt-1">{evt.desc}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-                )}
-
-            </div>
-        </div>
-    );
+function normalizeStatus(status: string) {
+  if (status === 'Open') return 'Aberto';
+  if (status === 'InProgress') return 'Em Análise';
+  if (status === 'Resolved' || status === 'Closed') return 'Concluído';
+  return status;
 }
 
-function shortHash(hash?: string | null) {
-    if (!hash) return 'Genesis';
-    return `${hash.slice(0, 10)}...${hash.slice(-8)}`;
+function MapCenter({ position }: { position: [number, number] }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(position, 15);
+    window.setTimeout(() => map.invalidateSize(), 100);
+  }, [map, position]);
+  return null;
+}
+
+export function ProtocolDetails() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { role } = useApp();
+  const [protocol, setProtocol] = useState<DetailedProtocol | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [auditTrail, setAuditTrail] = useState<ProtocolAuditTrail | null>(null);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditError, setAuditError] = useState('');
+  const [statusUpdating, setStatusUpdating] = useState(false);
+  const [statusError, setStatusError] = useState('');
+  const [activeTab, setActiveTab] = useState<DetailsTab>('details');
+  const [copiedProtocol, setCopiedProtocol] = useState(false);
+  const [mapPosition, setMapPosition] = useState<[number, number]>([-15.7939, -47.8828]);
+
+  const loadProtocol = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    try {
+      setProtocol(await api.getProtocolById(id) as DetailedProtocol | null);
+    } catch {
+      setProtocol(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    void loadProtocol();
+  }, [loadProtocol]);
+
+  useEffect(() => {
+    if (!protocol) return;
+    let active = true;
+    getMarkerPosition(protocol.id, protocol.address || '')
+      .then((position) => {
+        if (active) setMapPosition(position);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [protocol]);
+
+  const loadAuditTrail = useCallback(async () => {
+    if (!id || role !== 'admin') {
+      setAuditTrail(null);
+      setAuditError('');
+      setAuditLoading(false);
+      return;
+    }
+    setAuditLoading(true);
+    setAuditError('');
+    try {
+      setAuditTrail(await api.getProtocolAuditTrail(id));
+    } catch (error) {
+      setAuditTrail(null);
+      setAuditError(formatAuditError(error));
+    } finally {
+      setAuditLoading(false);
+    }
+  }, [id, role]);
+
+  useEffect(() => {
+    if (role !== 'admin') {
+      setActiveTab('details');
+      return;
+    }
+    if (activeTab === 'blockchain') void loadAuditTrail();
+  }, [activeTab, loadAuditTrail, role]);
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (!id || !protocol || newStatus === normalizeStatus(protocol.status)) return;
+    setStatusUpdating(true);
+    setStatusError('');
+    try {
+      const updatedProtocol = await api.updateProtocolStatus(
+        id,
+        newStatus,
+        'Atualização de status pelo painel administrativo',
+      );
+      setProtocol(updatedProtocol as DetailedProtocol);
+      await loadAuditTrail();
+    } catch (error) {
+      setStatusError(error instanceof Error ? error.message : 'Não foi possível alterar o status.');
+      throw error;
+    } finally {
+      setStatusUpdating(false);
+    }
+  };
+
+  const copyProtocol = async () => {
+    if (!protocol) return;
+    await navigator.clipboard.writeText(protocol.id).catch(() => undefined);
+    setCopiedProtocol(true);
+    window.setTimeout(() => setCopiedProtocol(false), 1600);
+  };
+
+  if (loading) {
+    return <div className="flex h-full flex-1 items-center justify-center bg-[#F4F8FC] text-slate-600"><Loader2 className="mr-3 animate-spin text-[#0758BD]" size={24} />Carregando detalhes do protocolo...</div>;
+  }
+
+  if (!protocol) {
+    return (
+      <div className="flex h-full flex-1 flex-col items-center justify-center bg-[#F4F8FC] p-8 text-center">
+        <AlertCircle size={48} className="mb-4 text-red-600" />
+        <h1 className="text-2xl font-black text-[#111827]">Protocolo não encontrado</h1>
+        <p className="mt-2 text-slate-600">O protocolo solicitado não existe ou você não tem acesso.</p>
+        <Link to={role === 'admin' ? '/admin/solicitacoes' : '/meus-protocolos'} className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-600 px-5 font-bold text-white"><ArrowLeft size={18} /> Voltar</Link>
+      </div>
+    );
+  }
+
+  const category = protocol.category || protocol.service || 'Outros';
+  const categoryLabel = category.toLocaleLowerCase('pt-BR');
+  const backPath = role === 'admin' ? '/admin/solicitacoes' : '/meus-protocolos';
+  const title = activeTab === 'blockchain' ? 'Auditoria do protocolo' : `Solicitação de acessibilidade ${categoryLabel}`;
+  const timeline = buildTimeline(normalizeStatus(protocol.status), protocol.date);
+
+  return (
+    <div className="flex h-full flex-1 flex-col overflow-y-auto bg-[#F4F8FC] text-[#111827]">
+      <Header
+        title={title}
+        subtitle={role === 'admin' ? 'Fila de Solicitações / Detalhes' : 'Meus Protocolos / Detalhes'}
+        action={role === 'admin' ? <HeaderActions protocol={protocol} onCopy={copyProtocol} onRefresh={loadProtocol} onOpenPublic={() => navigate(`/p/${protocol.id}`)} /> : undefined}
+      />
+      <div className="w-full px-4 pb-8 sm:px-6 lg:px-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <button type="button" onClick={copyProtocol} className="inline-flex min-h-10 max-w-full items-center gap-3 rounded-lg border border-[#CDD8E7] bg-white px-3 text-sm font-semibold text-slate-600 shadow-sm" title="Copiar número do protocolo">
+            <span className="truncate">Protocolo&nbsp; {protocol.id}</span>
+            {copiedProtocol ? <Check size={16} className="shrink-0 text-green-600" /> : <Copy size={16} className="shrink-0" />}
+          </button>
+          <StatusPill status={protocol.status} className="md:hidden" />
+        </div>
+        <Link to={backPath} className="mt-4 inline-flex items-center gap-2 font-bold text-[#0758BD] hover:text-blue-800"><ArrowLeft size={18} /> Voltar</Link>
+        {role === 'admin' && <ProtocolTabs activeTab={activeTab} onChange={setActiveTab} auditCount={auditTrail?.blocks.length ?? 0} />}
+        {role === 'admin' && activeTab === 'blockchain' ? (
+          <BlockchainAuditPanel auditTrail={auditTrail} loading={auditLoading} error={auditError} onRefresh={loadAuditTrail} />
+        ) : (
+          <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)]">
+            <div className="flex min-w-0 flex-col gap-4">
+              <ProtocolSummary protocol={protocol} category={category} />
+              <LocationCard protocol={protocol} position={mapPosition} onOpenMap={() => navigate(role === 'admin' ? '/admin/mapa' : '/mapa')} />
+              <DescriptionCard description={protocol.description || 'Nenhuma descrição informada.'} />
+              <AttachmentsCard images={protocol.image_urls || []} />
+            </div>
+            <div className="flex min-w-0 flex-col gap-4">
+              <RequesterCard protocol={protocol} />
+              {role === 'admin' && <>
+                <StatusControlCard status={protocol.status} loading={statusUpdating} error={statusError} onSave={handleStatusChange} />
+                <PrioritySection protocolId={protocol.id} initialPriority={protocol.ai_priority} initialStatus={protocol.ai_status} />
+              </>}
+              <TimelineCard events={timeline} />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function HeaderActions({
+  protocol, onCopy, onRefresh, onOpenPublic,
+}: {
+  protocol: DetailedProtocol;
+  onCopy: () => void;
+  onRefresh: () => void;
+  onOpenPublic: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <StatusPill status={protocol.status} />
+      <details className="relative">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-4 text-sm font-bold text-slate-700 shadow-sm">
+          <MoreHorizontal size={18} /> Mais ações <ChevronDown size={15} />
+        </summary>
+        <div className="absolute right-0 top-12 z-50 w-52 overflow-hidden rounded-lg border border-[#CDD8E7] bg-white p-1.5 shadow-2xl">
+          <button type="button" onClick={onCopy} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-blue-50"><Copy size={16} /> Copiar protocolo</button>
+          <button type="button" onClick={onOpenPublic} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-blue-50"><ExternalLink size={16} /> Visualização pública</button>
+          <button type="button" onClick={onRefresh} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-blue-50"><RefreshCw size={16} /> Atualizar dados</button>
+        </div>
+      </details>
+    </div>
+  );
+}
+
+function ProtocolTabs({ activeTab, onChange, auditCount }: { activeTab: DetailsTab; onChange: (tab: DetailsTab) => void; auditCount: number }) {
+  const tabs = [
+    { id: 'details' as const, label: 'Detalhes', icon: FileText },
+    { id: 'blockchain' as const, label: 'Blockchain', icon: ShieldCheck, count: auditCount },
+  ];
+  return (
+    <nav className="mt-4 flex min-h-12 items-end gap-1 rounded-lg border border-[#CDD8E7] bg-white px-2" aria-label="Seções do protocolo">
+      {tabs.map((tab) => {
+        const Icon = tab.icon;
+        const selected = activeTab === tab.id;
+        return (
+          <button key={tab.id} type="button" onClick={() => onChange(tab.id)} className={`flex min-h-11 items-center gap-2 border-b-[3px] px-4 text-sm font-bold transition-colors ${selected ? 'border-[#0758BD] text-[#0758BD]' : 'border-transparent text-slate-600 hover:text-[#0758BD]'}`} aria-current={selected ? 'page' : undefined}>
+            <Icon size={17} /> {tab.label}
+            {'count' in tab && <span className="flex min-w-6 items-center justify-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">{tab.count}</span>}
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+function ProtocolSummary({ protocol, category }: { protocol: DetailedProtocol; category: string }) {
+  return (
+    <section className="rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-sm">
+      <div className="flex items-start gap-4">
+        <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-[#E7F0FF] text-3xl text-[#0758BD]" aria-hidden="true">♿</div>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-2xl font-black">{category}</h2>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-600">
+            <StatusPill status={protocol.status} />
+            <span className="flex items-center gap-2"><Calendar size={16} /> Aberto em: {protocol.date}</span>
+          </div>
+          <p className="mt-3 flex items-start gap-2 text-sm text-slate-600"><MapPin className="mt-0.5 shrink-0 text-[#0758BD]" size={16} /><span>{protocol.address || 'Endereço não informado'}</span></p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function LocationCard({ protocol, position, onOpenMap }: { protocol: DetailedProtocol; position: [number, number]; onOpenMap: () => void }) {
+  return (
+    <section className="overflow-hidden rounded-lg border border-[#CDD8E7] bg-white shadow-sm">
+      <h2 className="flex items-center gap-2 px-5 py-4 font-black"><span className="flex size-7 items-center justify-center rounded-full bg-[#E7F0FF] text-[#0758BD]"><MapPin size={16} /></span>Localização da ocorrência</h2>
+      <div className="grid border-t border-[#E2E8F0] md:grid-cols-[1.35fr_0.8fr]">
+        <div className="relative h-56 min-w-0 md:h-64">
+          <MapContainer center={position} zoom={15} zoomControl={false} style={{ width: '100%', height: '100%' }}>
+            <MapCenter position={position} />
+            <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" attribution='&copy; OpenStreetMap contributors &copy; CARTO' />
+            <Marker position={position} icon={DETAIL_MARKER_ICON} />
+          </MapContainer>
+        </div>
+        <div className="flex flex-col justify-center p-5">
+          <p className="flex items-start gap-2 text-sm leading-6 text-slate-700"><MapPin className="mt-1 shrink-0 text-[#0758BD]" size={16} />{protocol.address || 'Endereço não informado'}</p>
+          <button type="button" onClick={onOpenMap} className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#0758BD] bg-white px-4 text-sm font-bold text-[#0758BD] hover:bg-blue-50"><ExternalLink size={16} /> Abrir no mapa estratégico</button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DescriptionCard({ description }: { description: string }) {
+  return (
+    <section className="rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 font-black"><span className="flex size-7 items-center justify-center rounded-full bg-[#E7F0FF] text-[#0758BD]"><FileText size={16} /></span>Descrição relatada</h2>
+        <span className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">{Array.from(description).length} caracteres</span>
+      </div>
+      <p className="mt-4 leading-7 text-slate-700">{description}</p>
+    </section>
+  );
+}
+
+function AttachmentsCard({ images }: { images: string[] }) {
+  return (
+    <section className="rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-sm">
+      <h2 className="flex items-center gap-2 font-black"><span className="flex size-7 items-center justify-center rounded-full bg-[#E7F0FF] text-[#0758BD]"><Paperclip size={16} /></span>Anexos</h2>
+      {images.length === 0 ? <p className="mt-4 text-sm text-slate-500">Nenhum anexo enviado</p> : (
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {images.map((url, index) => <a key={url} href={url} target="_blank" rel="noreferrer" className="block aspect-video overflow-hidden rounded-lg border border-[#CDD8E7]"><img src={url} alt={`Anexo ${index + 1}`} className="size-full object-cover" /></a>)}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function RequesterCard({ protocol }: { protocol: DetailedProtocol }) {
+  const requester = protocol.requester || 'Cidadão';
+  const initial = requester.trim().charAt(0).toUpperCase() || 'C';
+  return (
+    <section className="rounded-lg border border-[#CDD8E7] bg-white p-4 shadow-sm">
+      <h2 className="flex items-center gap-2 font-black"><span className="flex size-7 items-center justify-center rounded-full bg-[#E7F0FF] text-[#0758BD]"><User size={16} /></span>Solicitante</h2>
+      <div className="mt-3 flex items-center gap-3">
+        <div className="flex size-12 items-center justify-center rounded-full bg-slate-100 font-black text-slate-700">{initial}</div>
+        <div><p className="font-black">{requester}</p><p className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-green-700">Cidadão verificado <CheckCircle2 size={14} /></p></div>
+      </div>
+      <p className="mt-3 flex items-center gap-2 rounded-lg border border-[#A9C9F5] bg-[#F1F7FF] px-3 py-2 text-xs text-slate-600"><LockKeyhole className="shrink-0 text-[#0758BD]" size={15} />Contato preservado por regras de privacidade da LGPD.</p>
+    </section>
+  );
+}
+
+function StatusControlCard({ status, loading, error, onSave }: { status: string; loading: boolean; error: string; onSave: (status: string) => Promise<void> | void }) {
+  const normalized = normalizeStatus(status);
+  const [pendingStatus, setPendingStatus] = useState(normalized);
+  useEffect(() => setPendingStatus(normalized), [normalized]);
+  return (
+    <section className="rounded-lg border border-[#CDD8E7] bg-white p-4 shadow-sm">
+      <h2 className="flex items-center gap-2 font-black"><span className="flex size-7 items-center justify-center rounded-full bg-[#E7F0FF] text-[#0758BD]"><Settings size={16} /></span>Gestão do protocolo</h2>
+      <label className="mt-3 block text-xs font-semibold text-slate-600" htmlFor="protocol-status">Status do protocolo</label>
+      <select id="protocol-status" value={pendingStatus} disabled={loading} onChange={(event) => setPendingStatus(event.target.value)} className="mt-1 h-11 w-full rounded-lg border border-[#CDD8E7] bg-white px-3 text-sm font-semibold text-slate-700 outline-none focus:border-[#0758BD]">
+        {STATUS_OPTIONS.map((item) => <option key={item}>{item}</option>)}
+      </select>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs text-slate-500">Cada alteração gera um novo bloco de auditoria.</p>
+        <button type="button" disabled={loading || pendingStatus === normalized} onClick={() => void onSave(pendingStatus)} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white disabled:bg-slate-200 disabled:text-slate-400">
+          {loading && <Loader2 size={15} className="animate-spin" />}{loading ? 'Salvando...' : 'Salvar alteração'}
+        </button>
+      </div>
+      {error && <p className="mt-3 text-xs font-semibold text-red-600">{error}</p>}
+    </section>
+  );
+}
+
+function TimelineCard({ events }: { events: Array<{ title: string; date: string; complete: boolean }> }) {
+  return (
+    <section className="rounded-lg border border-[#CDD8E7] bg-white p-4 shadow-sm">
+      <h2 className="flex items-center gap-2 font-black"><span className="flex size-7 items-center justify-center rounded-full bg-[#E7F0FF] text-[#0758BD]"><Calendar size={16} /></span>Andamento</h2>
+      <div className="relative mt-4 space-y-5">
+        <span className="absolute bottom-4 left-[7px] top-2 w-px bg-[#A9C9F5]" />
+        {events.map((event) => (
+          <div key={event.title} className={`relative flex gap-3 ${event.complete ? '' : 'text-slate-400'}`}>
+            <span className={`mt-1 size-4 shrink-0 rounded-full border-[3px] border-white ring-2 ${event.complete ? 'bg-blue-600 ring-blue-600' : 'bg-white ring-slate-300'}`} />
+            <div><p className="text-sm font-black">{event.title}</p><p className="mt-0.5 text-xs text-slate-500">{event.date}</p></div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function buildTimeline(status: string, createdAt: string) {
+  const analysis = status !== 'Aberto';
+  const completed = status === 'Concluído';
+  return [
+    { title: 'Criado', date: createdAt, complete: true },
+    { title: 'Em análise', date: analysis ? 'Etapa atualizada' : 'Pendente', complete: analysis },
+    { title: 'Concluído', date: completed ? 'Solicitação resolvida' : 'Pendente', complete: completed },
+  ];
+}
+
+function StatusPill({ status, className = '' }: { status: string; className?: string }) {
+  const normalized = normalizeStatus(status);
+  const config: Record<string, string> = {
+    Aberto: 'border-blue-300 bg-blue-50 text-blue-700',
+    'Em Análise': 'border-amber-300 bg-amber-50 text-amber-800',
+    Concluído: 'border-green-300 bg-green-50 text-green-700',
+    Atrasado: 'border-red-300 bg-red-50 text-red-700',
+  };
+  return <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-black ${config[normalized] || 'border-slate-300 bg-slate-50 text-slate-600'} ${className}`}><span className="size-2 rounded-full bg-current" /> {normalized}</span>;
 }
 
 function formatAuditError(error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-
-    if (message.includes('Invalid action')) {
-        return 'Auditoria blockchain ainda nao publicada no Supabase. Aplique a migration e redeploy da Edge Function app-protocols.';
-    }
-
-    if (message.includes('protocol_audit_chain')) {
-        return 'Tabela de auditoria blockchain ainda nao existe no Supabase. Aplique a migration protocol_audit_chain.';
-    }
-
-    return message || 'Nao foi possivel carregar a auditoria.';
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.includes('Invalid action')) return 'A auditoria blockchain ainda não foi publicada no Supabase.';
+  if (message.includes('protocol_audit_chain')) return 'A tabela de auditoria blockchain ainda não existe no Supabase.';
+  return message || 'Não foi possível carregar a auditoria.';
 }
 
 function auditEventLabel(eventType: string) {
-    const labels: Record<string, string> = {
-        PROTOCOL_CREATED: 'Protocolo criado',
-        STATUS_CHANGED: 'Status alterado',
-        PRIORITY_CHANGED: 'Prioridade alterada',
-        AI_PRIORITY_CLASSIFIED: 'Prioridade definida por IA',
-    };
-
-    return labels[eventType] ?? eventType;
+  const labels: Record<string, string> = {
+    PROTOCOL_CREATED: 'Protocolo criado',
+    STATUS_CHANGED: 'Status alterado',
+    PRIORITY_CHANGED: 'Prioridade alterada',
+    AI_PRIORITY_CLASSIFIED: 'Prioridade definida por IA',
+  };
+  return labels[eventType] ?? eventType;
 }
 
-function StatusControlCard({
-    status,
-    loading,
-    error,
-    onChange,
-}: {
-    status: string;
-    loading: boolean;
-    error: string;
-    onChange: (status: string) => void;
-}) {
-    const statuses = ['Aberto', 'Em Análise', 'Concluído', 'Atrasado'];
-
-    return (
-        <div className="bg-[#1a242f] border border-[#283039] rounded-xl p-6">
-            <h3 className="text-white text-lg font-bold mb-4 flex items-center gap-2">
-                <CheckCircle size={20} className="text-blue-500" />
-                Status do Protocolo
-            </h3>
-            <select
-                value={status}
-                disabled={loading}
-                onChange={(event) => onChange(event.target.value)}
-                className="w-full bg-[#111820] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white disabled:opacity-60"
-            >
-                {statuses.map((item) => (
-                    <option key={item} value={item}>
-                        {item}
-                    </option>
-                ))}
-            </select>
-            <p className="text-xs text-slate-500 mt-3">
-                Cada alteracao gera um novo bloco de auditoria.
-            </p>
-            {loading && (
-                <p className="text-xs text-blue-300 mt-3">Registrando bloco de integridade...</p>
-            )}
-            {error && (
-                <p className="text-xs text-red-300 mt-3">{error}</p>
-            )}
-        </div>
-    );
+function shortHash(hash?: string | null) {
+  if (!hash) return 'Genesis';
+  return `${hash.slice(0, 10)}...${hash.slice(-8)}`;
 }
 
-function ProtocolTabs({
-    activeTab,
-    onChange,
-    auditCount,
-}: {
-    activeTab: 'details' | 'blockchain';
-    onChange: (tab: 'details' | 'blockchain') => void;
-    auditCount: number;
-}) {
-    const tabs = [
-        { id: 'details' as const, label: 'Detalhes', icon: FileText },
-        { id: 'blockchain' as const, label: 'Blockchain', icon: ShieldCheck, count: auditCount },
-    ];
-
-    return (
-        <div className="flex flex-wrap gap-2 border-b border-slate-800 pb-3">
-            {tabs.map((tab) => {
-                const Icon = tab.icon;
-                const selected = activeTab === tab.id;
-
-                return (
-                    <button
-                        key={tab.id}
-                        type="button"
-                        onClick={() => onChange(tab.id)}
-                        className={`h-10 px-4 rounded-lg text-sm font-bold border transition-colors flex items-center gap-2 ${selected
-                            ? 'bg-blue-600 text-white border-blue-500'
-                            : 'bg-[#1a242f] text-slate-400 border-[#283039] hover:text-white hover:border-slate-600'
-                            }`}
-                    >
-                        <Icon size={16} />
-                        <span>{tab.label}</span>
-                        {typeof tab.count === 'number' && (
-                            <span className={`text-[11px] px-1.5 py-0.5 rounded-full ${selected ? 'bg-white/15 text-white' : 'bg-slate-800 text-slate-400'}`}>
-                                {tab.count}
-                            </span>
-                        )}
-                    </button>
-                );
-            })}
-        </div>
-    );
+function AuditCopyButton({ value }: { value?: string | null }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    if (!value) return;
+    await navigator.clipboard.writeText(value).catch(() => undefined);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1200);
+  };
+  return <button type="button" onClick={copy} disabled={!value} className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-[#CDD8E7] bg-white text-slate-600 hover:text-[#0758BD]" title="Copiar hash">{copied ? <Check size={15} className="text-green-600" /> : <Copy size={15} />}</button>;
 }
 
-function BlockchainAuditPanel({
-    auditTrail,
-    loading,
-    error,
-    onRefresh,
-}: {
-    auditTrail: ProtocolAuditTrail | null;
-    loading: boolean;
-    error: string;
-    onRefresh: () => void;
-}) {
-    const blocks = auditTrail?.blocks ?? [];
-    const pageSize = 5;
-    const [page, setPage] = useState(1);
-    const orderedBlocks = useMemo(
-        () => [...blocks].sort((left, right) => Number(right.block_index) - Number(left.block_index)),
-        [blocks]
-    );
-    const totalPages = Math.max(1, Math.ceil(orderedBlocks.length / pageSize));
-    const currentPage = Math.min(page, totalPages);
-    const visibleBlocks = orderedBlocks.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+function BlockchainAuditPanel({ auditTrail, loading, error, onRefresh }: { auditTrail: ProtocolAuditTrail | null; loading: boolean; error: string; onRefresh: () => void }) {
+  const blocks = auditTrail?.blocks ?? [];
+  const pageSize = 5;
+  const [page, setPage] = useState(1);
+  const orderedBlocks = useMemo(() => [...blocks].sort((left, right) => Number(right.block_index) - Number(left.block_index)), [blocks]);
+  const totalPages = Math.max(1, Math.ceil(orderedBlocks.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const visibleBlocks = orderedBlocks.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const latestBlock = orderedBlocks[0];
+  useEffect(() => setPage(1), [blocks.length]);
 
-    useEffect(() => {
-        setPage(1);
-    }, [blocks.length]);
-
-    return (
-        <div className="bg-[#1a242f] border border-[#283039] rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#283039] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                    <h3 className="text-white text-lg font-bold flex items-center gap-2">
-                        <ShieldCheck size={20} className="text-emerald-400" />
-                        Auditoria Blockchain
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-1">
-                        Historico imutavel dos eventos criticos deste protocolo.
-                    </p>
-                </div>
-                <button
-                    type="button"
-                    onClick={onRefresh}
-                    disabled={loading}
-                    className="h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm font-bold text-slate-300 hover:text-white hover:bg-white/10 disabled:opacity-60"
-                >
-                    Atualizar
-                </button>
+  return (
+    <div className="mt-5">
+      <div className="flex items-start justify-between gap-3 rounded-lg border border-[#A9C9F5] bg-[#F1F7FF] px-4 py-3 text-sm text-[#0758BD]">
+        <p className="flex items-start gap-2"><Info className="mt-0.5 shrink-0" size={18} />O histórico abaixo registra alterações críticas do protocolo e permite verificar sua integridade.</p>
+      </div>
+      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.8fr)_minmax(300px,0.75fr)]">
+        <section className="overflow-hidden rounded-lg border border-[#CDD8E7] bg-white shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E8F0] px-5 py-4">
+            <h2 className="flex items-center gap-2 text-lg font-black"><ClipboardList size={20} className="text-[#0758BD]" /> Histórico de auditoria</h2>
+            <div className="flex items-center gap-3">
+              {auditTrail && <span className={`flex items-center gap-2 text-sm font-bold ${auditTrail.valid ? 'text-green-700' : 'text-red-700'}`}><ShieldCheck size={18} /> {auditTrail.valid ? 'Integridade verificada' : 'Falha de integridade'}</span>}
+              <button type="button" onClick={onRefresh} disabled={loading} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-4 text-sm font-bold text-slate-700"><RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Atualizar</button>
             </div>
-
-            {loading && (
-                <div className="px-5 py-12 text-center text-sm text-slate-400">
-                    Verificando trilha de integridade...
-                </div>
-            )}
-
-            {!loading && error && (
-                <div className="m-5 flex gap-3 text-sm text-amber-200 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
-                    <AlertCircle size={18} className="shrink-0 mt-0.5" />
-                    <span>{error}</span>
-                </div>
-            )}
-
-            {!loading && !error && auditTrail && (
-                <>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-5 border-b border-[#283039]">
-                        <div className={`rounded-lg border p-4 ${auditTrail.valid ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
-                            <p className={`text-xs font-bold uppercase ${auditTrail.valid ? 'text-emerald-300' : 'text-red-300'}`}>
-                                Integridade
-                            </p>
-                            <p className="text-white font-bold mt-1">
-                                {auditTrail.valid ? 'Verificada' : 'Falha'}
-                            </p>
+          </div>
+          {loading && <div className="flex min-h-72 items-center justify-center text-sm text-slate-500"><Loader2 className="mr-3 animate-spin text-[#0758BD]" size={22} />Verificando trilha de integridade...</div>}
+          {!loading && error && <div className="m-5 flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"><AlertCircle className="mt-0.5 shrink-0" size={18} /><span>{error}</span></div>}
+          {!loading && !error && auditTrail && <>
+            {visibleBlocks.length === 0 ? (
+              <div className="flex min-h-72 flex-col items-center justify-center p-8 text-center text-slate-500"><Box size={44} className="mb-3 text-[#87A9D8]" />Nenhum bloco registrado para este protocolo.</div>
+            ) : (
+              <div className="p-5">
+                <div className="relative space-y-5">
+                  <span className="absolute bottom-8 left-[19px] top-8 w-px bg-slate-400" />
+                  {visibleBlocks.map((block) => (
+                    <div key={block.id} className="relative grid grid-cols-[40px_minmax(0,1fr)] gap-4">
+                      <span className={`z-10 flex size-10 items-center justify-center rounded-full border-2 bg-white ${block.is_valid ? 'border-green-600 text-green-700' : 'border-red-600 text-red-700'}`}><Box size={18} /></span>
+                      <article className="rounded-lg border border-[#CDD8E7] bg-[#FBFCFE] p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E8F0] pb-3">
+                          <div className="flex items-center gap-3"><h3 className="text-lg font-black">Bloco #{block.block_index}</h3><span className={`rounded-lg border px-2.5 py-1 text-xs font-bold ${block.is_valid ? 'border-green-300 bg-green-50 text-green-700' : 'border-red-300 bg-red-50 text-red-700'}`}>{block.is_valid ? 'Válido' : 'Inválido'}</span></div>
+                          <span className="flex items-center gap-2 text-sm text-slate-500"><Calendar size={15} /> {new Date(block.created_at).toLocaleString('pt-BR')}</span>
                         </div>
-                        <div className="rounded-lg border border-slate-700 bg-[#111820] p-4">
-                            <p className="text-xs font-bold uppercase text-slate-500">Blocos</p>
-                            <p className="text-white font-bold mt-1">{blocks.length}</p>
-                        </div>
-                        <div className="rounded-lg border border-slate-700 bg-[#111820] p-4 min-w-0">
-                            <p className="text-xs font-bold uppercase text-slate-500">Ultimo hash</p>
-                            <p className="text-white font-mono text-sm mt-1 truncate">
-                                {shortHash(orderedBlocks[0]?.block_hash)}
-                            </p>
-                        </div>
+                        <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-[150px_minmax(0,1fr)]">
+                          <dt className="flex items-center gap-2 font-semibold text-slate-500"><Tag size={16} /> Evento</dt><dd className="font-semibold text-slate-700">{auditEventLabel(block.event_type)}</dd>
+                          <dt className="flex items-center gap-2 font-semibold text-slate-500"><User size={16} /> Ator</dt><dd className="text-slate-700">{block.actor_role || 'Sistema'}</dd>
+                          <dt className="flex items-center gap-2 font-semibold text-slate-500"><ArrowRight size={16} /> Mudança</dt><dd className="text-slate-700">{block.previous_status || 'Início'} → {block.new_status || 'Sem alteração de status'}</dd>
+                          <dt className="flex items-center gap-2 font-semibold text-slate-500"><Hash size={16} /> Hash</dt><dd className="flex min-w-0 items-center gap-2 font-mono text-xs text-slate-700"><span className="truncate">{shortHash(block.block_hash)}</span><AuditCopyButton value={block.block_hash} /></dd>
+                          <dt className="flex items-center gap-2 font-semibold text-slate-500"><Link2 size={16} /> Hash anterior</dt><dd className="font-mono text-xs text-slate-700">{shortHash(block.previous_block_hash)}</dd>
+                        </dl>
+                      </article>
                     </div>
-
-                    {orderedBlocks.length === 0 ? (
-                        <div className="px-5 py-12 text-center text-slate-400">
-                            Nenhum bloco registrado para este protocolo.
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead>
-                                    <tr className="border-b border-[#283039]">
-                                        <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Bloco</th>
-                                        <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Evento</th>
-                                        <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Ator</th>
-                                        <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
-                                        <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Hash</th>
-                                        <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Anterior</th>
-                                        <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Data</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-[#283039]">
-                                    {visibleBlocks.map((block) => (
-                                        <tr key={block.id} className="hover:bg-white/5">
-                                            <td className="px-5 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <Hash size={14} className="text-blue-400" />
-                                                    <span className="font-bold text-white">#{block.block_index}</span>
-                                                </div>
-                                                <span className={`text-[11px] font-bold ${block.is_valid ? 'text-emerald-300' : 'text-red-300'}`}>
-                                                    {block.is_valid ? 'Valido' : 'Invalido'}
-                                                </span>
-                                            </td>
-                                            <td className="px-5 py-4 text-white font-semibold">
-                                                {auditEventLabel(block.event_type)}
-                                            </td>
-                                            <td className="px-5 py-4 text-slate-400">
-                                                {block.actor_role}
-                                            </td>
-                                            <td className="px-5 py-4 text-slate-400">
-                                                {block.previous_status || '-'} {'->'} {block.new_status || '-'}
-                                            </td>
-                                            <td className="px-5 py-4 font-mono text-xs text-slate-300 whitespace-nowrap">
-                                                {shortHash(block.block_hash)}
-                                            </td>
-                                            <td className="px-5 py-4 font-mono text-xs text-slate-500 whitespace-nowrap">
-                                                {shortHash(block.previous_block_hash)}
-                                            </td>
-                                            <td className="px-5 py-4 text-slate-400 whitespace-nowrap">
-                                                {new Date(block.created_at).toLocaleString('pt-BR')}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-
-                    <div className="px-5 py-4 border-t border-[#283039] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <span className="text-xs text-slate-500">
-                            Pagina {currentPage} de {totalPages} - {orderedBlocks.length} registro(s)
-                        </span>
-                        <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setPage((value) => Math.max(1, value - 1))}
-                                disabled={currentPage === 1}
-                                className="h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm font-bold text-slate-300 hover:text-white hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
-                            >
-                                <ChevronLeft size={15} />
-                                Anterior
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
-                                disabled={currentPage === totalPages}
-                                className="h-9 px-3 rounded-lg bg-white/5 border border-white/10 text-sm font-bold text-slate-300 hover:text-white hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1"
-                            >
-                                Proxima
-                                <ChevronRight size={15} />
-                            </button>
-                        </div>
-                    </div>
-                </>
+                  ))}
+                  <div className="relative grid grid-cols-[40px_minmax(0,1fr)] gap-4"><span className="z-10 flex size-10 items-center justify-center rounded-full border border-dashed border-slate-500 bg-white" /><p className="self-center text-sm font-semibold text-slate-500">Origem da cadeia</p></div>
+                </div>
+              </div>
             )}
-        </div>
-    );
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E2E8F0] px-5 py-3">
+              <span className="text-xs text-slate-500">Página {currentPage} de {totalPages} — {orderedBlocks.length} registro(s)</span>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={currentPage === 1} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#CDD8E7] px-3 text-sm font-bold text-slate-700 disabled:text-slate-300"><ChevronLeft size={16} /> Anterior</button>
+                <button type="button" onClick={() => setPage((value) => Math.min(totalPages, value + 1))} disabled={currentPage === totalPages} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#CDD8E7] px-3 text-sm font-bold text-slate-700 disabled:text-slate-300">Próxima <ChevronRight size={16} /></button>
+              </div>
+            </div>
+          </>}
+        </section>
+        <aside className="space-y-4">
+          <section className={`rounded-lg border p-5 shadow-sm ${auditTrail?.valid === false ? 'border-red-300 bg-red-50' : 'border-green-300 bg-green-50'}`}>
+            <h2 className="flex items-center gap-2 font-black"><ShieldCheck size={19} className={auditTrail?.valid === false ? 'text-red-700' : 'text-green-700'} /> Integridade</h2>
+            <div className="mt-4 flex items-center gap-4">
+              <span className={`flex size-16 shrink-0 items-center justify-center rounded-full text-white ${auditTrail?.valid === false ? 'bg-red-600' : 'bg-green-600'}`}>{loading ? <Loader2 size={28} className="animate-spin" /> : auditTrail?.valid === false ? <AlertCircle size={31} /> : <Check size={34} strokeWidth={3} />}</span>
+              <div><p className={`text-2xl font-black ${auditTrail?.valid === false ? 'text-red-700' : 'text-green-700'}`}>{auditTrail?.valid === false ? 'Inconsistente' : 'Verificada'}</p><p className="mt-1 text-sm text-slate-600">{auditTrail?.valid === false ? 'A cadeia precisa ser revisada.' : 'Nenhuma inconsistência detectada.'}</p></div>
+            </div>
+          </section>
+          <section className="rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-sm">
+            <h2 className="flex items-center gap-2 font-black"><Settings size={18} className="text-slate-600" /> Resumo da cadeia</h2>
+            <p className="mt-4 text-lg font-black text-[#0758BD]">{blocks.length} {blocks.length === 1 ? 'bloco' : 'blocos'}</p>
+            <p className="mt-4 text-xs font-semibold text-slate-500">Último hash</p>
+            <div className="mt-1 flex items-center gap-2"><code className="min-w-0 flex-1 truncate text-sm text-slate-700">{shortHash(latestBlock?.block_hash)}</code><AuditCopyButton value={latestBlock?.block_hash} /></div>
+            <p className="mt-4 text-xs font-semibold text-slate-500">Bloco inicial</p><p className="mt-1 font-mono text-sm text-slate-700">Genesis</p>
+          </section>
+          <section className="rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-sm">
+            <h2 className="flex items-center gap-2 font-black"><Info size={18} className="text-slate-600" /> Como interpretar</h2>
+            <div className="mt-4 space-y-4 text-sm text-slate-600">
+              <p className="flex items-start gap-3"><Box className="shrink-0 text-[#0758BD]" size={18} /> Cada alteração gera um bloco.</p>
+              <p className="flex items-start gap-3"><Hash className="shrink-0 text-[#0758BD]" size={18} /> O hash identifica o conteúdo registrado.</p>
+              <p className="flex items-start gap-3"><ShieldCheck className="shrink-0 text-[#0758BD]" size={18} /> Alterações quebrariam a sequência de verificação.</p>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </div>
+  );
 }
