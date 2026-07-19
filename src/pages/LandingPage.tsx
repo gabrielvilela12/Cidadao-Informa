@@ -75,22 +75,8 @@ export function LandingPage() {
         <div className="min-h-screen bg-[#080d12] text-white font-sans overflow-x-hidden">
 
             {/* ── Navbar ── */}
-            <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 h-16 bg-[#080d12]/80 backdrop-blur-md border-b border-white/5">
+            <nav className="fixed top-0 left-0 right-0 z-50 flex items-center px-4 sm:px-6 md:px-12 h-16 bg-[#080d12]/80 backdrop-blur-md border-b border-white/5">
                 <CidadaoBrand />
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => navigate('/login')}
-                        className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
-                    >
-                        Entrar
-                    </button>
-                    <button
-                        onClick={() => navigate('/cadastro')}
-                        className="px-4 py-2 text-sm font-bold bg-blue-600 hover:bg-blue-500 rounded-xl transition-all shadow-lg shadow-blue-600/30 hover:-translate-y-0.5"
-                    >
-                        Cadastrar-se
-                    </button>
-                </div>
             </nav>
 
             {/* ── Hero ── */}
@@ -316,9 +302,8 @@ export function LandingPage() {
                     <span>© 2026</span>
                 </div>
                 <div className="flex gap-5">
-                    <a href="#" className="hover:text-slate-400 transition-colors">Termos de Uso</a>
-                    <a href="#" className="hover:text-slate-400 transition-colors">Privacidade</a>
-                    <a href="#" className="hover:text-slate-400 transition-colors">Acessibilidade</a>
+                    <button type="button" onClick={() => navigate('/termos-de-uso')} className="hover:text-slate-400 transition-colors">Termos de Uso</button>
+                    <button type="button" onClick={() => navigate('/privacidade')} className="hover:text-slate-400 transition-colors">Privacidade</button>
                 </div>
             </footer>
         </div>

@@ -21,7 +21,7 @@ function InputField({ label, icon: Icon, type = 'text', value, onChange, placeho
                     value={value}
                     onChange={onChange}
                     autoComplete={autoComplete}
-                    className="w-full bg-white/5 border border-white/10 text-white rounded-xl py-3 pl-10 pr-4 text-sm
+                    className="w-full bg-white/5 border border-white/10 text-white rounded-xl py-3 pl-10 pr-4 text-base sm:text-sm
                      placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/60 focus:border-blue-500/40
                      transition-all hover:border-white/20"
                     placeholder={placeholder}
@@ -195,6 +195,7 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [errorDesc, setErrorDesc] = useState('');
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
     const [authMode, setAuthMode] = useState<'citizen' | 'admin'>('citizen');
 
     const sanitizeCPF = (raw: string) => raw.replace(/\D/g, '');
@@ -215,6 +216,7 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
         if (cleanCpf.length !== 11) { setErrorDesc('O CPF deve ter 11 dígitos.'); setLoading(false); return; }
         if (isRegistering && (!email || !email.includes('@'))) { setErrorDesc('Informe um e-mail válido.'); setLoading(false); return; }
         if (password.length < 6) { setErrorDesc('A senha deve ter pelo menos 6 caracteres.'); setLoading(false); return; }
+        if (isRegistering && !acceptedTerms) { setErrorDesc('Para criar sua conta, confirme que leu e aceita os Termos de Uso.'); setLoading(false); return; }
 
         try {
             if (isRegistering) {
@@ -272,6 +274,7 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
     const switchMode = (toRegister: boolean) => {
         setIsRegistering(toRegister);
         setErrorDesc('');
+        setAcceptedTerms(false);
         navigate(toRegister ? '/cadastro' : '/login');
     };
 
@@ -293,7 +296,7 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
     const currentStats = isAdmin ? adminStats : citizenStats;
 
     return (
-        <div className="min-h-screen bg-[#080d12] text-white font-sans flex flex-col overflow-hidden">
+        <div className="min-h-dvh bg-[#080d12] text-white font-sans flex flex-col overflow-x-hidden">
 
             {/* ── Navbar ─────────────────────────────────────── */}
             <nav className="flex items-center justify-between px-6 md:px-12 h-16 border-b border-white/5 shrink-0">
@@ -327,7 +330,7 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
             </nav>
 
             {/* ── Main content ────────────────────────────────── */}
-            <div className="flex-1 flex items-stretch overflow-hidden">
+            <div className="flex-1 flex items-stretch overflow-y-auto overflow-x-hidden">
 
                 {/* ── Form Panel ── */}
                 <motion.div
@@ -371,7 +374,7 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                             </button>
                             <button
                                 type="button"
-                                onClick={() => { setAuthMode('admin'); setIsRegistering(false); }}
+                                onClick={() => { setAuthMode('admin'); setIsRegistering(false); setAcceptedTerms(false); }}
                                 className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all flex justify-center items-center gap-2 ${authMode === 'admin' ? 'bg-amber-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
                             >
                                 <Shield size={15} /> Servidor
@@ -415,6 +418,25 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                                     onChange={(e: any) => setCpf(formatCPF(e.target.value))} placeholder="000.000.000-00" autoComplete="username" />
                                 <InputField label="Senha" icon={Key} type="password" value={password}
                                     onChange={(e: any) => setPassword(e.target.value)} placeholder="••••••••" autoComplete={isRegistering ? 'new-password' : 'current-password'} />
+
+                                {isRegistering && (
+                                    <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
+                                        <input
+                                            id="accepted-terms"
+                                            type="checkbox"
+                                            checked={acceptedTerms}
+                                            onChange={(e) => setAcceptedTerms(e.target.checked)}
+                                            className="mt-0.5 size-4 rounded border-white/20 bg-[#080d12] accent-blue-600 shrink-0"
+                                        />
+                                        <label htmlFor="accepted-terms" className="text-sm text-slate-400 leading-relaxed">
+                                            Li e aceito os{' '}
+                                            <Link to="/termos-de-uso" className="text-blue-400 hover:text-blue-300 font-semibold underline-offset-4 hover:underline">
+                                                Termos de Uso
+                                            </Link>
+                                            .
+                                        </label>
+                                    </div>
+                                )}
 
                                 <button
                                     type="submit"

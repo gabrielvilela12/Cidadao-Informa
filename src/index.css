@@ -775,3 +775,12 @@ a {
 .animate-fadeIn {
   animation: fadeIn 0.18s ease-out forwards;
 }
+
+/* Prevent iOS Safari from zooming focused form controls. */
+@media (max-width: 767px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
