@@ -158,9 +158,9 @@ export function LandingPage() {
     ];
 
     const journeySteps = [
-        { label: 'Solicitação\nenviada', color: '#E52207', position: 'left-[2%] top-[11%]' },
-        { label: 'Em análise', color: '#FFB600', position: 'left-[41%] top-[2%]' },
-        { label: 'Problema\nresolvido', color: '#168821', position: 'right-[2%] top-[12%]' },
+        { label: 'Solicitação\nenviada', color: '#E52207', position: 'left-0 top-[10%] sm:left-[2%]' },
+        { label: 'Em análise', color: '#FFB600', position: 'left-1/2 top-[10%] -translate-x-1/2 sm:left-[41%] sm:translate-x-0' },
+        { label: 'Problema\nresolvido', color: '#168821', position: 'right-0 top-[10%] sm:right-[2%]' },
     ];
     const testimonials = [
         {
@@ -290,7 +290,7 @@ export function LandingPage() {
                             initial={{ opacity: 0, y: 30, scale: 0.98 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             transition={{ duration: 0.8, delay: 0.15, ease: 'easeOut' }}
-                            className="relative min-h-[390px] scroll-mt-28 sm:min-h-[520px] lg:min-h-[600px]"
+                            className="relative min-h-[390px] w-[calc(100vw-2.5rem)] min-w-0 max-w-full overflow-hidden scroll-mt-28 sm:min-h-[520px] sm:w-full lg:min-h-[600px]"
                         >
                             <svg
                                 viewBox="0 0 1000 300"
@@ -308,14 +308,14 @@ export function LandingPage() {
 
                             {journeySteps.map((step) => (
                                 <div key={step.label} className={`absolute z-20 ${step.position}`}>
-                                    <div className="relative min-w-[116px] rounded-lg border border-slate-200 bg-white px-4 pb-3 pt-7 text-center shadow-[0_10px_28px_rgba(26,71,126,0.16)] sm:min-w-[132px]">
+                                    <div className="relative flex h-[86px] w-[104px] items-center justify-center rounded-lg border border-slate-200 bg-white px-2 pt-3 text-center shadow-[0_10px_28px_rgba(26,71,126,0.16)] sm:h-[88px] sm:w-auto sm:min-w-[132px] sm:px-4">
                                         <MapPin
                                             size={46}
                                             className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 text-white drop-shadow-md"
                                             fill={step.color}
                                             stroke={step.color}
                                         />
-                                        <span className="whitespace-pre-line text-sm font-bold leading-5 text-slate-800 sm:text-base">
+                                        <span className="whitespace-pre-line text-xs font-bold leading-5 text-slate-800 sm:text-base">
                                             {step.label}
                                         </span>
                                     </div>
@@ -453,7 +453,7 @@ export function LandingPage() {
                 <div className="mx-auto max-w-[1540px]">
                     <div className="grid items-center gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:gap-14">
                         <div>
-                            <span className="inline-flex items-center gap-2 rounded-md bg-[#1351B4] px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-white shadow-sm sm:text-sm">
+                            <span className="landing-dark-text inline-flex items-center gap-2 rounded-md bg-[#1351B4] px-4 py-2 text-xs font-black uppercase tracking-[0.12em] shadow-sm sm:text-sm">
                                 <Star size={17} fill="currentColor" aria-hidden="true" />
                                 Resultados reais
                             </span>
@@ -504,10 +504,10 @@ export function LandingPage() {
                                 />
                             </div>
 
-                            <span className="absolute bottom-4 left-4 z-20 rounded-full bg-[#071A3A]/90 px-4 py-2 text-xs font-black text-white shadow-lg sm:text-sm">
+                            <span className="landing-dark-text absolute bottom-4 left-4 z-20 rounded-full bg-[#C62828] px-4 py-2 text-xs font-black shadow-xl ring-2 ring-white/90 sm:text-sm">
                                 ANTES
                             </span>
-                            <span className="absolute bottom-4 right-4 z-20 rounded-full bg-[#168821] px-4 py-2 text-xs font-black text-white shadow-lg sm:text-sm">
+                            <span className="landing-dark-text absolute bottom-4 right-4 z-20 rounded-full bg-[#168821] px-4 py-2 text-xs font-black shadow-xl ring-2 ring-white/90 sm:text-sm">
                                 DEPOIS
                             </span>
 
