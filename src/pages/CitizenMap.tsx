@@ -44,10 +44,10 @@ function canonicalStatus(status: string): CanonicalStatus {
 
 function markerConfig(status: string) {
   const normalized = canonicalStatus(status);
-  if (normalized === 'Em Análise') return { color: '#F9B900', symbol: '♿' };
+  if (normalized === 'Em Análise') return { color: '#D97706', symbol: '♿' };
   if (normalized === 'Concluído') return { color: '#168821', symbol: '✓' };
-  if (normalized === 'Atrasado') return { color: '#C00F0C', symbol: '!' };
-  return { color: '#D7191C', symbol: '!' };
+  if (normalized === 'Atrasado') return { color: '#E52207', symbol: '!' };
+  return { color: '#0758BD', symbol: '●' };
 }
 
 function MapController({ center }: { center: [number, number] }) {
@@ -241,9 +241,9 @@ export function CitizenMap() {
                   title="Categoria"
                   items={[
                     { label: 'Física', value: 'Física', color: '#0758BD' },
-                    { label: 'Visual', value: 'Visual', color: '#633BB1' },
-                    { label: 'Auditiva', value: 'Auditiva', color: '#8A42C7' },
-                    { label: 'Outros', value: 'Outros', color: '#168821' },
+                    { label: 'Visual', value: 'Visual', color: '#8B5CF6' },
+                    { label: 'Auditiva', value: 'Auditiva', color: '#0D9488' },
+                    { label: 'Outros', value: 'Outros', color: '#D97706' },
                   ]}
                   selectedItems={activeCategories}
                   onChange={toggleCategory}
@@ -251,10 +251,10 @@ export function CitizenMap() {
                 <FilterGroup
                   title="Status"
                   items={[
-                    { label: 'Aberto', value: 'Aberto', color: '#D7191C' },
-                    { label: 'Em análise', value: 'Em Análise', color: '#F9B900' },
+                    { label: 'Aberto', value: 'Aberto', color: '#0758BD' },
+                    { label: 'Em análise', value: 'Em Análise', color: '#D97706' },
                     { label: 'Concluído', value: 'Concluído', color: '#168821' },
-                    { label: 'Atrasado', value: 'Atrasado', color: '#C00F0C' },
+                    { label: 'Atrasado', value: 'Atrasado', color: '#E52207' },
                   ]}
                   selectedItems={activeStatuses}
                   onChange={toggleStatus}
@@ -437,18 +437,42 @@ function FilterGroup({ title, items, selectedItems, onChange }: {
 }) {
   return (
     <fieldset className="mt-4">
-      <legend className="text-sm font-bold text-[#0b1b33]">{title}</legend>
-      <div className="mt-3 space-y-2.5">
+      <legend className="text-xs font-bold uppercase tracking-wider text-slate-500">{title}</legend>
+      <div className="mt-2.5 space-y-1.5">
         {items.map((item) => {
           const checked = selectedItems.includes(item.value);
           return (
-            <label key={item.value} className="flex cursor-pointer items-center gap-3 text-sm text-slate-700">
-              <input type="checkbox" checked={checked} onChange={() => onChange(item.value)} className="sr-only" />
-              <span className={`flex size-5 items-center justify-center rounded border ${checked ? 'border-[#0758bd] bg-[#0758bd] text-white dashboard-inverse-text' : 'border-slate-300 bg-white'}`}>
-                {checked && <Check size={14} />}
+            <label
+              key={item.value}
+              className={`flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
+                checked
+                  ? 'border-slate-200 bg-slate-50/80 text-slate-900 shadow-sm'
+                  : 'border-transparent text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span
+                  className="size-3 rounded-full shrink-0 shadow-sm"
+                  style={{ backgroundColor: item.color }}
+                />
+                <span className="truncate">{item.label}</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={() => onChange(item.value)}
+                className="sr-only"
+              />
+              <span
+                className={`flex size-5 shrink-0 items-center justify-center rounded transition-all ${
+                  checked
+                    ? 'text-white shadow-sm'
+                    : 'border border-slate-300 bg-white'
+                }`}
+                style={checked ? { backgroundColor: item.color, borderColor: item.color } : {}}
+              >
+                {checked && <Check size={13} strokeWidth={3} />}
               </span>
-              <span className="size-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-              <span>{item.label}</span>
             </label>
           );
         })}
@@ -459,10 +483,10 @@ function FilterGroup({ title, items, selectedItems, onChange }: {
 
 function Legend() {
   const items = [
-    { label: 'Aberto', color: '#D7191C' },
-    { label: 'Em análise', color: '#F9B900' },
-    { label: 'Resolvido', color: '#168821' },
-    { label: 'Transporte', color: '#0758BD' },
+    { label: 'Aberto', color: '#0758BD' },
+    { label: 'Em análise', color: '#D97706' },
+    { label: 'Concluído', color: '#168821' },
+    { label: 'Atrasado', color: '#E52207' },
   ];
 
   return (

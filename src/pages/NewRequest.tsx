@@ -281,11 +281,6 @@ export function NewRequest() {
                         <Icon className={icon} size={44} strokeWidth={1.8} />
                         <h3 className="mt-4 text-xl font-bold text-[#0b1b33]">{id}</h3>
                         <p className="mt-2 max-w-[250px] text-base leading-6 text-slate-600">{desc}</p>
-                        {selected && (
-                          <span className="mt-4 rounded bg-blue-100 px-2.5 py-1 text-sm font-semibold text-[#0758bd]">
-                            Selecionado
-                          </span>
-                        )}
                       </button>
                     );
                   })}
