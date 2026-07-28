@@ -14,9 +14,7 @@
     "backend": {
       "root": "backend-java",
       "entrypoint": "Dockerfile.vercel",
-      "runtime": "container",
-      "memory": 1024,
-      "maxDuration": 300
+      "runtime": "container"
     }
   },
   "rewrites": [
