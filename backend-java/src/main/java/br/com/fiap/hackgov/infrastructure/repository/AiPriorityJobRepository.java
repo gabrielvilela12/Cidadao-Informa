@@ -13,7 +13,7 @@ import java.util.UUID;
 
 @Repository
 public interface AiPriorityJobRepository extends JpaRepository<AiPriorityJob, UUID> {
-    Optional<AiPriorityJob> findByProtocolId(UUID protocolId);
+    Optional<AiPriorityJob> findByProtocolId(String protocolId);
 
     @Query("SELECT j FROM AiPriorityJob j WHERE j.status IN ('pending', 'failed') " +
            "AND j.attemptCount < 3 " +

@@ -11,7 +11,7 @@ public class AiPriorityJob {
     private UUID id;
 
     @Column(name = "protocol_id", nullable = false)
-    private UUID protocolId;
+    private String protocolId;
 
     @Column(nullable = false)
     private String status;
@@ -48,7 +48,7 @@ public class AiPriorityJob {
 
     public AiPriorityJob(String protocolId, String description, String category) {
         this.id = UUID.randomUUID();
-        this.protocolId = UUID.fromString(protocolId);
+        this.protocolId = protocolId;
         this.description = description;
         this.category = category;
         this.status = "pending";
@@ -59,8 +59,8 @@ public class AiPriorityJob {
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
-    public UUID getProtocolId() { return protocolId; }
-    public void setProtocolId(UUID protocolId) { this.protocolId = protocolId; }
+    public String getProtocolId() { return protocolId; }
+    public void setProtocolId(String protocolId) { this.protocolId = protocolId; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public String getDescription() { return description; }

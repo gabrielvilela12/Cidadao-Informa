@@ -1,11 +1,13 @@
 server:
-  port: ${SERVER_PORT:5206}
+  port: ${PORT:${SERVER_PORT:5206}}
 
 spring:
+  config:
+    import: optional:file:.env.local[.properties],optional:file:../.env.local[.properties]
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:postgres}}
-    username: ${SPRING_DATASOURCE_USERNAME:${DB_USERNAME:postgres}}
-    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:postgres}}
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
   jpa:
     open-in-view: false
     hibernate:
@@ -31,7 +33,9 @@ springdoc:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:SuperSecretKeyForCidadaoInformaApplication2026}
+    secret: ${JWT_SECRET}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
   supabase:
-    edge-function-url: ${SUPABASE_EDGE_FUNCTION_URL:http://localhost:54321/functions/v1/classify-priority}
+    edge-function-url: ${SUPABASE_EDGE_FUNCTION_URL}
     anon-key: ${SUPABASE_ANON_KEY}

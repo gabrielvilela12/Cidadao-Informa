@@ -50,3 +50,6 @@ Thumbs.db
 # Supabase / artefatos locais
 supabase/.temp/
 supabase-schema.sql
+
+# Vercel / vínculo local do projeto
+.vercel/

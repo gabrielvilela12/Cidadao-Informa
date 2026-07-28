@@ -1,21 +1,33 @@
-# Cidadao Informa
+# Cidadão Informa
 
-Sistema web de zeladoria publica e acessibilidade urbana desenvolvido para o projeto HackGov/FIAP. A aplicacao conecta cidadaos e administradores publicos para registrar, acompanhar e priorizar solicitacoes de melhoria na cidade.
+Sistema web de zeladoria pública e acessibilidade urbana desenvolvido para o
+projeto HackGov/FIAP.
 
-## Visao geral
+## Arquitetura
 
-O Cidadao Informa permite que cidadaos abram protocolos de problemas urbanos, acompanhem o andamento das solicitacoes e consultem detalhes publicos por numero de protocolo. Para a gestao municipal, o sistema oferece painel administrativo, fila de solicitacoes, mapa interativo, relatorios exportaveis e classificacao de prioridade com apoio de IA.
+```text
+Navegador (React)
+        |
+        | HTTPS + JWT da aplicação
+        v
+API Java (Spring Boot)
+        |
+        | conexão PostgreSQL privada
+        v
+Supabase PostgreSQL
+```
 
-## Funcionalidades
+O frontend não acessa o Supabase diretamente e não recebe URL, chave `anon`,
+senha do banco ou chave de serviço. A única variável incluída no bundle do
+navegador é `VITE_API_URL`, que contém o endereço público da API Java.
 
-- Cadastro e login de cidadaos.
-- Abertura de solicitacoes com categoria, descricao, endereco, mapa e evidencias visuais.
-- Consulta de protocolos do cidadao autenticado.
-- Pagina publica de acompanhamento de protocolo.
-- Painel administrativo com indicadores, graficos, mapa e fila de triagem.
-- Exportacao de relatorios em XLSX.
-- Classificacao automatica de prioridade por Edge Function.
-- Interface responsiva com foco em uso em desktop e mobile.
+A API Java é responsável por:
+
+- cadastro, login e emissão/validação de JWT;
+- consultas e alterações de usuários e protocolos;
+- autorização de cidadãos e administradores;
+- histórico de auditoria;
+- acionamento da Edge Function de classificação de prioridade.
 
 ## Tecnologias
 
@@ -26,67 +38,85 @@ O Cidadao Informa permite que cidadaos abram protocolos de problemas urbanos, ac
 - Vite
 - React Router
 - Tailwind CSS
-- Leaflet e React Leaflet
+- Leaflet
 - Recharts
-- Lucide React
-- Supabase JS
 - XLSX
 
 ### Backend e infraestrutura
 
-- Supabase PostgreSQL
+- Java 21 e Spring Boot
+- Spring Security e JWT
+- Spring Data JPA
+- PostgreSQL no Supabase
+- Flyway
 - Supabase Edge Functions
-- Spring Boot em `backend-java`
-- Vercel para deploy do frontend
+- Vercel para o frontend
 
-## Estrutura principal
+## Configuração
 
-```text
-src/                 Aplicacao React
-supabase/functions/  Edge Functions usadas pelo frontend
-supabase/migrations/ Migrations do banco Supabase
-backend-java/        Backend Java/Spring Boot
-public/              Arquivos publicos
+Copie `.env.example` para `.env.local`. O arquivo local é ignorado pelo Git.
+
+```env
+VITE_API_URL=http://localhost:5206
+
+SPRING_DATASOURCE_URL=jdbc:postgresql://<session-pooler-host>:5432/postgres?sslmode=require
+SPRING_DATASOURCE_USERNAME=postgres.<project-ref>
+SPRING_DATASOURCE_PASSWORD=<database-password>
+JWT_SECRET=<random-secret-with-at-least-32-characters>
+CORS_ALLOWED_ORIGINS=http://localhost:3000
+
+SUPABASE_EDGE_FUNCTION_URL=https://<project-ref>.supabase.co/functions/v1/classify-priority
+SUPABASE_ANON_KEY=<supabase-anon-key>
 ```
 
-## Como executar o frontend
+Use a conexão Session Pooler mostrada no botão `Connect` do projeto para
+funcionar também em hospedagens e redes compatíveis apenas com IPv4. Nunca
+coloque `SPRING_DATASOURCE_PASSWORD`,
+`JWT_SECRET` ou `SUPABASE_ANON_KEY` em variáveis com prefixo `VITE_`.
 
-1. Instale as dependencias:
+## Executar localmente
+
+Inicie a API Java:
+
+```bash
+cd backend-java
+mvn spring-boot:run
+```
+
+Em outro terminal, inicie o frontend:
 
 ```bash
 npm install
-```
-
-2. Crie o arquivo `.env` a partir do `.env.example` e configure as variaveis:
-
-```env
-VITE_SUPABASE_URL=https://seu-projeto.supabase.co
-VITE_SUPABASE_ANON_KEY=sua-chave-anon
-```
-
-3. Inicie o servidor local:
-
-```bash
 npm run dev
 ```
 
-Por padrao, o Vite sobe em:
+- Frontend: `http://localhost:3000`
+- API: `http://localhost:5206`
+- Swagger: `http://localhost:5206/swagger`
+
+## Produção
+
+O frontend Vite e a API Spring Boot são publicados no mesmo projeto da Vercel.
+A rota `/api/*` é encaminhada ao container Java e as demais rotas ao frontend.
+
+Para o frontend, configure:
+
+```env
+VITE_API_URL=/
+```
+
+Configure `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`,
+`SPRING_DATASOURCE_PASSWORD`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`,
+`SUPABASE_EDGE_FUNCTION_URL` e `SUPABASE_ANON_KEY` como variáveis protegidas
+do projeto. Elas são consumidas apenas pela API Java e não são incluídas no
+bundle do Vite porque não possuem o prefixo `VITE_`.
+
+## Estrutura
 
 ```text
-http://localhost:3000
+src/                 frontend React
+backend-java/        API Spring Boot
+supabase/functions/  classificação de prioridade
+supabase/migrations/ estrutura complementar do banco
+public/              arquivos públicos
 ```
-
-## Scripts uteis
-
-```bash
-npm run dev      # inicia o ambiente local
-npm run build    # gera build de producao
-npm run preview  # visualiza o build gerado
-npm run lint     # valida tipos TypeScript
-```
-
-## Observacoes
-
-- As Edge Functions dependem de variaveis configuradas no Supabase, como `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `APP_SESSION_SECRET` e, para classificacao de prioridade, `OPENROUTER_API_KEY`.
-- O arquivo `.env.example` mostra as variaveis esperadas para o frontend.
-- O backend Java permanece no reposititorio como alternativa/apoio para APIs com Spring Boot.

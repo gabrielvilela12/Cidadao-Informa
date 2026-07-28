@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { apiRequest } from './http';
 
 type Priority = 'baixa' | 'media' | 'alta' | 'critica';
 
@@ -8,135 +8,54 @@ interface AiPriorityResponse {
   errorMessage?: string;
 }
 
-interface ClassifyProtocolPayload {
+interface ApiAuditLog {
+  id: string;
   protocolId: string;
-  description: string;
-  category: string;
-}
-
-async function getFunctionErrorMessage(error: unknown): Promise<string> {
-  if (
-    error &&
-    typeof error === 'object' &&
-    'context' in error &&
-    (error as { context?: unknown }).context instanceof Response
-  ) {
-    return await (error as { context: Response }).context.text();
-  }
-
-  return error instanceof Error ? error.message : String(error);
+  priority: Priority;
+  source: string;
+  adminId?: string | null;
+  previousPriority?: string | null;
+  reason?: string | null;
+  createdAt: string;
 }
 
 export const aiPriorityService = {
-  async classifyProtocol({
-    protocolId,
-    description,
-    category,
-  }: ClassifyProtocolPayload): Promise<AiPriorityResponse> {
-    const { data, error } = await supabase.functions.invoke('classify-priority', {
-      body: {
-        protocol_id: protocolId,
-        description,
-        category,
-      },
-    });
-
-    if (error) {
-      const message = await getFunctionErrorMessage(error);
-      throw new Error(`Edge Function falhou: ${message}`);
-    }
-
-    if (!data?.success) {
-      throw new Error(data?.error ?? 'Classificação de IA não retornou sucesso.');
-    }
-
-    return {
-      priority: data.priority as Priority,
-      aiStatus: 'success',
-    };
-  },
-
-  async getPriority(protocolId: string): Promise<AiPriorityResponse> {
-    const { data, error } = await supabase
-      .from('protocols')
-      .select('ai_priority, ai_status')
-      .eq('id', protocolId)
-      .single();
-
-    if (error) throw error;
-
-    return {
-      priority: data.ai_priority as Priority | null,
-      aiStatus: data.ai_status ?? 'pending',
-    };
+  getPriority(protocolId: string): Promise<AiPriorityResponse> {
+    return apiRequest(`/api/ai-priority/${encodeURIComponent(protocolId)}`);
   },
 
   async setManualPriority(
     protocolId: string,
     priority: string,
-    reason?: string
+    reason?: string,
   ): Promise<void> {
-    const token = localStorage.getItem('cidadaoinforma_token');
-    if (!token) throw new Error('SessÃ£o invÃ¡lida ou expirada.');
-
-    const { data, error } = await supabase.functions.invoke('app-protocols', {
-      body: {
-        action: 'setPriority',
-        token,
-        protocolId,
-        priority,
-        reason,
-      },
+    await apiRequest(`/api/ai-priority/manual/${encodeURIComponent(protocolId)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ priority, reason }),
     });
-
-    if (error) {
-      const message = await getFunctionErrorMessage(error);
-      throw new Error(`Edge Function falhou: ${message}`);
-    }
-
-    if (!data?.success) {
-      throw new Error(data?.error ?? 'Nao foi possivel alterar a prioridade.');
-    }
   },
 
   async regeneratePriority(protocolId: string): Promise<void> {
-    const { data: protocol, error } = await supabase
-      .from('protocols')
-      .select('description, category')
-      .eq('id', protocolId)
-      .single();
-
-    if (error || !protocol) throw new Error('Protocolo não encontrado');
-
-    await this.classifyProtocol({
-      protocolId,
-      description: protocol.description,
-      category: protocol.category,
+    await apiRequest(`/api/ai-priority/regenerate/${encodeURIComponent(protocolId)}`, {
+      method: 'POST',
     });
   },
 
   async getAuditLogs(days: number = 7): Promise<any[]> {
-    const since = new Date();
-    since.setDate(since.getDate() - days);
+    const logs = await apiRequest<ApiAuditLog[]>(
+      `/api/ai-priority/logs?days=${encodeURIComponent(days)}`,
+    );
 
-    const { data, error } = await supabase
-      .from('ai_job_logs')
-      .select('*')
-      .gte('created_at', since.toISOString())
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data ?? [];
+    return logs.map((log) => ({
+      ...log,
+      protocol_id: log.protocolId,
+      admin_id: log.adminId,
+      previous_priority: log.previousPriority,
+      created_at: log.createdAt,
+    }));
   },
 
-  async getFailedJobs(): Promise<any[]> {
-    const { data, error } = await supabase
-      .from('ai_priority_jobs')
-      .select('*')
-      .eq('status', 'failed')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data ?? [];
+  getFailedJobs(): Promise<any[]> {
+    return apiRequest('/api/ai-priority/jobs/failed');
   },
 };

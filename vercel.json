@@ -1,8 +1,48 @@
 {
-    "rewrites": [
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "frontend": {
+      "root": ".",
+      "framework": "vite",
+      "rewrites": [
         {
-            "source": "/((?!api/.*).*)",
-            "destination": "/index.html"
+          "source": "/(.*)",
+          "destination": "/index.html"
         }
-    ]
+      ]
+    },
+    "backend": {
+      "root": "backend-java",
+      "entrypoint": "Dockerfile.vercel",
+      "runtime": "container",
+      "memory": 1024,
+      "maxDuration": 300
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "backend"
+      }
+    },
+    {
+      "source": "/swagger",
+      "destination": {
+        "service": "backend"
+      }
+    },
+    {
+      "source": "/swagger/(.*)",
+      "destination": {
+        "service": "backend"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "frontend"
+      }
+    }
+  ]
 }

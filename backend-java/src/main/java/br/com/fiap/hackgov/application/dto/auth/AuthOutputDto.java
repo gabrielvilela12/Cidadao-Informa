@@ -7,6 +7,7 @@ public record AuthOutputDto(
         String name,
         String email,
         String cpf,
+        String phone,
         String role,
         String userId,
         Instant createdAt
