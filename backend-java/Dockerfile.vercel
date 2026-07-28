@@ -12,10 +12,15 @@ FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
+RUN apk add --no-cache socat
+
 COPY --from=build /app/target/hackgov-api-1.0.0-SNAPSHOT.jar app.jar
+COPY start-vercel.sh start-vercel.sh
+
+RUN chmod +x /app/start-vercel.sh
 
 ENV PORT=80
 
 EXPOSE 80
 
-CMD ["/opt/java/openjdk/bin/java", "-XX:MaxRAMPercentage=75.0", "-jar", "/app/app.jar"]
+CMD ["/app/start-vercel.sh"]
