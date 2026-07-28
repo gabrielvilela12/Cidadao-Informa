@@ -4,12 +4,18 @@ import br.com.fiap.hackgov.application.service.AiPriorityService;
 import br.com.fiap.hackgov.domain.ai.AiPriorityJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Component
+@ConditionalOnProperty(
+        name = "app.scheduling.enabled",
+        havingValue = "true",
+        matchIfMissing = true
+)
 public class RetryFailedAiJobsTask {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RetryFailedAiJobsTask.class);

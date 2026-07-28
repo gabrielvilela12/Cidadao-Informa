@@ -111,6 +111,18 @@ Configure `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`,
 do projeto. Elas são consumidas apenas pela API Java e não são incluídas no
 bundle do Vite porque não possuem o prefixo `VITE_`.
 
+No ambiente autoscalável da Vercel, use também:
+
+```env
+SPRING_MAIN_LAZY_INITIALIZATION=true
+SPRING_FLYWAY_ENABLED=false
+SPRING_JPA_HIBERNATE_DDL_AUTO=none
+APP_SCHEDULING_ENABLED=false
+```
+
+As migrações Flyway continuam habilitadas por padrão no ambiente local e devem
+ser executadas de forma controlada antes de um deploy que alterar o banco.
+
 ## Estrutura
 
 ```text

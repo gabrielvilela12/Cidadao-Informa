@@ -2,22 +2,27 @@ server:
   port: ${PORT:${SERVER_PORT:5206}}
 
 spring:
+  main:
+    lazy-initialization: ${SPRING_MAIN_LAZY_INITIALIZATION:false}
   config:
     import: optional:file:.env.local[.properties],optional:file:../.env.local[.properties]
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
+    hikari:
+      maximum-pool-size: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:3}
+      minimum-idle: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:0}
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: validate
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
     properties:
       hibernate:
         jdbc:
           time_zone: UTC
   flyway:
-    enabled: true
+    enabled: ${SPRING_FLYWAY_ENABLED:true}
     baseline-on-migrate: true
   jackson:
     time-zone: UTC
@@ -32,6 +37,8 @@ springdoc:
     path: /swagger
 
 app:
+  scheduling:
+    enabled: ${APP_SCHEDULING_ENABLED:true}
   jwt:
     secret: ${JWT_SECRET}
   cors:
