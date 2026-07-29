@@ -48,7 +48,7 @@ export function PublicProtocol() {
 
     useEffect(() => {
         if (!id) return;
-        api.getProtocolById(id)
+        api.getPublicProtocolById(id)
             .then((data) => {
                 if (!data) {
                     setNotFound(true);

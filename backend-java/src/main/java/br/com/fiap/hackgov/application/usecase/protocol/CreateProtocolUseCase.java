@@ -15,24 +15,24 @@ public class CreateProtocolUseCase {
         this.repository = repository;
     }
 
-    public ProtocolOutputDto execute(ProtocolInputDto input) {
+    public ProtocolOutputDto execute(ProtocolInputDto input, String userId, String requester) {
+        if (input.category() == null || input.category().isBlank()
+                || input.description() == null || input.description().isBlank()
+                || input.address() == null || input.address().isBlank()) {
+            throw new IllegalArgumentException("Preencha categoria, descrição e endereço.");
+        }
+
         Protocol protocol = new Protocol();
-        protocol.setCategory(input.category());
-        protocol.setDescription(input.description());
-        protocol.setAddress(input.address());
-        protocol.setUserId(input.userId());
+        protocol.setCategory(input.category().trim());
+        protocol.setDescription(input.description().trim());
+        protocol.setAddress(input.address().trim());
+        protocol.setUserId(userId);
+        protocol.setRequester(requester);
+        protocol.setStatus("Aberto");
+        protocol.setAiStatus("pending");
 
         Protocol createdProtocol = repository.add(protocol);
 
-        return new ProtocolOutputDto(
-                createdProtocol.getId(),
-                createdProtocol.getCategory(),
-                createdProtocol.getDescription(),
-                createdProtocol.getAddress(),
-                createdProtocol.getCreatedAt(),
-                createdProtocol.getStatus().name(),
-                createdProtocol.getUserId(),
-                ""
-        );
+        return ProtocolOutputDto.from(createdProtocol);
     }
 }

@@ -4,30 +4,24 @@ import br.com.fiap.hackgov.domain.entity.Protocol;
 
 import java.time.Instant;
 
-public record ProtocolOutputDto(
+public record PublicProtocolOutputDto(
         String id,
         String category,
         String description,
         String address,
         Instant createdAt,
         String status,
-        String userId,
-        String requester,
-        String phone,
         String aiPriority,
         String aiStatus
 ) {
-    public static ProtocolOutputDto from(Protocol protocol) {
-        return new ProtocolOutputDto(
+    public static PublicProtocolOutputDto from(Protocol protocol) {
+        return new PublicProtocolOutputDto(
                 protocol.getId(),
                 protocol.getCategory(),
                 protocol.getDescription(),
                 protocol.getAddress(),
                 protocol.getCreatedAt(),
                 protocol.getStatus(),
-                protocol.getUserId(),
-                protocol.getRequester(),
-                protocol.getUser() != null ? protocol.getUser().getPhone() : null,
                 protocol.getAiPriority(),
                 protocol.getAiStatus()
         );

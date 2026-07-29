@@ -1,10 +1,7 @@
 package br.com.fiap.hackgov.domain.entity;
 
-import br.com.fiap.hackgov.domain.enums.ProtocolStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -35,9 +32,8 @@ public class Protocol {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private ProtocolStatus status;
+    private String status;
 
     @Column(name = "user_id", nullable = false)
     private String userId;
@@ -64,7 +60,7 @@ public class Protocol {
             createdAt = Instant.now();
         }
         if (status == null) {
-            status = ProtocolStatus.Open;
+            status = "Aberto";
         }
         if (requester == null) {
             requester = "";
@@ -111,11 +107,11 @@ public class Protocol {
         this.createdAt = createdAt;
     }
 
-    public ProtocolStatus getStatus() {
+    public String getStatus() {
         return status;
     }
 
-    public void setStatus(ProtocolStatus status) {
+    public void setStatus(String status) {
         this.status = status;
     }
 

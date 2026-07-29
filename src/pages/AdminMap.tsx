@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Accessibility,
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -43,9 +44,16 @@ const ALL_STATUSES: CanonicalStatus[] = ['Aberto', 'Em análise', 'Concluído', 
 
 const STATUS_COLORS: Record<CanonicalStatus, string> = {
   Aberto: '#0758BD',
-  'Em análise': '#FFB800',
+  'Em análise': '#D97706',
   Concluído: '#168821',
   Atrasado: '#E52207',
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  Física: '#0758BD',
+  Visual: '#8B5CF6',
+  Auditiva: '#0D9488',
+  Outros: '#D97706',
 };
 
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
@@ -391,15 +399,34 @@ function LayerSwitch({ label, active, onClick }: { label: string; active: boolea
 function FilterGroup({ title, values, selected, onToggle, status = false }: { title: string; values: string[]; selected: string[]; onToggle: (value: string) => void; status?: boolean }) {
   return (
     <fieldset className="mt-4">
-      <legend className="text-xs font-black uppercase text-slate-500">{title}</legend>
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        {values.map((value) => (
-          <label key={value} className="flex cursor-pointer items-center gap-2 rounded-lg border border-[#E2E8F0] px-2 py-2 text-xs font-semibold">
-            <input type="checkbox" checked={selected.includes(value)} onChange={() => onToggle(value)} className="size-4 rounded" />
-            {status && <span className="size-2.5 rounded-full" style={{ backgroundColor: STATUS_COLORS[value as CanonicalStatus] }} />}
-            <span className="truncate">{value}</span>
-          </label>
-        ))}
+      <legend className="text-xs font-bold uppercase tracking-wider text-slate-500">{title}</legend>
+      <div className="mt-2.5 space-y-1.5">
+        {values.map((value) => {
+          const checked = selected.includes(value);
+          const itemColor = status ? STATUS_COLORS[value as CanonicalStatus] : CATEGORY_COLORS[value] || '#0758BD';
+          return (
+            <label
+              key={value}
+              className={`flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2 text-xs font-semibold transition-all ${
+                checked ? 'border-slate-200 bg-slate-50/80 text-slate-900 shadow-sm' : 'border-transparent text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="size-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: itemColor }} />
+                <span className="truncate">{value}</span>
+              </div>
+              <input type="checkbox" checked={checked} onChange={() => onToggle(value)} className="sr-only" />
+              <span
+                className={`flex size-4 shrink-0 items-center justify-center rounded transition-all ${
+                  checked ? 'text-white shadow-sm' : 'border border-slate-300 bg-white'
+                }`}
+                style={checked ? { backgroundColor: itemColor, borderColor: itemColor } : {}}
+              >
+                {checked && <Check size={11} strokeWidth={3} />}
+              </span>
+            </label>
+          );
+        })}
       </div>
     </fieldset>
   );

@@ -61,6 +61,7 @@ public class RegisterUseCase {
                 createdUser.getName(),
                 createdUser.getEmail(),
                 createdUser.getCpf(),
+                createdUser.getPhone(),
                 createdUser.getRole(),
                 createdUser.getId(),
                 createdUser.getCreatedAt()
