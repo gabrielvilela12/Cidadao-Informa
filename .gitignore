@@ -51,5 +51,8 @@ Thumbs.db
 supabase/.temp/
 supabase-schema.sql
 
+# Vercel / vínculo local do projeto
+.vercel/
+
 # Documento de auditoria (uso local, nao versionar)
 PROMPT-CORRECOES.md

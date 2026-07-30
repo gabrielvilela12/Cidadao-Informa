@@ -65,7 +65,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       if (token) {
         try {
-          // Valida a sessão via Supabase (funciona em produção e local)
+          // Valida a sessão pela API Java.
           const { api } = await import('../services/api');
           const userData = await api.getMe();
 

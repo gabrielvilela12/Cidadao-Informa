@@ -23,6 +23,7 @@ public class GetMeUseCase {
                 user.getName(),
                 user.getEmail(),
                 user.getCpf(),
+                user.getPhone(),
                 user.getRole(),
                 user.getId(),
                 user.getCreatedAt()

@@ -29,7 +29,6 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { type Protocol } from '../constants';
 import { useProtocols } from '../hooks/useProtocols';
-import { api } from '../services/api';
 import { exportToExcel } from '../utils/exportUtils';
 import { countWithoutLocation, DEFAULT_MAP_CENTER, getMarkerPosition } from '../utils/mapUtils';
 
@@ -98,9 +97,7 @@ function MapTracker({ onReady }: { onReady: (map: L.Map) => void }) {
 }
 
 export function AdminMap() {
-  const { protocols, loading, refetch } = useProtocols('admin');
-  const [locating, setLocating] = useState(false);
-  const [locateResult, setLocateResult] = useState('');
+  const { protocols, loading } = useProtocols('admin');
   const { toggleMobileMenu } = useApp();
   const navigate = useNavigate();
   const [map, setMap] = useState<L.Map | null>(null);
@@ -143,27 +140,6 @@ export function AdminMap() {
   // Protocolos sem coordenada nao recebem pin. Contamos para que a ausencia
   // seja explicita, em vez de o mapa parecer completo com menos ocorrencias.
   const withoutLocation = useMemo(() => countWithoutLocation(filteredProtocols), [filteredProtocols]);
-
-  // Geocodifica na Edge Function os protocolos antigos que nao tem coordenada.
-  // Roda em lotes por causa do limite de 1 req/s do Nominatim.
-  const handleLocateMissing = useCallback(async () => {
-    if (locating) return;
-    setLocating(true);
-    setLocateResult('');
-    try {
-      const result = await api.backfillCoordinates(8);
-      await refetch();
-      const parts = [`${result.located} localizada(s)`];
-      if (result.failed > 0) parts.push(`${result.failed} sem resultado`);
-      if (result.skipped > 0) parts.push(`${result.skipped} com endereço inválido`);
-      if (result.remaining > 0) parts.push(`${result.remaining} restante(s)`);
-      setLocateResult(parts.join(' · '));
-    } catch (error) {
-      setLocateResult(error instanceof Error ? error.message : 'Falha ao localizar solicitações.');
-    } finally {
-      setLocating(false);
-    }
-  }, [locating, refetch]);
 
   const filterCount = (ALL_CATEGORIES.length - activeCategories.length) + (ALL_STATUSES.length - activeStatuses.length);
 
@@ -374,17 +350,9 @@ export function AdminMap() {
                     : 'solicitações sem localização confirmada não aparecem no mapa.'}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={handleLocateMissing}
-                disabled={locating}
-                className="mt-3 inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-lg border border-amber-300 bg-white px-3 text-xs font-bold text-amber-900 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {locating
-                  ? <><Loader2 className="animate-spin" size={14} aria-hidden="true" /> Localizando...</>
-                  : <><LocateFixed size={14} aria-hidden="true" /> Localizar pelo endereço</>}
-              </button>
-              {locateResult && <p className="mt-2 text-xs leading-5 text-amber-900">{locateResult}</p>}
+              <p className="mt-2 text-xs leading-5 text-amber-800">
+                Abertas antes do registro de coordenada. Use o endereço na fila para localizá-las.
+              </p>
             </div>
           )}
         </section>

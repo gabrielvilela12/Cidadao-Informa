@@ -3,6 +3,9 @@ import { Protocol } from '../constants';
 import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
 
+// O parametro `role` nao vai mais para a API: o backend decide o escopo pelo
+// token. Ele permanece na assinatura porque as paginas o informam e ele mantem
+// o cache de fetch separado por contexto de uso.
 export function useProtocols(role: 'citizen' | 'admin' | 'all' = 'all') {
     const { user } = useApp();
     const [protocols, setProtocols] = useState<Protocol[]>([]);
@@ -13,9 +16,9 @@ export function useProtocols(role: 'citizen' | 'admin' | 'all' = 'all') {
         setLoading(true);
         setError('');
         try {
-            // O filtro por usuario acontece no servidor, a partir do token.
-            // O escopo 'citizen' faz a Edge Function restringir ao dono da sessao.
-            const data = await api.getProtocols(role);
+            // O filtro por usuario acontece no servidor, a partir do token:
+            // cidadao recebe so os proprios protocolos, admin recebe todos.
+            const data = await api.getProtocols();
             setProtocols(data);
         } catch (error) {
             console.error('Error fetching protocols:', error);

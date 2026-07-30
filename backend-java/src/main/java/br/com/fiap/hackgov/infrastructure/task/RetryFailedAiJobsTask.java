@@ -1,45 +1,44 @@
 package br.com.fiap.hackgov.infrastructure.task;
 
-import br.com.fiap.hackgov.domain.ai.AiPriorityJob;
 import br.com.fiap.hackgov.application.service.AiPriorityService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import br.com.fiap.hackgov.domain.ai.AiPriorityJob;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Slf4j
 @Component
-@RequiredArgsConstructor
+@ConditionalOnProperty(
+        name = "app.scheduling.enabled",
+        havingValue = "true",
+        matchIfMissing = true
+)
 public class RetryFailedAiJobsTask {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(RetryFailedAiJobsTask.class);
+
     private final AiPriorityService aiPriorityService;
+
+    public RetryFailedAiJobsTask(AiPriorityService aiPriorityService) {
+        this.aiPriorityService = aiPriorityService;
+    }
 
     @Scheduled(fixedDelay = 300000)
     public void retryFailedJobs() {
         try {
-            log.debug("Starting retry task for failed AI jobs");
-
             List<AiPriorityJob> failedJobs = aiPriorityService.getFailedJobs();
-
-            if (failedJobs.isEmpty()) {
-                log.debug("No failed jobs to retry");
-                return;
-            }
-
-            log.info("Found {} failed jobs to retry", failedJobs.size());
-
             failedJobs.forEach(job -> {
                 try {
-                    log.info("Retrying job {} for protocol {}", job.getId(), job.getProtocolId());
-                    aiPriorityService.regeneratePriority(job.getProtocolId().toString());
-                } catch (Exception e) {
-                    log.error("Failed to retry job {}: {}", job.getId(), e.getMessage());
+                    aiPriorityService.regeneratePriority(job.getProtocolId());
+                } catch (Exception exception) {
+                    LOGGER.error("Failed to retry job {}: {}", job.getId(), exception.getMessage());
                 }
             });
-
-        } catch (Exception e) {
-            log.error("Error in retry task: {}", e.getMessage(), e);
+        } catch (Exception exception) {
+            LOGGER.error("Error in retry task", exception);
         }
     }
 }

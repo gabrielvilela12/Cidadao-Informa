@@ -35,4 +35,9 @@ public class UserRepositoryImpl implements UserRepository {
     public User add(User user) {
         return repository.save(user);
     }
+
+    @Override
+    public User update(User user) {
+        return repository.save(user);
+    }
 }

@@ -22,16 +22,7 @@ public class GetProtocolsUseCase {
                 : repository.getAll();
 
         return protocols.stream()
-                .map(protocol -> new ProtocolOutputDto(
-                        protocol.getId(),
-                        protocol.getCategory(),
-                        protocol.getDescription(),
-                        protocol.getAddress(),
-                        protocol.getCreatedAt(),
-                        protocol.getStatus().name(),
-                        protocol.getUserId(),
-                        protocol.getUser() != null ? protocol.getUser().getName() : "Unknown"
-                ))
+                .map(ProtocolOutputDto::from)
                 .toList();
     }
 }
