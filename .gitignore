@@ -50,3 +50,6 @@ Thumbs.db
 # Supabase / artefatos locais
 supabase/.temp/
 supabase-schema.sql
+
+# Documento de auditoria (uso local, nao versionar)
+PROMPT-CORRECOES.md

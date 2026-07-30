@@ -9,30 +9,31 @@ export function useProtocols(role: 'citizen' | 'admin' | 'all' = 'all') {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    useEffect(() => {
-        async function fetchProtocols() {
-            setLoading(true);
-            setError('');
-            try {
-                // If citizen, pass userId to get only their protocols
-                const data = await api.getProtocols(role === 'citizen' ? user?.id : undefined, role);
-                setProtocols(data);
-            } catch (error) {
-                console.error('Error fetching protocols:', error);
-                setError(error instanceof Error ? error.message : 'Erro ao carregar protocolos.');
-                setProtocols([]);
-            }
-            setLoading(false);
+    const fetchProtocols = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        try {
+            // O filtro por usuario acontece no servidor, a partir do token.
+            // O escopo 'citizen' faz a Edge Function restringir ao dono da sessao.
+            const data = await api.getProtocols(role);
+            setProtocols(data);
+        } catch (error) {
+            console.error('Error fetching protocols:', error);
+            setError(error instanceof Error ? error.message : 'Erro ao carregar protocolos.');
+            setProtocols([]);
         }
+        setLoading(false);
+    }, [role]);
 
+    useEffect(() => {
         if (user) {
-            fetchProtocols();
+            void fetchProtocols();
         } else {
             setProtocols([]);
             setError('');
             setLoading(false);
         }
-    }, [role, user]);
+    }, [fetchProtocols, user]);
 
     // Specific single fetcher for details page
     const fetchProtocolById = useCallback(async (id: string): Promise<Protocol | null> => {
@@ -43,5 +44,5 @@ export function useProtocols(role: 'citizen' | 'admin' | 'all' = 'all') {
         }
     }, []);
 
-    return { protocols, loading, error, fetchProtocolById };
+    return { protocols, loading, error, fetchProtocolById, refetch: fetchProtocols };
 }

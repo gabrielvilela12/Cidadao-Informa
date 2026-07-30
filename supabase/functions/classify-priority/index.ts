@@ -224,6 +224,9 @@ Deno.serve(async (req) => {
       protocol_id,
       priority: result.priority,
       source: "ia",
+      // Justificativa do modelo. Sem ela a tela de auditoria exibe todas as
+      // classificacoes como "Sem justificativa", o que anula a auditabilidade.
+      reason: result.reason,
     });
 
     const protocolBefore = firstRow(existingProtocol as { status?: string; ai_priority?: string | null }[]);
@@ -238,6 +241,7 @@ Deno.serve(async (req) => {
           category,
           previous_priority: protocolBefore?.ai_priority ?? null,
           new_priority: result.priority,
+          reason: result.reason,
           description_hash: await sha256Hex(description),
         },
       });

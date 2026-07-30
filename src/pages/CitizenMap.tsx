@@ -21,7 +21,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Protocol } from '../constants';
 import { useApp } from '../context/AppContext';
 import { useProtocols } from '../hooks/useProtocols';
-import { getMarkerPosition } from '../utils/mapUtils';
+import { DEFAULT_MAP_CENTER, getMarkerPosition } from '../utils/mapUtils';
 import { StatusBadge } from './CitizenDashboard';
 
 type CanonicalStatus = 'Aberto' | 'Em Análise' | 'Concluído' | 'Atrasado';
@@ -77,7 +77,7 @@ export function CitizenMap() {
   const [selectedIncident, setSelectedIncident] = useState<Protocol | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [showFilters, setShowFilters] = useState(false);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([-15.7942, -47.8822]);
+  const [mapCenter, setMapCenter] = useState<[number, number]>(DEFAULT_MAP_CENTER);
   const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
   const [activeCategories, setActiveCategories] = useState(allCategories);
   const [activeStatuses, setActiveStatuses] = useState<CanonicalStatus[]>(allStatuses);
@@ -117,7 +117,8 @@ export function CitizenMap() {
     const targetIndex = index ?? filteredProtocols.findIndex((item) => item.id === protocol.id);
     setSelectedIncident(protocol);
     setSelectedIndex(targetIndex);
-    const position = await getMarkerPosition(protocol.id, protocol.address || '');
+    const position = getMarkerPosition(protocol);
+    if (!position) return;
     mapInstance?.flyTo(position, Math.max(mapInstance.getZoom(), 15), { duration: 0.7 });
   };
 
@@ -397,15 +398,8 @@ function MarkerBadge({ status }: { status: string }) {
 }
 
 function ProtocolMarker({ protocol, selected, onClick }: { protocol: Protocol; selected: boolean; onClick: () => void }) {
-  const [position, setPosition] = useState<[number, number] | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-    getMarkerPosition(protocol.id, protocol.address || '')
-      .then((result) => { if (mounted) setPosition(result); })
-      .catch(console.error);
-    return () => { mounted = false; };
-  }, [protocol.id, protocol.address]);
+  // Sem coordenada confirmada o protocolo nao e plotado (ver mapUtils).
+  const position = getMarkerPosition(protocol);
 
   if (!position) return null;
 

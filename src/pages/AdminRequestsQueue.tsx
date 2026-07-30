@@ -20,6 +20,7 @@ import { Header } from '../components/Header';
 import { type Protocol } from '../constants';
 import { useProtocols } from '../hooks/useProtocols';
 import { exportToExcel } from '../utils/exportUtils';
+import { countSlaLate, getSlaInfo, getSlaLabel, isSlaLate } from '../utils/sla';
 
 const statusMatches = (status: Protocol['status'], value: string) => {
   if (value === 'all') return true;
@@ -54,7 +55,9 @@ export function AdminRequestsQueue() {
   const counts = useMemo(() => ({
     open: protocols.filter((item) => statusMatches(item.status, 'open')).length,
     analysis: protocols.filter((item) => statusMatches(item.status, 'analysis')).length,
-    late: protocols.filter((item) => statusMatches(item.status, 'late')).length,
+    // Atraso vem do prazo de SLA calculado sobre created_at, nao de um status
+    // 'Atrasado' que nenhum fluxo do sistema atribui.
+    late: countSlaLate(protocols),
   }), [protocols]);
 
   const filteredProtocols = useMemo(() => protocols.filter((protocol) => {
@@ -66,8 +69,8 @@ export function AdminRequestsQueue() {
     const matchesCategory = categoryFilter === 'all' || protocol.category === categoryFilter;
     const matchesPriority = priorityFilter === 'all'
       || (priorityFilter === 'processing' ? !protocol.ai_priority : protocol.ai_priority === priorityFilter);
-    const matchesSla = slaFilter === 'all'
-      || (slaFilter === 'late' ? statusMatches(protocol.status, 'late') : !statusMatches(protocol.status, 'late'));
+    const slaLate = isSlaLate(protocol);
+    const matchesSla = slaFilter === 'all' || (slaFilter === 'late' ? slaLate : !slaLate);
 
     return matchesSearch
       && statusMatches(protocol.status, statusFilter)
@@ -149,9 +152,12 @@ export function AdminRequestsQueue() {
                 className="h-11 w-full rounded-lg border border-[#CDD8E7] bg-white pl-10 pr-3 text-sm outline-none focus:border-[#0758BD] focus:ring-2 focus:ring-blue-100"
               />
             </label>
-            <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-4">
+            {/* flex-wrap em vez de grid de colunas fixas: os filtros respeitam a
+                largura minima e quebram linha em vez de cortar o texto. */}
+            <div className="flex flex-1 flex-wrap gap-2">
               <FilterSelect label="Status" value={statusFilter} onChange={(value) => { setStatusFilter(value); setPage(1); }} options={[
-                ['all', 'Status'], ['open', 'Aberto'], ['analysis', 'Em análise'], ['resolved', 'Concluído'], ['late', 'Atrasado'],
+                // Sem opcao 'Atrasado': atraso e condicao de prazo, filtrada no seletor de SLA.
+                ['all', 'Status'], ['open', 'Aberto'], ['analysis', 'Em análise'], ['resolved', 'Concluído'],
               ]} />
               <FilterSelect label="Categoria" value={categoryFilter} onChange={(value) => { setCategoryFilter(value); setPage(1); }} options={[
                 ['all', 'Categoria'], ['Física', 'Física'], ['Visual', 'Visual'], ['Auditiva', 'Auditiva'], ['Outros', 'Outros'],
@@ -225,12 +231,7 @@ export function AdminRequestsQueue() {
                     </td>
                     <td className="px-3 py-2.5"><CategoryBadge category={protocol.category} /></td>
                     <td className="px-3 py-2.5 text-xs font-medium text-slate-700">{protocol.date}</td>
-                    <td className="px-3 py-2.5">
-                      <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${statusMatches(protocol.status, 'late') ? 'text-red-600' : 'text-[#168821]'}`}>
-                        {statusMatches(protocol.status, 'late') ? <AlertCircle size={15} /> : <CheckCircle2 size={15} />}
-                        {statusMatches(protocol.status, 'late') ? 'Vencido' : 'Em dia'}
-                      </span>
-                    </td>
+                    <td className="px-3 py-2.5"><SlaCell protocol={protocol} /></td>
                     <td className="px-3 py-2.5"><StatusPill status={protocol.status} /></td>
                     <td className="px-3 py-2.5"><PriorityPill protocol={protocol} /></td>
                     <td className="px-4 py-2.5">
@@ -241,16 +242,18 @@ export function AdminRequestsQueue() {
                           onClick={(event) => { event.stopPropagation(); openWhatsApp(protocol.phone); }}
                           className="flex size-9 items-center justify-center rounded-lg border border-[#CDD8E7] text-slate-600 hover:bg-green-50 hover:text-green-700 disabled:cursor-not-allowed disabled:opacity-40"
                           title="Conversar com o cidadão"
+                          aria-label={`Conversar com o cidadão sobre o protocolo ${protocol.id}`}
                         >
-                          <MessageCircle size={16} />
+                          <MessageCircle size={16} aria-hidden="true" />
                         </button>
                         <Link
                           to={`/protocolo/${protocol.id}`}
                           onClick={(event) => event.stopPropagation()}
                           className="flex size-9 items-center justify-center rounded-lg border border-[#CDD8E7] text-slate-600 hover:bg-blue-50 hover:text-[#0758BD]"
                           title="Ver detalhes"
+                          aria-label={`Ver detalhes do protocolo ${protocol.id}`}
                         >
-                          <Eye size={16} />
+                          <Eye size={16} aria-hidden="true" />
                         </Link>
                       </div>
                     </td>
@@ -307,9 +310,17 @@ function SummaryCard({ icon, value, label, tone }: { icon: React.ReactNode; valu
 
 function FilterSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: [string, string][] }) {
   return (
-    <label className="min-w-0">
+    // min-w-[132px] impede que o grid comprima o campo a ponto de cortar
+    // rotulos como "Categoria" e "Prioridade"; pr-8 reserva espaco para a seta
+    // nativa do select, que antes cobria a ultima letra.
+    <label className="min-w-[132px] flex-1">
       <span className="sr-only">{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)} className="h-11 w-full rounded-lg border border-[#CDD8E7] bg-white px-3 text-sm font-semibold text-slate-700">
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        aria-label={label}
+        className="h-11 w-full rounded-lg border border-[#CDD8E7] bg-white pl-3 pr-8 text-sm font-semibold text-slate-700"
+      >
         {options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}
       </select>
     </label>
@@ -324,6 +335,31 @@ function CategoryBadge({ category }: { category: string }) {
     Outros: 'border-slate-200 bg-slate-50 text-slate-700',
   };
   return <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${styles[category] || styles.Outros}`}>{category || 'Outros'}</span>;
+}
+
+function SlaCell({ protocol }: { protocol: Protocol }) {
+  const info = getSlaInfo(protocol);
+  const label = getSlaLabel(info);
+
+  const tone: Record<string, string> = {
+    late: 'text-red-600',
+    'due-soon': 'text-[#8A6100]',
+    'on-time': 'text-[#168821]',
+    resolved: 'text-slate-500',
+    unknown: 'text-slate-400',
+  };
+
+  const Icon = info.state === 'late' || info.state === 'due-soon' ? AlertCircle : CheckCircle2;
+  const title = info.state === 'unknown'
+    ? 'Sem data de abertura registrada'
+    : `Prazo de ${Math.round(info.deadlineHours / 24)} dia(s) para prioridade ${protocol.ai_priority ?? 'não triada'}`;
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${tone[info.state]}`} title={title}>
+      <Icon size={15} aria-hidden="true" />
+      {label}
+    </span>
+  );
 }
 
 function StatusPill({ status }: { status: Protocol['status'] }) {

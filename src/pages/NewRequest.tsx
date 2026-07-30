@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
+import { buildFullAddress, validateAddress } from '../utils/address';
+import { DEFAULT_MAP_CENTER } from '../utils/mapUtils';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -87,8 +89,11 @@ export function NewRequest() {
   const [serviceDesc, setServiceDesc] = useState(requestPreset?.serviceDesc || '');
   const [description, setDescription] = useState('');
   const [images, setImages] = useState<File[]>([]);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([-23.5505, -46.6333]);
-  const [position, setPosition] = useState<{ lat: number, lng: number } | null>({ lat: -23.5505, lng: -46.6333 });
+  const [mapCenter, setMapCenter] = useState<[number, number]>(DEFAULT_MAP_CENTER);
+  // Comeca sem marcador: a posicao tem que ser uma escolha explicita do
+  // solicitante. Um valor inicial faria a validacao passar sozinha e gravaria
+  // uma coordenada que ninguem confirmou.
+  const [position, setPosition] = useState<{ lat: number, lng: number } | null>(null);
 
   // 1 = Type | 2 = Form & Map | 3 = Review
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
@@ -179,11 +184,27 @@ export function NewRequest() {
       }
       setCurrentStep(2);
     } else if (currentStep === 2) {
-      if (!addressObj.street || !serviceDesc) {
+      if (!serviceDesc.trim()) {
         setSubmitStatus('error');
-        setSubmitMessage("Por favor, preencha o problema apontado e o endereço completo.");
+        setSubmitMessage('Descreva o problema apontado.');
         return;
       }
+
+      // Valida rua, numero, cidade e UF. Impede que placeholder ("Selecionar")
+      // ou campos vazios virem endereco no banco.
+      const addressError = validateAddress(addressObj);
+      if (addressError) {
+        setSubmitStatus('error');
+        setSubmitMessage(addressError.message);
+        return;
+      }
+
+      if (!position) {
+        setSubmitStatus('error');
+        setSubmitMessage('Marque no mapa o ponto exato do problema.');
+        return;
+      }
+
       setCurrentStep(3);
     }
   };
@@ -195,7 +216,7 @@ export function NewRequest() {
     setSubmitStatus('submitting');
     setSubmitMessage('Enviando solicitação para a API...');
 
-    const fullAddress = `${addressObj.street}${addressObj.number ? ', ' + addressObj.number : ''}${addressObj.neighborhood ? ' - ' + addressObj.neighborhood : ''}, ${addressObj.city} - ${addressObj.state}`;
+    const fullAddress = buildFullAddress(addressObj);
 
     try {
       await api.createProtocol({
@@ -203,6 +224,10 @@ export function NewRequest() {
         description: serviceDesc + (description ? ` - ${description}` : ''),
         address: fullAddress,
         userId: user?.id,
+        // Posicao que o solicitante confirmou no mapa. E o que a equipe usa
+        // para chegar ao local, entao precisa ser persistida junto.
+        latitude: position?.lat ?? null,
+        longitude: position?.lng ?? null,
       });
       setLoading(false);
       setSubmitStatus('success');

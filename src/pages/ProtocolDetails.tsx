@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   AlertCircle, ArrowLeft, ArrowRight, Box, Calendar, Check, CheckCircle2,
   ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Copy, ExternalLink,
-  FileText, Hash, Info, Link2, Loader2, LockKeyhole, MapPin, MoreHorizontal,
+  FileText, Hash, Info, Link2, Loader2, LockKeyhole, MapPin, MapPinOff, MoreHorizontal,
   Paperclip, RefreshCw, Settings, ShieldCheck, Tag, User,
 } from 'lucide-react';
 import L from 'leaflet';
@@ -57,7 +57,9 @@ export function ProtocolDetails() {
   const [statusError, setStatusError] = useState('');
   const [activeTab, setActiveTab] = useState<DetailsTab>('details');
   const [copiedProtocol, setCopiedProtocol] = useState(false);
-  const [mapPosition, setMapPosition] = useState<[number, number]>([-15.7939, -47.8828]);
+  // null = protocolo sem localizacao confirmada. Nao usar centro fixo aqui:
+  // um default faria o card apontar para um lugar que nao e o da ocorrencia.
+  const [mapPosition, setMapPosition] = useState<[number, number] | null>(null);
 
   const loadProtocol = useCallback(async () => {
     if (!id) return;
@@ -76,16 +78,7 @@ export function ProtocolDetails() {
   }, [loadProtocol]);
 
   useEffect(() => {
-    if (!protocol) return;
-    let active = true;
-    getMarkerPosition(protocol.id, protocol.address || '')
-      .then((position) => {
-        if (active) setMapPosition(position);
-      })
-      .catch(() => undefined);
-    return () => {
-      active = false;
-    };
+    setMapPosition(protocol ? getMarkerPosition(protocol) : null);
   }, [protocol]);
 
   const loadAuditTrail = useCallback(async () => {
@@ -269,17 +262,25 @@ function ProtocolSummary({ protocol, category }: { protocol: DetailedProtocol; c
   );
 }
 
-function LocationCard({ protocol, position, onOpenMap }: { protocol: DetailedProtocol; position: [number, number]; onOpenMap: () => void }) {
+function LocationCard({ protocol, position, onOpenMap }: { protocol: DetailedProtocol; position: [number, number] | null; onOpenMap: () => void }) {
   return (
     <section className="overflow-hidden rounded-lg border border-[#CDD8E7] bg-white shadow-sm">
       <h2 className="flex items-center gap-2 px-5 py-4 font-black"><span className="flex size-7 items-center justify-center rounded-full bg-[#E7F0FF] text-[#0758BD]"><MapPin size={16} /></span>Localização da ocorrência</h2>
       <div className="grid border-t border-[#E2E8F0] md:grid-cols-[1.35fr_0.8fr]">
         <div className="relative h-56 min-w-0 md:h-64">
-          <MapContainer center={position} zoom={15} zoomControl={false} style={{ width: '100%', height: '100%' }}>
-            <MapCenter position={position} />
-            <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" attribution='&copy; OpenStreetMap contributors &copy; CARTO' />
-            <Marker position={position} icon={DETAIL_MARKER_ICON} />
-          </MapContainer>
+          {position ? (
+            <MapContainer center={position} zoom={15} zoomControl={false} style={{ width: '100%', height: '100%' }}>
+              <MapCenter position={position} />
+              <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" attribution='&copy; OpenStreetMap contributors &copy; CARTO' />
+              <Marker position={position} icon={DETAIL_MARKER_ICON} />
+            </MapContainer>
+          ) : (
+            <div className="flex size-full flex-col items-center justify-center gap-2 bg-slate-50 px-6 text-center">
+              <MapPinOff className="text-slate-400" size={28} />
+              <p className="text-sm font-semibold text-slate-600">Sem localização confirmada</p>
+              <p className="text-xs leading-5 text-slate-500">Este protocolo foi aberto sem a marcação no mapa. Use o endereço informado ao lado para localizar a ocorrência.</p>
+            </div>
+          )}
         </div>
         <div className="flex flex-col justify-center p-5">
           <p className="flex items-start gap-2 text-sm leading-6 text-slate-700"><MapPin className="mt-1 shrink-0 text-[#0758BD]" size={16} />{protocol.address || 'Endereço não informado'}</p>

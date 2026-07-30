@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
+  AlertCircle,
   BarChart3,
   CalendarDays,
   ChevronDown,
@@ -28,6 +29,8 @@ import { Header } from '../components/Header';
 import { type Protocol } from '../constants';
 import { useProtocols } from '../hooks/useProtocols';
 import { exportToExcel } from '../utils/exportUtils';
+import { summarizeSlaCompliance } from '../utils/sla';
+import { extractNeighborhood, listNeighborhoods } from '../utils/address';
 
 const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -48,14 +51,20 @@ export function AdminReports() {
   const [category, setCategory] = useState('all');
   const [applied, setApplied] = useState({ year: currentYear.toString(), location: 'all', category: 'all' });
 
-  const locations = useMemo(() => Array.from(new Set(protocols
-    .map((item) => item.address?.split('-')[0]?.trim())
-    .filter((value): value is string => Boolean(value)))).slice(0, 10), [protocols]);
+  // Bairros extraidos do endereco. Antes era `address.split('-')[0]`, que
+  // devolve "Rua X, 881" - a lista rotulada "lotacoes" vinha cheia de ruas.
+  const neighborhoods = useMemo(
+    () => listNeighborhoods(protocols.map((item) => item.address)),
+    [protocols],
+  );
 
   const filteredProtocols = useMemo(() => protocols.filter((protocol) => {
     const date = protocolDate(protocol);
     const matchesYear = !date || date.getFullYear().toString() === applied.year;
-    const matchesLocation = applied.location === 'all' || protocol.address?.includes(applied.location);
+    // Comparacao exata pelo bairro extraido, nao substring do endereco inteiro:
+    // "Centro" nao deve casar com "Centro Historico" nem com "Rua do Centro".
+    const matchesLocation = applied.location === 'all'
+      || extractNeighborhood(protocol.address) === applied.location;
     const matchesCategory = applied.category === 'all' || protocol.category === applied.category;
     return matchesYear && matchesLocation && matchesCategory;
   }), [applied, protocols]);
@@ -89,12 +98,31 @@ export function AdminReports() {
     value: filteredProtocols.filter((protocol) => protocol.category === item.id).length,
   })), [filteredProtocols]);
 
-  const lateCount = filteredProtocols.filter((item) => item.status === 'Atrasado').length;
-  const slaRate = filteredProtocols.length ? Math.max(0, Math.round(((filteredProtocols.length - lateCount) / filteredProtocols.length) * 100)) : 0;
-  const slaData = [
-    { name: 'No prazo', value: slaRate, color: '#08A86B' },
-    { name: 'Atenção', value: 100 - slaRate, color: '#FFB800' },
-  ];
+  // Ocorrencias agrupadas por bairro. O cartao "Ocorrencias por Bairro"
+  // exportava `categoryData`, ou seja, dados por categoria - nao batia com o
+  // proprio titulo nem com o nome do arquivo gerado.
+  const neighborhoodData = useMemo(() => {
+    const counts = new Map<string, number>();
+    filteredProtocols.forEach((protocol) => {
+      const key = extractNeighborhood(protocol.address) ?? 'Sem bairro informado';
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    });
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, value]) => ({ name, value }));
+  }, [filteredProtocols]);
+
+  // Conformidade sobre o prazo real (created_at vs prioridade da triagem).
+  // Antes o calculo usava `status === 'Atrasado'`, valor que nenhum fluxo
+  // atribui, o que fixava a conformidade em 100% mesmo sem nenhuma resolucao.
+  const slaSummary = useMemo(() => summarizeSlaCompliance(filteredProtocols), [filteredProtocols]);
+  const slaRate = slaSummary.rate;
+  const slaData = slaRate === null
+    ? []
+    : [
+      { name: 'No prazo', value: slaRate, color: '#08A86B' },
+      { name: 'Vencido', value: 100 - slaRate, color: '#E52207' },
+    ];
 
   const exportRows = () => filteredProtocols.map((protocol) => ({
     Protocolo: protocol.id,
@@ -115,7 +143,7 @@ export function AdminReports() {
   };
 
   const reportCards = [
-    { title: 'Ocorrências por Bairro', description: 'Volume absoluto de aberturas por localização.', icon: PieChartIcon, tone: 'purple', data: categoryData, file: 'ocorrencias_bairro.xlsx' },
+    { title: 'Ocorrências por Bairro', description: 'Volume absoluto de aberturas por localização.', icon: PieChartIcon, tone: 'purple', data: neighborhoodData, file: 'ocorrencias_bairro.xlsx' },
     { title: 'SLA de Atendimento', description: 'Tempo médio e conformidade de resposta.', icon: BarChart3, tone: 'green', data: slaData, file: 'sla_atendimento.xlsx' },
     { title: 'Taxa de Resolução Mensal', description: 'Evolução de protocolos concluídos no ano.', icon: TrendingUp, tone: 'yellow', data: resolutionData, file: 'resolucao_mensal.xlsx' },
     { title: 'Extrato Analítico', description: 'Exportação bruta e detalhada de toda a base.', icon: FileText, tone: 'blue', data: exportRows(), file: 'extrato_analitico.xlsx', highlight: true },
@@ -148,9 +176,11 @@ export function AdminReports() {
               [(currentYear - 1).toString(), `Ano ${currentYear - 1}`],
               [currentYear.toString(), `Ano ${currentYear}`],
             ]} />
+            {/* "Lotação" é unidade de trabalho do servidor, não local da
+                ocorrência. O filtro sempre foi geográfico: rótulo corrigido. */}
             <ReportSelect icon={<MapPin size={17} />} value={location} onChange={setLocation} options={[
-              ['all', 'Todas as lotações'],
-              ...locations.map((item): [string, string] => [item, item]),
+              ['all', 'Todos os bairros'],
+              ...neighborhoods.map((item): [string, string] => [item, item]),
             ]} />
             <ReportSelect icon={<Tag size={17} />} value={category} onChange={setCategory} options={[
               ['all', 'Todas as categorias'], ['Física', 'Física'], ['Visual', 'Visual'], ['Auditiva', 'Auditiva'], ['Outros', 'Outros'],
@@ -192,7 +222,7 @@ export function AdminReports() {
                 <h2 className="font-black">Taxa de Resolução vs Abertura</h2>
                 <p className="mt-1 text-sm text-slate-600">Desempenho da gestão no ano de {applied.year}</p>
                 <div className="mt-4 h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={resolutionData} margin={{ left: -18, right: 8, top: 8 }}>
                       <CartesianGrid stroke="#D8E1ED" strokeDasharray="4 4" vertical={false} />
                       <XAxis dataKey="name" tickLine={false} axisLine={false} fontSize={12} stroke="#64748B" />
@@ -208,28 +238,46 @@ export function AdminReports() {
 
               <article className="rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-[0_7px_20px_rgba(15,45,85,0.035)] xl:col-span-2">
                 <h2 className="font-black">Conformidade de SLA Geral</h2>
-                <p className="mt-1 text-sm text-slate-600">Proporção de resoluções no prazo estipulado</p>
-                <div className="relative mt-4 h-[235px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={slaData} innerRadius={76} outerRadius={102} paddingAngle={2} dataKey="value">
-                        {slaData.map((item) => <Cell key={item.name} fill={item.color} />)}
-                      </Pie>
-                      <Tooltip contentStyle={tooltipStyle} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                    <strong className="text-4xl font-black">{slaRate}%</strong>
+                <p className="mt-1 text-sm text-slate-600">
+                  Solicitações em aberto dentro do prazo previsto para a prioridade
+                </p>
+                {slaRate === null ? (
+                  <div className="mt-4 flex h-[235px] flex-col items-center justify-center gap-2 rounded-lg bg-slate-50 px-6 text-center">
+                    <AlertCircle className="text-slate-400" size={28} aria-hidden="true" />
+                    <p className="text-sm font-semibold text-slate-600">Sem dados suficientes</p>
+                    <p className="text-xs leading-5 text-slate-500">
+                      Não há solicitações em aberto com data de abertura no período filtrado.
+                    </p>
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {slaData.map((item) => (
-                    <div key={item.name} className="text-center">
-                      <p className="flex items-center justify-center gap-2 text-xl font-black"><span className="size-3 rounded-full" style={{ backgroundColor: item.color }} />{item.value}%</p>
-                      <p className="mt-1 text-sm text-slate-600">{item.name}</p>
+                ) : (
+                  <>
+                    <div className="relative mt-4 h-[235px]">
+                      <ResponsiveContainer width="100%" height={235}>
+                        <PieChart>
+                          <Pie data={slaData} innerRadius={76} outerRadius={102} paddingAngle={2} dataKey="value">
+                            {slaData.map((item) => <Cell key={item.name} fill={item.color} />)}
+                          </Pie>
+                          <Tooltip contentStyle={tooltipStyle} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                        <strong className="text-4xl font-black">{slaRate}%</strong>
+                      </div>
                     </div>
-                  ))}
-                </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {slaData.map((item) => (
+                        <div key={item.name} className="text-center">
+                          <p className="flex items-center justify-center gap-2 text-xl font-black"><span className="size-3 rounded-full" style={{ backgroundColor: item.color }} />{item.value}%</p>
+                          <p className="mt-1 text-sm text-slate-600">{item.name}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+                <p className="mt-3 text-xs leading-5 text-slate-500">
+                  Base: {slaSummary.evaluated} em aberto ({slaSummary.late} vencida(s)).
+                  {slaSummary.resolvedWithoutData > 0 && ` ${slaSummary.resolvedWithoutData} concluída(s) fora do cálculo: não há registro da data de conclusão.`}
+                </p>
               </article>
             </section>
 
@@ -237,7 +285,7 @@ export function AdminReports() {
               <h2 className="font-black">Volumetria por Macro Categoria</h2>
               <div className="mt-4 grid grid-cols-1 items-center gap-6 md:grid-cols-[320px_1fr]">
                 <div className="h-[220px]">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height={220}>
                     <PieChart>
                       <Pie data={categoryData} innerRadius={55} outerRadius={92} paddingAngle={2} dataKey="value">
                         {categoryData.map((item) => <Cell key={item.name} fill={item.color} />)}
@@ -250,7 +298,7 @@ export function AdminReports() {
                   {categoryData.map((item) => (
                     <div key={item.name} className="flex items-center justify-between gap-4 border-b border-[#E2E8F0] pb-3 last:border-0">
                       <span className="flex items-center gap-3 text-sm font-semibold"><span className="size-3 rounded-full" style={{ backgroundColor: item.color }} />{item.name}</span>
-                      <strong className="text-sm">{item.value} chamados</strong>
+                      <strong className="text-sm">{item.value} {item.value === 1 ? 'chamado' : 'chamados'}</strong>
                     </div>
                   ))}
                 </div>

@@ -13,6 +13,7 @@ import {
   Loader2,
   LocateFixed,
   MapPin,
+  MapPinOff,
   Menu,
   Minus,
   Plus,
@@ -28,8 +29,9 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { type Protocol } from '../constants';
 import { useProtocols } from '../hooks/useProtocols';
+import { api } from '../services/api';
 import { exportToExcel } from '../utils/exportUtils';
-import { getMarkerPosition } from '../utils/mapUtils';
+import { countWithoutLocation, DEFAULT_MAP_CENTER, getMarkerPosition } from '../utils/mapUtils';
 
 type CanonicalStatus = 'Aberto' | 'Em análise' | 'Concluído' | 'Atrasado';
 
@@ -96,11 +98,13 @@ function MapTracker({ onReady }: { onReady: (map: L.Map) => void }) {
 }
 
 export function AdminMap() {
-  const { protocols, loading } = useProtocols('admin');
+  const { protocols, loading, refetch } = useProtocols('admin');
+  const [locating, setLocating] = useState(false);
+  const [locateResult, setLocateResult] = useState('');
   const { toggleMobileMenu } = useApp();
   const navigate = useNavigate();
   const [map, setMap] = useState<L.Map | null>(null);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([-15.7939, -47.8828]);
+  const [mapCenter, setMapCenter] = useState<[number, number]>(DEFAULT_MAP_CENTER);
   const [search, setSearch] = useState('');
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
@@ -135,6 +139,31 @@ export function AdminMap() {
     });
     return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 2);
   }, [protocols]);
+
+  // Protocolos sem coordenada nao recebem pin. Contamos para que a ausencia
+  // seja explicita, em vez de o mapa parecer completo com menos ocorrencias.
+  const withoutLocation = useMemo(() => countWithoutLocation(filteredProtocols), [filteredProtocols]);
+
+  // Geocodifica na Edge Function os protocolos antigos que nao tem coordenada.
+  // Roda em lotes por causa do limite de 1 req/s do Nominatim.
+  const handleLocateMissing = useCallback(async () => {
+    if (locating) return;
+    setLocating(true);
+    setLocateResult('');
+    try {
+      const result = await api.backfillCoordinates(8);
+      await refetch();
+      const parts = [`${result.located} localizada(s)`];
+      if (result.failed > 0) parts.push(`${result.failed} sem resultado`);
+      if (result.skipped > 0) parts.push(`${result.skipped} com endereço inválido`);
+      if (result.remaining > 0) parts.push(`${result.remaining} restante(s)`);
+      setLocateResult(parts.join(' · '));
+    } catch (error) {
+      setLocateResult(error instanceof Error ? error.message : 'Falha ao localizar solicitações.');
+    } finally {
+      setLocating(false);
+    }
+  }, [locating, refetch]);
 
   const filterCount = (ALL_CATEGORIES.length - activeCategories.length) + (ALL_STATUSES.length - activeStatuses.length);
 
@@ -217,9 +246,8 @@ export function AdminMap() {
     const incident = filteredProtocols[nextIndex];
     setSelectedIndex(nextIndex);
     setActiveIncident(incident);
-    getMarkerPosition(incident.id, incident.address || '').then((position) => {
-      if (position) map?.flyTo(position, 16);
-    });
+    const position = getMarkerPosition(incident);
+    if (position) map?.flyTo(position, 16);
   }, [filteredProtocols, map, selectedIndex]);
 
   const handleMarkerClick = (protocol: Protocol, index: number) => {
@@ -335,6 +363,30 @@ export function AdminMap() {
               </div>
             ))}
           </div>
+          {withoutLocation > 0 && (
+            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <div className="flex items-start gap-2">
+                <MapPinOff className="mt-0.5 shrink-0 text-amber-600" size={16} aria-hidden="true" />
+                <p className="text-xs leading-5 text-amber-900">
+                  <strong>{withoutLocation}</strong>{' '}
+                  {withoutLocation === 1
+                    ? 'solicitação sem localização confirmada não aparece no mapa.'
+                    : 'solicitações sem localização confirmada não aparecem no mapa.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleLocateMissing}
+                disabled={locating}
+                className="mt-3 inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-lg border border-amber-300 bg-white px-3 text-xs font-bold text-amber-900 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {locating
+                  ? <><Loader2 className="animate-spin" size={14} aria-hidden="true" /> Localizando...</>
+                  : <><LocateFixed size={14} aria-hidden="true" /> Localizar pelo endereço</>}
+              </button>
+              {locateResult && <p className="mt-2 text-xs leading-5 text-amber-900">{locateResult}</p>}
+            </div>
+          )}
         </section>
         <section className="pointer-events-auto rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-xl">
           <h2 className="font-black">Áreas com mais ocorrências</h2>
@@ -433,16 +485,9 @@ function FilterGroup({ title, values, selected, onToggle, status = false }: { ti
 }
 
 function ProtocolMarker({ protocol, selected, showMarker, showHeatmap, onClick }: { protocol: Protocol; selected: boolean; showMarker: boolean; showHeatmap: boolean; onClick: () => void }) {
-  const [position, setPosition] = useState<[number, number] | null>(null);
   const status = canonicalStatus(protocol.status);
-
-  useEffect(() => {
-    let active = true;
-    getMarkerPosition(protocol.id, protocol.address || '').then((value) => {
-      if (active) setPosition(value);
-    }).catch(() => undefined);
-    return () => { active = false; };
-  }, [protocol.address, protocol.id]);
+  // Sem coordenada confirmada o protocolo nao e plotado (ver mapUtils).
+  const position = getMarkerPosition(protocol);
 
   if (!position) return null;
 

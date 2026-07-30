@@ -1,13 +1,36 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import {
     MapPin, ArrowRight, Shield, Zap, Users, BarChart3,
-    CheckCircle, ChevronRight, ChevronLeft, Star, Eye, Clock, UserRound, Camera, Monitor, Accessibility,
+    CheckCircle, ChevronRight, ChevronLeft, Star, Eye, UserRound, Camera, Monitor, Accessibility,
     ClipboardList, Smile, Quote, Contrast
 } from 'lucide-react';
 import { CidadaoBrand } from '../components/CidadaoBrand';
 import { useA11y } from '../context/A11yContext';
+import { api } from '../services/api';
+
+interface PublicStats {
+    total: number;
+    resolved: number;
+    resolutionRate: number | null;
+    citizens: number;
+}
+
+/** 0 -> "0"; 940 -> "940"; 12400 -> "12,4 mil". */
+function formatCount(value: number): string {
+    if (value < 1000) return String(value);
+    const thousands = value / 1000;
+    const rounded = thousands >= 100 ? Math.round(thousands) : Math.round(thousands * 10) / 10;
+    return `${rounded.toLocaleString('pt-BR')} mil`;
+}
+
+/** Placeholder enquanto carrega e quando a metrica nao tem base de calculo. */
+const EMPTY_METRIC = '—';
+
+// Navegacao precisa ser <a> de verdade: com <button> nao ha como abrir em nova
+// aba, dar Ctrl+clique nem copiar o link. Este wrapper mantem as animacoes.
+const MotionLink = motion.create(Link);
 
 type ProcessVisualProps = {
     type: 'report' | 'tracking' | 'solution';
@@ -89,8 +112,18 @@ function ProcessVisual({ type }: ProcessVisualProps) {
     );
 }
 export function LandingPage() {
-    const navigate = useNavigate();
     const [comparisonPosition, setComparisonPosition] = useState(50);
+    const [publicStats, setPublicStats] = useState<PublicStats | null>(null);
+
+    // Falha silenciosa e proposital: a landing nao deve quebrar nem exibir erro
+    // por causa das metricas. Sem dados, os cartoes ficam com "—".
+    useEffect(() => {
+        let active = true;
+        api.getPublicStats()
+            .then((data) => { if (active) setPublicStats(data); })
+            .catch(() => undefined);
+        return () => { active = false; };
+    }, []);
     const { fontSize, setFontSize, theme, setTheme } = useA11y();
 
     const features = [
@@ -150,11 +183,36 @@ export function LandingPage() {
             cardClass: 'border-[#87C68F] bg-[#F2FAF3]',
         },
     ];
+    // Metricas reais do banco. Antes eram valores fixos ("12.4 mil atendidas",
+    // "98% de satisfacao") sem lastro nenhum nos dados. Satisfacao e tempo
+    // medio de resposta sairam da vitrine por nao existir fonte para eles.
     const stats = [
-        { value: '12.4 mil', label: 'atendidas', icon: Users, tone: 'bg-blue-600' },
-        { value: '98%', label: 'de satisfação', icon: Star, tone: 'bg-yellow-500' },
-        { value: '3,2 mil', label: 'usuários', icon: UserRound, tone: 'bg-green-600' },
-        { value: '48h', label: 'de resposta média', icon: Clock, tone: 'bg-blue-600' },
+        {
+            value: publicStats ? formatCount(publicStats.total) : EMPTY_METRIC,
+            label: 'solicitações registradas',
+            icon: ClipboardList,
+            tone: 'bg-blue-600',
+        },
+        {
+            value: publicStats ? formatCount(publicStats.resolved) : EMPTY_METRIC,
+            label: 'já resolvidas',
+            icon: CheckCircle,
+            tone: 'bg-green-600',
+        },
+        {
+            value: publicStats?.resolutionRate === null || !publicStats
+                ? EMPTY_METRIC
+                : `${publicStats.resolutionRate}%`,
+            label: 'taxa de resolução',
+            icon: BarChart3,
+            tone: 'bg-yellow-500',
+        },
+        {
+            value: publicStats ? formatCount(publicStats.citizens) : EMPTY_METRIC,
+            label: 'cidadãos cadastrados',
+            icon: UserRound,
+            tone: 'bg-blue-600',
+        },
     ];
 
     const journeySteps = [
@@ -204,29 +262,26 @@ export function LandingPage() {
                         <a href="#resultados" className="text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]">
                             Resultados
                         </a>
-                        <button
-                            type="button"
-                            onClick={() => navigate('/login')}
-                            className="h-11 rounded-lg border border-slate-300 bg-white px-6 text-sm font-bold text-slate-800 transition-colors hover:border-[#1351B4] hover:text-[#1351B4]"
+                        <Link
+                            to="/login"
+                            className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-300 bg-white px-6 text-sm font-bold text-slate-800 transition-colors hover:border-[#1351B4] hover:text-[#1351B4]"
                         >
                             Entrar
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => navigate('/cadastro')}
-                            className="h-11 rounded-lg bg-blue-600 px-7 text-sm font-bold text-white shadow-lg shadow-blue-900/15 transition-colors hover:bg-[#0C326F]"
+                        </Link>
+                        <Link
+                            to="/cadastro"
+                            className="inline-flex h-11 items-center justify-center rounded-lg bg-blue-600 px-7 text-sm font-bold text-white shadow-lg shadow-blue-900/15 transition-colors hover:bg-[#0C326F]"
                         >
                             Criar conta
-                        </button>
+                        </Link>
                     </div>
 
-                    <button
-                        type="button"
-                        onClick={() => navigate('/login')}
-                        className="h-10 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white lg:hidden"
+                    <Link
+                        to="/login"
+                        className="inline-flex h-10 items-center justify-center rounded-lg bg-blue-600 px-4 text-sm font-bold text-white lg:hidden"
                     >
                         Entrar
-                    </button>
+                    </Link>
                 </div>
             </nav>
 
@@ -260,24 +315,24 @@ export function LandingPage() {
                             </p>
 
                             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                                <motion.button
+                                <MotionLink
                                     whileHover={{ y: -2 }}
                                     whileTap={{ scale: 0.98 }}
-                                    onClick={() => navigate('/cadastro')}
+                                    to="/cadastro"
                                     className="flex h-14 items-center justify-center gap-3 rounded-lg bg-blue-600 px-8 text-base font-bold text-white shadow-xl shadow-blue-900/20 transition-colors hover:bg-[#0C326F]"
                                 >
                                     Criar conta gratuita
-                                    <ArrowRight size={19} />
-                                </motion.button>
-                                <motion.button
+                                    <ArrowRight size={19} aria-hidden="true" />
+                                </MotionLink>
+                                <MotionLink
                                     whileHover={{ y: -2 }}
                                     whileTap={{ scale: 0.98 }}
-                                    onClick={() => navigate('/login')}
+                                    to="/login"
                                     className="flex h-14 items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white/90 px-8 text-base font-bold text-slate-800 shadow-sm transition-colors hover:border-[#1351B4] hover:text-[#1351B4]"
                                 >
                                     Já tenho conta
-                                    <ChevronRight size={19} />
-                                </motion.button>
+                                    <ChevronRight size={19} aria-hidden="true" />
+                                </MotionLink>
                             </div>
 
                             <p className="mt-7 flex items-center gap-2 text-sm font-medium text-slate-600">
@@ -466,9 +521,23 @@ export function LandingPage() {
 
                             <div className="mt-8 grid gap-3 sm:grid-cols-3">
                                 {[
-                                    { value: '12.4 mil', label: 'solicitações atendidas', icon: ClipboardList, tone: 'text-[#1351B4]', bg: 'bg-[#EEF5FF]' },
-                                    { value: '98%', label: 'de satisfação', icon: Smile, tone: 'text-[#168821]', bg: 'bg-[#EFF9F0]' },
-                                    { value: '48h', label: 'de resposta média', icon: Clock, tone: 'text-[#D99B00]', bg: 'bg-[#FFF8E3]' },
+                                    {
+                                        value: publicStats ? formatCount(publicStats.total) : EMPTY_METRIC,
+                                        label: 'solicitações registradas',
+                                        icon: ClipboardList, tone: 'text-[#1351B4]', bg: 'bg-[#EEF5FF]',
+                                    },
+                                    {
+                                        value: publicStats ? formatCount(publicStats.resolved) : EMPTY_METRIC,
+                                        label: 'já resolvidas',
+                                        icon: Smile, tone: 'text-[#168821]', bg: 'bg-[#EFF9F0]',
+                                    },
+                                    {
+                                        value: publicStats?.resolutionRate === null || !publicStats
+                                            ? EMPTY_METRIC
+                                            : `${publicStats.resolutionRate}%`,
+                                        label: 'taxa de resolução',
+                                        icon: BarChart3, tone: 'text-[#D99B00]', bg: 'bg-[#FFF8E3]',
+                                    },
                                 ].map((metric) => {
                                     const MetricIcon = metric.icon;
                                     return (
@@ -607,21 +676,19 @@ export function LandingPage() {
                             </p>
 
                             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                                <button
-                                    type="button"
-                                    onClick={() => navigate('/cadastro')}
+                                <Link
+                                    to="/cadastro"
                                     className="flex h-14 items-center justify-center gap-3 rounded-lg bg-[#FFCD07] px-8 text-base font-black text-[#071A3A] shadow-lg shadow-black/15 transition-colors hover:bg-[#FFD83D]"
                                 >
                                     Criar minha conta
                                     <ArrowRight size={20} aria-hidden="true" />
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => navigate('/login')}
+                                </Link>
+                                <Link
+                                    to="/login"
                                     className="landing-outline-button flex h-14 items-center justify-center rounded-lg border-2 bg-transparent px-8 text-base font-bold transition-colors"
                                 >
                                     Já tenho conta
-                                </button>
+                                </Link>
                             </div>
 
                             <p className="landing-dark-muted mt-7 flex items-center gap-3 text-sm font-medium sm:text-base">
@@ -654,14 +721,14 @@ export function LandingPage() {
                             <div className="mt-5 flex flex-col items-start gap-3">
                                 <a href="#como-funciona" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Como funciona</a>
                                 <a href="#beneficios" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Benefícios</a>
-                                <button type="button" onClick={() => navigate('/login')} className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Entrar</button>
+                                <Link to="/login" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Entrar</Link>
                             </div>
                         </nav>
 
                         <nav aria-label="Links de suporte" className="lg:border-l lg:border-slate-200 lg:px-12">
                             <h3 className="font-black text-[#071A3A]">Suporte</h3>
                             <div className="mt-5 flex flex-col items-start gap-3">
-                                <button type="button" onClick={() => navigate('/acessibilidade')} className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Acessibilidade</button>
+                                <Link to="/acessibilidade" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Acessibilidade</Link>
                                 <a href="mailto:suporte@cidadaoinforma.com.br" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Central de ajuda</a>
                                 <a href="mailto:contato@cidadaoinforma.com.br" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Contato</a>
                             </div>
@@ -670,8 +737,8 @@ export function LandingPage() {
                         <nav aria-label="Links legais" className="lg:border-l lg:border-slate-200 lg:pl-12">
                             <h3 className="font-black text-[#071A3A]">Legal</h3>
                             <div className="mt-5 flex flex-col items-start gap-3">
-                                <button type="button" onClick={() => navigate('/termos-de-uso')} className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Termos de uso</button>
-                                <button type="button" onClick={() => navigate('/privacidade')} className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Privacidade</button>
+                                <Link to="/termos-de-uso" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Termos de uso</Link>
+                                <Link to="/privacidade" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Privacidade</Link>
                             </div>
                         </nav>
                     </div>
@@ -679,15 +746,14 @@ export function LandingPage() {
                     <div className="flex flex-col gap-5 border-t border-slate-200 py-5 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
                         <p>© 2026 Cidadão Informa</p>
                         <div className="flex items-center gap-2" aria-label="Atalhos de acessibilidade">
-                            <button
-                                type="button"
-                                onClick={() => navigate('/acessibilidade')}
+                            <Link
+                                to="/acessibilidade"
                                 className="flex size-10 items-center justify-center rounded-full text-[#1351B4] transition-colors hover:bg-[#EAF2FF]"
                                 title="Opções de acessibilidade"
                                 aria-label="Abrir opções de acessibilidade"
                             >
                                 <Accessibility size={23} aria-hidden="true" />
-                            </button>
+                            </Link>
                             <button
                                 type="button"
                                 onClick={() => setFontSize(Math.min(200, fontSize + 5))}

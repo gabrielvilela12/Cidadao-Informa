@@ -36,6 +36,8 @@ interface ProtocolRow {
   user_id: string;
   requester: string;
   created_at: string;
+  latitude?: number | null;
+  longitude?: number | null;
   ai_priority?: string | null;
   ai_status?: string | null;
 }
@@ -287,9 +289,24 @@ async function getProtocolById(id: string): Promise<ProtocolRow | null> {
   return firstRow(data as ProtocolRow[]);
 }
 
+// Coordenada valida ou null. Nunca inventa posicao: sem coordenada confiavel o
+// protocolo fica sem localizacao e nao recebe pin no mapa.
+function parseCoordinate(value: unknown, limit: number): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  if (parsed < -limit || parsed > limit) return null;
+  return parsed;
+}
+
 async function createProtocol(body: Record<string, unknown>) {
   const user = await getUserFromToken(String(body.token ?? ""));
   const now = new Date().toISOString();
+
+  const latitude = parseCoordinate(body.latitude, 90);
+  const longitude = parseCoordinate(body.longitude, 180);
+  // Latitude e longitude andam juntas; uma sozinha nao localiza nada.
+  const hasCoordinates = latitude !== null && longitude !== null;
 
   const protocol = {
     id: crypto.randomUUID(),
@@ -300,6 +317,8 @@ async function createProtocol(body: Record<string, unknown>) {
     user_id: user.id,
     requester: String(user.full_name ?? "Usuario"),
     created_at: now,
+    latitude: hasCoordinates ? latitude : null,
+    longitude: hasCoordinates ? longitude : null,
   };
 
   if (!protocol.category || !protocol.description || !protocol.address) {
@@ -331,6 +350,7 @@ async function createProtocol(body: Record<string, unknown>) {
       description_hash: await sha256Hex(createdProtocol.description),
       address_hash: await sha256Hex(createdProtocol.address),
       requester_hash: await sha256Hex(createdProtocol.requester),
+      has_coordinates: createdProtocol.latitude !== null && createdProtocol.latitude !== undefined,
     },
   });
 
@@ -523,6 +543,165 @@ async function verifyAuditChain(token: string | null | undefined) {
   };
 }
 
+/**
+ * Metricas agregadas para a landing publica. Nao exige token e nao devolve
+ * nenhum dado individual - apenas contagens. Substitui os numeros fixos que a
+ * landing exibia ("12.4 mil atendidas", "98% de satisfacao"), que nao tinham
+ * lastro nos dados reais.
+ *
+ * Metricas deliberadamente ausentes, por nao existir fonte no banco:
+ *  - satisfacao: nao ha pesquisa de satisfacao implementada.
+ *  - tempo medio de resposta: protocols nao tem timestamp de resolucao.
+ * Inventar esses dois seria repetir o problema que esta correcao resolve.
+ */
+async function getPublicStats() {
+  const [totalResult, resolvedResult, citizensResult] = await Promise.all([
+    supabase.from("protocols").select("id", { count: "exact", head: true }),
+    supabase
+      .from("protocols")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["Concluído", "Concluido", "Resolved"]),
+    supabase.from("users").select("id", { count: "exact", head: true }),
+  ]);
+
+  const total = totalResult.count ?? 0;
+  const resolved = resolvedResult.count ?? 0;
+
+  return {
+    total,
+    resolved,
+    // null quando nao ha base para calcular: a UI mostra "-" em vez de 0%,
+    // que seria lido como "nada e resolvido".
+    resolutionRate: total > 0 ? Math.round((resolved / total) * 100) : null,
+    citizens: citizensResult.count ?? 0,
+  };
+}
+
+// --- Geocodificacao server-side -------------------------------------------
+//
+// A geocodificacao roda AQUI, nunca no browser. No cliente ela falhava 100%
+// das vezes por CORS e violava a politica de uso do Nominatim (que exige
+// User-Agent identificavel e no maximo 1 requisicao por segundo). O resultado
+// e gravado em protocols.latitude/longitude, virando cache permanente: cada
+// endereco e consultado uma unica vez na vida.
+
+const NOMINATIM_USER_AGENT = "CidadaoInforma/1.0 (suporte@cidadaoinforma.com.br)";
+const NOMINATIM_MIN_INTERVAL_MS = 1100;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Descarta enderecos degenerados antes de gastar requisicao. A base tem
+// registros como "av ,  - " e "222, 2-2, 2-2", que nunca vao geocodificar.
+function looksGeocodable(address: string): boolean {
+  const trimmed = address.trim();
+  if (trimmed.length < 8) return false;
+  const letters = trimmed.match(/[A-Za-zÀ-ÿ]/g);
+  return (letters?.length ?? 0) >= 5;
+}
+
+async function geocodeAddress(address: string): Promise<{ lat: number; lon: number } | null> {
+  const url = "https://nominatim.openstreetmap.org/search"
+    + `?format=json&limit=1&countrycodes=br&q=${encodeURIComponent(address)}`;
+
+  const res = await fetch(url, {
+    headers: { "User-Agent": NOMINATIM_USER_AGENT, "Accept-Language": "pt-BR" },
+  });
+
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  if (!Array.isArray(data) || data.length === 0) return null;
+
+  const lat = Number(data[0]?.lat);
+  const lon = Number(data[0]?.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+
+  return { lat, lon };
+}
+
+/**
+ * Preenche coordenadas dos protocolos que ainda nao tem, a partir do endereco.
+ * Processa em lotes pequenos para respeitar o limite do Nominatim sem estourar
+ * o tempo de execucao da function: chame novamente enquanto `remaining` > 0.
+ */
+async function backfillCoordinates(body: Record<string, unknown>) {
+  const user = await getUserFromToken(String(body.token ?? ""));
+  if (user.role !== "admin") {
+    throw new Error("Acesso restrito a administradores.");
+  }
+
+  const requested = Number(body.limit ?? 8);
+  const limit = Math.min(Math.max(Number.isFinite(requested) ? requested : 8, 1), 15);
+
+  const { data, error } = await supabase
+    .from("protocols")
+    .select("id, address")
+    .is("latitude", null)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+
+  const rows = (data ?? []) as Array<{ id: string; address: string | null }>;
+  let located = 0;
+  let skipped = 0;
+  let failed = 0;
+  let didRequest = false;
+
+  for (const row of rows) {
+    const address = String(row.address ?? "");
+
+    if (!looksGeocodable(address)) {
+      skipped++;
+      continue;
+    }
+
+    // 1 req/s conforme a politica de uso do Nominatim.
+    if (didRequest) await sleep(NOMINATIM_MIN_INTERVAL_MS);
+    didRequest = true;
+
+    let found: { lat: number; lon: number } | null = null;
+    try {
+      found = await geocodeAddress(address);
+    } catch (_error) {
+      found = null;
+    }
+
+    if (!found) {
+      failed++;
+      continue;
+    }
+
+    const { error: updateError } = await supabase
+      .from("protocols")
+      .update({ latitude: found.lat, longitude: found.lon })
+      .eq("id", row.id);
+
+    if (updateError) {
+      failed++;
+      continue;
+    }
+
+    located++;
+  }
+
+  const { count } = await supabase
+    .from("protocols")
+    .select("id", { count: "exact", head: true })
+    .is("latitude", null);
+
+  return {
+    processed: rows.length,
+    located,
+    skipped,
+    failed,
+    remaining: count ?? 0,
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -554,6 +733,11 @@ Deno.serve(async (req) => {
         return jsonResponse({ success: true, data: await getProtocolAuditTrail(body) });
       case "verifyAuditChain":
         return jsonResponse({ success: true, data: await verifyAuditChain(body.token) });
+      case "backfillCoordinates":
+        return jsonResponse({ success: true, data: await backfillCoordinates(body) });
+      // Publica: so agregados, sem token e sem dado individual.
+      case "publicStats":
+        return jsonResponse({ success: true, data: await getPublicStats() });
       default:
         return jsonResponse({ success: false, error: "Invalid action" }, 400);
     }

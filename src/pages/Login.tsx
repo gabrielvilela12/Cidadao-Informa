@@ -190,22 +190,35 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                                 </p>
                             </div>
 
-                            {/* Mode toggle */}
-                        <div className="grid grid-cols-2 gap-1 rounded-full bg-slate-100 p-1">
-                            <button
-                                type="button"
-                                onClick={() => setAuthMode('citizen')}
-                                className={`rounded-full py-2 text-sm font-bold transition-all flex justify-center items-center gap-2 ${authMode === 'citizen' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'text-slate-500 hover:text-slate-900'}`}
+                            {/* Mode toggle: escolhe qual formulário aparece (o de cidadão
+                                permite criar conta; o de servidor é só acesso). NÃO define
+                                o nível de acesso, que vem do cadastro do usuário. */}
+                        <div>
+                            <div
+                                role="group"
+                                aria-label="Escolha o tipo de formulário de acesso"
+                                className="grid grid-cols-2 gap-1 rounded-full bg-slate-100 p-1"
                             >
-                                <User size={15} /> Cidadão
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => { setAuthMode('admin'); setIsRegistering(false); setAcceptedTerms(false); }}
-                                className={`rounded-full py-2 text-sm font-bold transition-all flex justify-center items-center gap-2 ${authMode === 'admin' ? 'bg-amber-500 text-slate-900 shadow-md shadow-amber-500/20' : 'text-slate-500 hover:text-slate-900'}`}
-                            >
-                                <Shield size={15} /> Servidor
-                            </button>
+                                <button
+                                    type="button"
+                                    aria-pressed={authMode === 'citizen'}
+                                    onClick={() => setAuthMode('citizen')}
+                                    className={`rounded-full py-2 text-sm font-bold transition-all flex justify-center items-center gap-2 ${authMode === 'citizen' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'text-slate-500 hover:text-slate-900'}`}
+                                >
+                                    <User size={15} aria-hidden="true" /> Cidadão
+                                </button>
+                                <button
+                                    type="button"
+                                    aria-pressed={authMode === 'admin'}
+                                    onClick={() => { setAuthMode('admin'); setIsRegistering(false); setAcceptedTerms(false); }}
+                                    className={`rounded-full py-2 text-sm font-bold transition-all flex justify-center items-center gap-2 ${authMode === 'admin' ? 'bg-amber-500 text-slate-900 shadow-md shadow-amber-500/20' : 'text-slate-500 hover:text-slate-900'}`}
+                                >
+                                    <Shield size={15} aria-hidden="true" /> Servidor
+                                </button>
+                            </div>
+                            <p className="mt-2 text-center text-xs leading-5 text-slate-500">
+                                Seu acesso é definido pelo seu cadastro, não por esta escolha.
+                            </p>
                         </div>
 
                         {/* Error */}
@@ -224,6 +237,38 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
 
                         {/* Citizen form */}
                         {authMode === 'citizen' ? (
+                          <>
+                            {/* Seletor de entrar/cadastrar ANTES do formulário: antes ele
+                                ficava abaixo do submit, competindo com o botão principal
+                                e sugerindo que era a ação final. */}
+                            <div
+                                role="group"
+                                aria-label="Entrar ou criar conta"
+                                className="grid grid-cols-2 gap-1 rounded-full bg-slate-100 p-1"
+                            >
+                                <button
+                                    type="button"
+                                    aria-pressed={!isRegistering}
+                                    onClick={() => switchMode(false)}
+                                    className={`auth-mode-choice rounded-full px-4 py-2 text-sm font-bold transition-all ${!isRegistering
+                                        ? 'is-active bg-white text-slate-900 shadow-sm'
+                                        : 'text-slate-500 hover:text-slate-900'
+                                        }`}
+                                >
+                                    <span>Entrar</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    aria-pressed={isRegistering}
+                                    onClick={() => switchMode(true)}
+                                    className={`auth-mode-choice rounded-full px-4 py-2 text-sm font-bold transition-all ${isRegistering
+                                        ? 'is-active bg-white text-slate-900 shadow-sm'
+                                        : 'text-slate-500 hover:text-slate-900'
+                                        }`}
+                                >
+                                    <span>Cadastrar</span>
+                                </button>
+                            </div>
                             <form onSubmit={handleCitizenAuth} className="flex flex-col gap-4">
                                 <AnimatePresence>
                                     {isRegistering && (
@@ -274,32 +319,8 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                                         ? <Loader2 size={18} className="animate-spin" />
                                         : <>{isRegistering ? 'Criar minha conta' : 'Entrar agora'} <ArrowRight size={16} /></>}
                                 </button>
-
-                                <div className="grid grid-cols-2 gap-1 rounded-full bg-slate-100 p-1">
-                                    <button
-                                        type="button"
-                                        aria-pressed={!isRegistering}
-                                        onClick={() => switchMode(false)}
-                                        className={`auth-mode-choice rounded-full px-4 py-2.5 text-sm font-bold transition-all ${!isRegistering
-                                            ? 'is-active bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                                            : 'bg-white text-slate-600 shadow-sm hover:text-slate-900'
-                                            }`}
-                                    >
-                                        <span>Entrar</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        aria-pressed={isRegistering}
-                                        onClick={() => switchMode(true)}
-                                        className={`auth-mode-choice rounded-full px-4 py-2.5 text-sm font-bold transition-all ${isRegistering
-                                            ? 'is-active bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                                            : 'bg-white text-slate-600 shadow-sm hover:text-slate-900'
-                                            }`}
-                                    >
-                                        <span>Cadastrar</span>
-                                    </button>
-                                </div>
                             </form>
+                          </>
                         ) : (
                             /* Admin form */
                             <form onSubmit={handleAdminAuth} className="flex flex-col gap-4">

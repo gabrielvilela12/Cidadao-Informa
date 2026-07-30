@@ -1,11 +1,12 @@
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, Calendar, Clock, FileText, CheckCircle, AlertCircle, Shield, Share2, Check, ExternalLink, Image as ImageIcon } from 'lucide-react';
+import { MapPin, MapPinOff, Calendar, Clock, FileText, CheckCircle, AlertCircle, Shield, Share2, Check, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { api } from '../services/api';
 import { CidadaoBrand } from '../components/CidadaoBrand';
+import { getMarkerPosition } from '../utils/mapUtils';
 
 // Fix leaflet icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -45,6 +46,8 @@ export function PublicProtocol() {
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
     const [notFound, setNotFound] = useState(false);
+    // Coordenada confirmada do protocolo, ou null quando nao houver.
+    const publicPosition = protocol ? getMarkerPosition(protocol) : null;
 
     useEffect(() => {
         if (!id) return;
@@ -142,19 +145,31 @@ export function PublicProtocol() {
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             {/* Left column */}
                             <div className="lg:col-span-2 flex flex-col gap-6">
-                                {/* Map */}
-                                <div className="bg-white/5 border border-white/8 rounded-2xl overflow-hidden h-64 relative z-0">
-                                    <MapContainer center={[-23.5505, -46.6333]} zoom={15}
-                                        style={{ height: '100%', width: '100%', zIndex: 0 }} zoomControl={false}>
-                                        <TileLayer
-                                            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                                            attribution='© OpenStreetMap contributors © CARTO'
-                                        />
-                                        <Marker position={[-23.5505, -46.6333]}>
-                                            <Popup>{protocol.address || 'Local do incidente'}</Popup>
-                                        </Marker>
-                                    </MapContainer>
-                                </div>
+                                {/* Map: apenas com a coordenada confirmada do protocolo.
+                                    Antes o centro e o marcador eram fixos em São Paulo,
+                                    então todo protocolo aparecia na Avenida Paulista. */}
+                                {publicPosition ? (
+                                    <div className="bg-white/5 border border-white/8 rounded-2xl overflow-hidden h-64 relative z-0">
+                                        <MapContainer center={publicPosition} zoom={15}
+                                            style={{ height: '100%', width: '100%', zIndex: 0 }} zoomControl={false}>
+                                            <TileLayer
+                                                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                                                attribution='© OpenStreetMap contributors © CARTO'
+                                            />
+                                            <Marker position={publicPosition}>
+                                                <Popup>{protocol.address || 'Local do incidente'}</Popup>
+                                            </Marker>
+                                        </MapContainer>
+                                    </div>
+                                ) : (
+                                    <div className="bg-white/5 border border-white/8 rounded-2xl h-64 flex flex-col items-center justify-center gap-2 px-6 text-center">
+                                        <MapPinOff size={26} className="text-slate-500" aria-hidden="true" />
+                                        <p className="text-sm font-semibold text-slate-300">Sem localização confirmada</p>
+                                        <p className="text-xs text-slate-500 leading-relaxed">
+                                            {protocol.address || 'Endereço não informado'}
+                                        </p>
+                                    </div>
+                                )}
 
                                 {/* Description */}
                                 <div className="bg-white/5 border border-white/8 rounded-2xl p-6">

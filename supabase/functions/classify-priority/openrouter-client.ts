@@ -9,6 +9,8 @@ export interface ClassifyRequest {
 
 export interface ClassifyResponse {
   priority: "baixa" | "media" | "alta" | "critica";
+  /** Justificativa curta da classificacao. null quando o modelo nao devolveu. */
+  reason: string | null;
   rawResponse: string;
 }
 
@@ -49,18 +51,30 @@ export async function classifyPriority(
   }
 
   const data = await response.json();
-  const rawResponse =
-    data.choices[0]?.message?.content?.trim().toUpperCase() || "";
+  // Preserva o texto original: o motivo precisa da capitalizacao intacta.
+  const rawResponse = data.choices[0]?.message?.content?.trim() || "";
 
-  const priority = parsePriority(rawResponse);
+  // Le a prioridade da linha rotulada. O fallback para o texto inteiro mantem
+  // compatibilidade com o formato antigo, que respondia so uma palavra.
+  const priority = parsePriority(extractLabeledValue(rawResponse, "PRIORIDADE") ?? rawResponse);
   if (!priority) {
     throw new Error(`Invalid priority response from LLM: ${rawResponse}`);
   }
 
+  const reason = extractLabeledValue(rawResponse, "MOTIVO");
+
   return {
     priority,
+    reason: reason ? reason.slice(0, 500) : null,
     rawResponse,
   };
+}
+
+/** Extrai o valor de uma linha no formato "ROTULO: valor". */
+function extractLabeledValue(text: string, label: string): string | null {
+  const match = text.match(new RegExp(`^\\s*${label}\\s*:\\s*(.+)$`, "im"));
+  const value = match?.[1]?.trim();
+  return value ? value : null;
 }
 
 function buildPrompt(category: string, description: string): string {
@@ -98,9 +112,13 @@ DADOS DO CHAMADO:
 Categoria: ${category}
 Descrição: ${description}
 
-Responda APENAS com UMA palavra: CRÍTICA, ALTA, MÉDIA ou BAIXA
+FORMATO DA RESPOSTA (exatamente duas linhas, sem markdown):
+PRIORIDADE: <CRÍTICA, ALTA, MÉDIA ou BAIXA>
+MOTIVO: <uma frase curta, no máximo 200 caracteres, explicando o critério aplicado>
 
-Não adicione explicações, apenas a prioridade.`;
+Exemplo:
+PRIORIDADE: ALTA
+MOTIVO: Vários buracos em via principal, com impacto operacional em muitos usuários.`;
 }
 
 function parsePriority(

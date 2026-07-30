@@ -20,6 +20,12 @@ export interface Protocol {
   description?: string;
   requester?: string;
   phone?: string;
+  /** Timestamp ISO de abertura, usado no cálculo de SLA. */
+  created_at?: string;
+  /** Posicao confirmada pelo solicitante. null = sem localizacao confirmada. */
+  latitude?: number | null;
+  /** Posicao confirmada pelo solicitante. null = sem localizacao confirmada. */
+  longitude?: number | null;
   ai_priority?: 'baixa' | 'media' | 'alta' | 'critica' | null;
   ai_status?: 'pending' | 'success' | 'failed';
 }

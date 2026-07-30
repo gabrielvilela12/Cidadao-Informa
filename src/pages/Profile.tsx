@@ -106,7 +106,7 @@ export function Profile() {
                                 <p className="text-[10px] text-slate-600 uppercase tracking-wide">Protocolos</p>
                             </div>
                             <div className="bg-white/5 rounded-xl p-3 text-center">
-                                <p className="text-lg font-black text-emerald-400">98%</p>
+                                <p className="text-lg font-black text-emerald-400">—</p>
                                 <p className="text-[10px] text-slate-600 uppercase tracking-wide">Satisfação</p>
                             </div>
                         </div>

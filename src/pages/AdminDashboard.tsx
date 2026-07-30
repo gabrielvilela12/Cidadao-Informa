@@ -29,6 +29,8 @@ import { useApp } from '../context/AppContext';
 import { useProtocols } from '../hooks/useProtocols';
 import { type Protocol } from '../constants';
 import { exportToExcel } from '../utils/exportUtils';
+import { countSlaLate } from '../utils/sla';
+import { extractNeighborhood, listNeighborhoods } from '../utils/address';
 
 const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -58,14 +60,24 @@ export function AdminDashboard() {
   const [year, setYear] = useState(currentYear.toString());
   const [neighborhood, setNeighborhood] = useState('all');
 
-  const counts = useMemo(() => ({
-    open: protocols.filter((item) => statusMatches(item.status, 'open')).length,
-    analysis: protocols.filter((item) => statusMatches(item.status, 'analysis')).length,
-    resolved: protocols.filter((item) => statusMatches(item.status, 'resolved')).length,
-    late: protocols.filter((item) => statusMatches(item.status, 'late')).length,
-  }), [protocols]);
+  // O seletor de bairro existia na interface mas nao filtrava nada: o estado
+  // era atualizado e nunca lido. Agora ele define o escopo de todo o painel.
+  const scopedProtocols = useMemo(() => (
+    neighborhood === 'all'
+      ? protocols
+      : protocols.filter((item) => extractNeighborhood(item.address) === neighborhood)
+  ), [neighborhood, protocols]);
 
-  const total = protocols.length;
+  const counts = useMemo(() => ({
+    open: scopedProtocols.filter((item) => statusMatches(item.status, 'open')).length,
+    analysis: scopedProtocols.filter((item) => statusMatches(item.status, 'analysis')).length,
+    resolved: scopedProtocols.filter((item) => statusMatches(item.status, 'resolved')).length,
+    // Prazo de SLA calculado sobre created_at. O status 'Atrasado' nunca e
+    // atribuido por nenhum fluxo, por isso este contador vivia em zero.
+    late: countSlaLate(scopedProtocols),
+  }), [scopedProtocols]);
+
+  const total = scopedProtocols.length;
   const resolutionRate = total ? Math.round((counts.resolved / total) * 100) : 0;
 
   const categoryData = useMemo(() => {
@@ -78,16 +90,16 @@ export function AdminDashboard() {
 
     return definitions.map((definition) => ({
       ...definition,
-      value: protocols.filter((item) => item.category === definition.name).length,
+      value: scopedProtocols.filter((item) => item.category === definition.name).length,
     }));
-  }, [protocols]);
+  }, [scopedProtocols]);
 
   const trendData = useMemo(() => {
     const selectedYear = Number(year);
     const opened = Array(12).fill(0);
     const resolved = Array(12).fill(0);
 
-    protocols.forEach((protocol) => {
+    scopedProtocols.forEach((protocol) => {
       const date = protocolDate(protocol);
       if (!date || date.getFullYear() !== selectedYear) return;
       opened[date.getMonth()] += 1;
@@ -100,36 +112,36 @@ export function AdminDashboard() {
       abertas: opened[index],
       resolvidas: resolved[index],
     }));
-  }, [currentYear, protocols, year]);
+  }, [currentYear, scopedProtocols, year]);
 
-  const miniSeries = (value: number) => [
-    { value: Math.max(0, value - 3) },
-    { value: Math.max(0, value - 1) },
-    { value: Math.max(0, value - 2) },
-    { value },
-    { value: Math.max(0, value - 1) },
-    { value },
-  ];
-
+  // Os cartoes tinham um sparkline gerado por `miniSeries(valor)`, que derivava
+  // uma "tendencia" do proprio numero atual (valor-3, valor-1, valor-2, valor...).
+  // Era historico fabricado: sugeria evolucao no tempo sem nenhum dado temporal
+  // por tras. Nao ha como reconstruir a serie real de "em analise", "em atraso"
+  // ou "resolucao", porque o banco guarda so o status atual, sem historico de
+  // transicoes. A evolucao real que existe esta no grafico "Fluxo de
+  // solicitacoes" logo abaixo, esse sim construido a partir de created_at.
   const kpis = [
-    { label: 'Total', value: total, icon: Inbox, tone: 'blue', series: miniSeries(total) },
-    { label: 'Em análise', value: counts.analysis, icon: Timer, tone: 'blue', series: miniSeries(counts.analysis) },
-    { label: 'Em atraso', value: counts.late, icon: AlertCircle, tone: 'red', series: miniSeries(counts.late) },
-    { label: 'Resolução', value: `${resolutionRate}%`, icon: CheckCircle2, tone: 'green', series: miniSeries(resolutionRate) },
+    { label: 'Total', value: total, icon: Inbox, tone: 'blue' },
+    { label: 'Em análise', value: counts.analysis, icon: Timer, tone: 'blue' },
+    { label: 'Em atraso', value: counts.late, icon: AlertCircle, tone: 'red' },
+    { label: 'Resolução', value: `${resolutionRate}%`, icon: CheckCircle2, tone: 'green' },
   ] as const;
 
-  const neighborhoods = useMemo(() => {
-    const values = protocols
-      .map((item) => item.address?.split('-')[0]?.trim())
-      .filter((value): value is string => Boolean(value));
-    return Array.from(new Set(values)).slice(0, 8);
-  }, [protocols]);
+  // Bairros de verdade, extraidos do endereco. A lista sai de `protocols` (nao
+  // do escopo filtrado) para as opcoes nao desaparecerem apos a selecao.
+  const neighborhoods = useMemo(
+    () => listNeighborhoods(protocols.map((item) => item.address)),
+    [protocols],
+  );
 
+  // Distribuicao por STATUS apenas. "Atraso" nao entra aqui: e uma condicao de
+  // prazo, nao um status, e um protocolo vencido tambem esta 'Aberto' - somar os
+  // dois faria os segmentos passarem do total. O atraso aparece no KPI proprio.
   const statusSegments = [
     { label: 'Abertos', value: counts.open, color: '#0758BD' },
     { label: 'Em análise', value: counts.analysis, color: '#FFB800' },
     { label: 'Concluídos', value: counts.resolved, color: '#168821' },
-    { label: 'Atrasados', value: counts.late, color: '#E52207' },
   ];
 
   const tooltipStyle = {
@@ -179,7 +191,9 @@ export function AdminDashboard() {
               </label>
               <button
                 type="button"
-                onClick={() => exportToExcel(protocols, 'dashboard_executivo.xlsx')}
+                // Exporta o que esta na tela: com bairro filtrado, exportar a
+                // base inteira entregaria um arquivo diferente do painel.
+                onClick={() => exportToExcel(scopedProtocols, 'dashboard_executivo.xlsx')}
                 className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white shadow-[0_8px_18px_rgba(19,81,180,0.18)] hover:bg-blue-700 sm:flex-none"
               >
                 <Download size={17} />
@@ -196,10 +210,11 @@ export function AdminDashboard() {
         <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           {kpis.map((kpi) => {
             const Icon = kpi.icon;
-            const color = kpi.tone === 'red' ? '#E52207' : kpi.tone === 'green' ? '#168821' : '#0758BD';
             const iconBg = kpi.tone === 'red' ? 'bg-red-50 text-red-600' : kpi.tone === 'green' ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700';
             return (
-              <article key={kpi.label} className="min-h-[132px] rounded-lg border border-[#CDD8E7] bg-white p-4 shadow-[0_7px_20px_rgba(15,45,85,0.035)]">
+              // Altura reduzida de 132px para 96px: o sparkline fabricado que
+              // ocupava a base do cartao foi removido.
+              <article key={kpi.label} className="min-h-[96px] rounded-lg border border-[#CDD8E7] bg-white p-4 shadow-[0_7px_20px_rgba(15,45,85,0.035)]">
                 <div className="flex items-start gap-3">
                   <div className={`flex size-11 shrink-0 items-center justify-center rounded-lg ${iconBg}`}><Icon size={22} /></div>
                   <div className="min-w-0 flex-1">
@@ -209,13 +224,6 @@ export function AdminDashboard() {
                     </div>
                     <p className="mt-1 text-2xl font-black">{loading ? '—' : kpi.value}</p>
                   </div>
-                </div>
-                <div className="mt-3 h-7">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={kpi.series}>
-                      <Area type="monotone" dataKey="value" stroke={color} strokeWidth={2} fill={color} fillOpacity={0.08} isAnimationActive={false} />
-                    </AreaChart>
-                  </ResponsiveContainer>
                 </div>
               </article>
             );
@@ -255,7 +263,7 @@ export function AdminDashboard() {
               </div>
             </div>
             <div className="mt-4 h-[245px]">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={245}>
                 <AreaChart data={trendData} margin={{ left: -22, right: 8, top: 8 }}>
                   <defs>
                     <linearGradient id="adminFlowBlue" x1="0" y1="0" x2="0" y2="1">
@@ -278,7 +286,7 @@ export function AdminDashboard() {
             <h2 className="font-black">Por categoria</h2>
             <div className="mt-3 grid min-h-[255px] grid-cols-1 items-center gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_150px]">
               <div className="relative h-[210px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={210}>
                   <PieChart>
                     <Pie data={categoryData} innerRadius={62} outerRadius={88} paddingAngle={2} dataKey="value">
                       {categoryData.map((item) => <Cell key={item.name} fill={item.color} />)}

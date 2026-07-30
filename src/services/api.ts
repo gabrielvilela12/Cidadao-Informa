@@ -10,6 +10,8 @@ interface DbProtocol {
     user_id: string;
     requester: string;
     created_at: string;
+    latitude?: number | null;
+    longitude?: number | null;
     ai_priority?: 'baixa' | 'media' | 'alta' | 'critica' | null;
     ai_status?: 'pending' | 'success' | 'failed';
     users?: { phone?: string };
@@ -102,7 +104,11 @@ function mapProtocol(item: DbProtocol) {
         status: (item.status || 'Aberto') as 'Aberto' | 'Em Análise' | 'Concluído' | 'Atrasado',
         category: item.category || 'Outros',
         description: item.description,
-        address: item.address
+        address: item.address,
+        // null/undefined = sem localizacao confirmada. Nao substituir por um
+        // valor padrao: o mapa depende do null para omitir o pin.
+        latitude: typeof item.latitude === 'number' ? item.latitude : null,
+        longitude: typeof item.longitude === 'number' ? item.longitude : null
     };
 }
 
@@ -135,13 +141,15 @@ export const api = {
         });
     },
 
-    async getProtocols(userId?: string, scope: 'citizen' | 'admin' | 'all' = 'citizen') {
+    // O escopo do resultado e decidido no servidor: a Edge Function filtra por
+    // user_id derivado do token e exige role admin para os escopos amplos.
+    // Nao existe (nem deve existir) parametro de userId vindo do cliente.
+    async getProtocols(scope: 'citizen' | 'admin' | 'all' = 'citizen') {
         const token = localStorage.getItem('cidadaoinforma_token');
 
         const data = await invokeAppProtocols<DbProtocol[]>({
             action: 'list',
             token,
-            userId,
             scope
         });
 
@@ -167,7 +175,11 @@ export const api = {
             category: data.category,
             description: data.description,
             address: data.address,
-            status: data.status || 'Aberto'
+            status: data.status || 'Aberto',
+            // Posicao confirmada pelo solicitante no mapa. Sem ela o protocolo
+            // fica sem localizacao e nao recebe pin.
+            latitude: data.latitude ?? null,
+            longitude: data.longitude ?? null
         });
 
         void aiPriorityService.classifyProtocol({
@@ -189,6 +201,38 @@ export const api = {
             action: 'auditTrail',
             token,
             protocolId
+        });
+    },
+
+    /** Métricas agregadas para a landing pública. Não requer autenticação. */
+    async getPublicStats() {
+        return invokeAppProtocols<{
+            total: number;
+            resolved: number;
+            resolutionRate: number | null;
+            citizens: number;
+        }>({ action: 'publicStats' });
+    },
+
+    /**
+     * Preenche as coordenadas de protocolos antigos a partir do endereço.
+     * A geocodificação roda na Edge Function (nunca no browser). Processa em
+     * lotes: chame novamente enquanto `remaining` for maior que zero.
+     */
+    async backfillCoordinates(limit = 8) {
+        const token = localStorage.getItem('cidadaoinforma_token');
+        if (!token) throw new Error('Sessão inválida ou expirada.');
+
+        return invokeAppProtocols<{
+            processed: number;
+            located: number;
+            skipped: number;
+            failed: number;
+            remaining: number;
+        }>({
+            action: 'backfillCoordinates',
+            token,
+            limit
         });
     },
 
