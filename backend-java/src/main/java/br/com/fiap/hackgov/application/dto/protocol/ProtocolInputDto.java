@@ -1,5 +1,7 @@
 package br.com.fiap.hackgov.application.dto.protocol;
 
+import java.util.List;
+
 public record ProtocolInputDto(
         String category,
         String description,
@@ -8,6 +10,7 @@ public record ProtocolInputDto(
         // nao conseguiu confirmar a posicao; o par latitude/longitude e sempre
         // gravado junto ou nao gravado.
         Double latitude,
-        Double longitude
+        Double longitude,
+        List<String> imageUrls
 ) {
 }

@@ -8,8 +8,12 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -59,6 +63,26 @@ public class Protocol {
     @Column(name = "longitude")
     private Double longitude;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "image_urls", nullable = false, columnDefinition = "jsonb")
+    private List<String> imageUrls = new ArrayList<>();
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "corrected_image_urls", nullable = false, columnDefinition = "jsonb")
+    private List<String> correctedImageUrls = new ArrayList<>();
+
+    @Column(name = "correction_status", nullable = false)
+    private String correctionStatus = "idle";
+
+    @Column(name = "correction_error")
+    private String correctionError;
+
+    @Column(name = "correction_generated_at")
+    private Instant correctionGeneratedAt;
+
+    @Column(name = "correction_report")
+    private String correctionReport;
+
     @PrePersist
     public void prePersist() {
         if (id == null || id.isBlank()) {
@@ -72,6 +96,15 @@ public class Protocol {
         }
         if (requester == null) {
             requester = "";
+        }
+        if (imageUrls == null) {
+            imageUrls = new ArrayList<>();
+        }
+        if (correctedImageUrls == null) {
+            correctedImageUrls = new ArrayList<>();
+        }
+        if (correctionStatus == null || correctionStatus.isBlank()) {
+            correctionStatus = "idle";
         }
     }
 
@@ -177,5 +210,53 @@ public class Protocol {
 
     public void setLongitude(Double longitude) {
         this.longitude = longitude;
+    }
+
+    public List<String> getImageUrls() {
+        return imageUrls == null ? List.of() : List.copyOf(imageUrls);
+    }
+
+    public void setImageUrls(List<String> imageUrls) {
+        this.imageUrls = imageUrls == null ? new ArrayList<>() : new ArrayList<>(imageUrls);
+    }
+
+    public List<String> getCorrectedImageUrls() {
+        return correctedImageUrls == null ? List.of() : List.copyOf(correctedImageUrls);
+    }
+
+    public void setCorrectedImageUrls(List<String> correctedImageUrls) {
+        this.correctedImageUrls = correctedImageUrls == null ? new ArrayList<>() : new ArrayList<>(correctedImageUrls);
+    }
+
+    public String getCorrectionStatus() {
+        return correctionStatus;
+    }
+
+    public void setCorrectionStatus(String correctionStatus) {
+        this.correctionStatus = correctionStatus;
+    }
+
+    public String getCorrectionError() {
+        return correctionError;
+    }
+
+    public void setCorrectionError(String correctionError) {
+        this.correctionError = correctionError;
+    }
+
+    public Instant getCorrectionGeneratedAt() {
+        return correctionGeneratedAt;
+    }
+
+    public void setCorrectionGeneratedAt(Instant correctionGeneratedAt) {
+        this.correctionGeneratedAt = correctionGeneratedAt;
+    }
+
+    public String getCorrectionReport() {
+        return correctionReport;
+    }
+
+    public void setCorrectionReport(String correctionReport) {
+        this.correctionReport = correctionReport;
     }
 }

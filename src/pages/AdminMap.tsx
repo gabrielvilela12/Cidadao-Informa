@@ -2,18 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Accessibility,
   Check,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Download,
   Ear,
   Ellipsis,
   Eye,
+  EyeOff,
   Layers3,
   Loader2,
-  LocateFixed,
   MapPin,
-  MapPinOff,
   Menu,
   Minus,
   Plus,
@@ -24,14 +22,13 @@ import {
 } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Circle, MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
+import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { type Protocol } from '../constants';
 import { useProtocols } from '../hooks/useProtocols';
-import { api } from '../services/api';
 import { exportToExcel } from '../utils/exportUtils';
-import { countWithoutLocation, DEFAULT_MAP_CENTER, getMarkerPosition } from '../utils/mapUtils';
+import { DEFAULT_MAP_CENTER, getMarkerPosition } from '../utils/mapUtils';
 
 type CanonicalStatus = 'Aberto' | 'Em análise' | 'Concluído' | 'Atrasado';
 
@@ -98,7 +95,7 @@ function MapTracker({ onReady }: { onReady: (map: L.Map) => void }) {
 }
 
 export function AdminMap() {
-  const { protocols, loading, refetch } = useProtocols('admin');
+  const { protocols, loading } = useProtocols('admin');
   const { toggleMobileMenu } = useApp();
   const navigate = useNavigate();
   const [map, setMap] = useState<L.Map | null>(null);
@@ -108,41 +105,23 @@ export function AdminMap() {
   const [searching, setSearching] = useState(false);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [showLayers, setShowLayers] = useState(false);
-  const [showMarkers, setShowMarkers] = useState(true);
-  const [showHeatmap, setShowHeatmap] = useState(true);
   const [activeCategories, setActiveCategories] = useState<string[]>(ALL_CATEGORIES);
   const [activeStatuses, setActiveStatuses] = useState<CanonicalStatus[]>(ALL_STATUSES);
-  const [quickStatus, setQuickStatus] = useState<'all' | CanonicalStatus>('all');
   const [activeIncident, setActiveIncident] = useState<Protocol | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [locating, setLocating] = useState(false);
-  const [locateFeedback, setLocateFeedback] = useState('');
+  const [mapOnlyMode, setMapOnlyMode] = useState(false);
+  const [showOperationalPanel, setShowOperationalPanel] = useState(false);
 
   const filteredProtocols = useMemo(() => protocols.filter((protocol) => {
     const status = canonicalStatus(protocol.status);
     return activeCategories.includes(protocol.category || 'Outros')
-      && activeStatuses.includes(status)
-      && (quickStatus === 'all' || status === quickStatus);
-  }), [activeCategories, activeStatuses, protocols, quickStatus]);
+      && activeStatuses.includes(status);
+  }), [activeCategories, activeStatuses, protocols]);
 
   const stats = useMemo(() => ALL_STATUSES.map((status) => ({
     status,
     count: protocols.filter((protocol) => canonicalStatus(protocol.status) === status).length,
   })), [protocols]);
-
-  const topAreas = useMemo(() => {
-    const counts = new Map<string, number>();
-    protocols.forEach((protocol) => {
-      const area = protocol.address?.split('-')[0]?.split(',')[0]?.trim() || 'Região central';
-      counts.set(area, (counts.get(area) || 0) + 1);
-    });
-    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 2);
-  }, [protocols]);
-
-  // Protocolos sem coordenada nao recebem pin. Contamos para que a ausencia
-  // seja explicita, em vez de o mapa parecer completo com menos ocorrencias.
-  const withoutLocation = useMemo(() => countWithoutLocation(filteredProtocols), [filteredProtocols]);
 
   const filterCount = (ALL_CATEGORIES.length - activeCategories.length) + (ALL_STATUSES.length - activeStatuses.length);
 
@@ -153,17 +132,20 @@ export function AdminMap() {
       return;
     }
 
-    const currentIndex = activeIncident
-      ? filteredProtocols.findIndex((protocol) => protocol.id === activeIncident.id)
-      : -1;
+    if (!activeIncident) {
+      setSelectedIndex(-1);
+      return;
+    }
+
+    const currentIndex = filteredProtocols.findIndex((protocol) => protocol.id === activeIncident.id);
 
     if (currentIndex >= 0) {
       setSelectedIndex(currentIndex);
       return;
     }
 
-    setActiveIncident(filteredProtocols[0]);
-    setSelectedIndex(0);
+    setActiveIncident(null);
+    setSelectedIndex(-1);
   }, [activeIncident, filteredProtocols]);
   const handleAddressSearch = (value: string) => {
     setSearch(value);
@@ -197,14 +179,6 @@ export function AdminMap() {
     map?.flyTo(center, 15);
   };
 
-  const locateUser = () => {
-    navigator.geolocation?.getCurrentPosition((position) => {
-      const center: [number, number] = [position.coords.latitude, position.coords.longitude];
-      setMapCenter(center);
-      map?.flyTo(center, 15);
-    });
-  };
-
   const toggleCategory = (category: string) => {
     setActiveCategories((current) => current.includes(category)
       ? current.filter((item) => item !== category)
@@ -229,36 +203,22 @@ export function AdminMap() {
     if (position) map?.flyTo(position, 16);
   }, [filteredProtocols, map, selectedIndex]);
 
-  // O servidor geocodifica um lote por vez para respeitar o limite de 1
-  // requisicao por segundo do Nominatim. Repetir a chamada esvazia a fila.
-  const locatePendingProtocols = async () => {
-    if (locating) return;
-    setLocating(true);
-    setLocateFeedback('');
-    try {
-      const result = await api.backfillCoordinates();
-      await refetch();
-      if (result.located > 0) {
-        setLocateFeedback(
-          result.remaining > 0
-            ? `${result.located} localizada(s). Ainda faltam ${result.remaining} — clique de novo.`
-            : `${result.located} localizada(s). Nenhuma pendente.`,
-        );
-      } else {
-        setLocateFeedback(
-          'Nenhum endereço pôde ser localizado neste lote. Verifique se os endereços estão completos.',
-        );
-      }
-    } catch (error) {
-      setLocateFeedback(error instanceof Error ? error.message : 'Não foi possível localizar agora.');
-    } finally {
-      setLocating(false);
-    }
-  };
-
   const handleMarkerClick = (protocol: Protocol, index: number) => {
     setActiveIncident(protocol);
     setSelectedIndex(index);
+  };
+
+  const closeIncident = () => {
+    setActiveIncident(null);
+    setSelectedIndex(-1);
+    map?.closePopup();
+  };
+
+  const enableMapOnlyMode = () => {
+    closeIncident();
+    setShowFilters(false);
+    setShowOperationalPanel(false);
+    setMapOnlyMode(true);
   };
 
   return (
@@ -275,14 +235,12 @@ export function AdminMap() {
             key={protocol.id}
             protocol={protocol}
             selected={activeIncident?.id === protocol.id}
-            showMarker={showMarkers}
-            showHeatmap={showHeatmap}
             onClick={() => handleMarkerClick(protocol, index)}
           />
         ))}
       </MapContainer>
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] p-3 sm:p-5">
+      {!mapOnlyMode ? <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] p-3 sm:p-5">
         <div className="pointer-events-auto flex flex-wrap items-center gap-2">
           <button type="button" onClick={toggleMobileMenu} className="flex size-12 items-center justify-center rounded-lg border border-[#CDD8E7] bg-white text-[#0758BD] shadow-lg md:hidden" aria-label="Abrir menu">
             <Menu size={20} />
@@ -328,36 +286,41 @@ export function AdminMap() {
             )}
           </div>
 
-          <select value={quickStatus} onChange={(event) => setQuickStatus(event.target.value as 'all' | CanonicalStatus)} className="h-12 rounded-lg border border-[#CDD8E7] bg-white px-4 text-sm font-bold text-slate-700 shadow-lg">
-            <option value="all">Status: todos</option>
-            {ALL_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
-          </select>
-
-          <div className="relative">
-            <button type="button" onClick={() => setShowLayers((value) => !value)} className="inline-flex h-12 items-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-4 text-sm font-bold text-slate-700 shadow-lg">
-              <Layers3 size={18} /> Camadas <ChevronDown size={16} />
-            </button>
-            {showLayers && (
-              <div className="absolute left-0 top-14 w-52 rounded-lg border border-[#CDD8E7] bg-white p-3 shadow-2xl">
-                <LayerSwitch label="Marcadores por tipo" active={showMarkers} onClick={() => setShowMarkers((value) => !value)} />
-                <LayerSwitch label="Mapa de calor" active={showHeatmap} onClick={() => setShowHeatmap((value) => !value)} />
-              </div>
-            )}
-          </div>
-
-          <button type="button" onClick={() => exportToExcel(filteredProtocols, 'mapa_estrategico.xlsx')} className="inline-flex h-12 items-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-4 text-sm font-bold text-slate-700 shadow-lg">
-            <Download size={18} /> <span className="hidden sm:inline">Exportar Excel</span>
+          <button type="button" onClick={() => exportToExcel(filteredProtocols, 'mapa_estrategico.xlsx')} aria-label="Exportar Excel" title="Exportar Excel" className="inline-flex h-12 items-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-4 text-sm font-bold text-slate-700 shadow-lg">
+            <Download size={18} /> <span className="hidden 2xl:inline">Exportar Excel</span>
           </button>
-          <button type="button" onClick={locateUser} className="inline-flex h-12 items-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-4 text-sm font-bold text-slate-700 shadow-lg">
-            <LocateFixed size={18} /> <span className="hidden lg:inline">Localização atual</span>
+          <button type="button" onClick={enableMapOnlyMode} className="inline-flex h-12 items-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-4 text-sm font-bold text-slate-700 shadow-lg" title="Ocultar painéis e deixar somente o mapa">
+            <EyeOff size={18} /> <span className="hidden xl:inline">Somente mapa</span>
           </button>
         </div>
-      </div>
+      </div> : (
+        <button
+          type="button"
+          onClick={() => setMapOnlyMode(false)}
+          className="absolute left-4 top-4 z-[500] inline-flex h-11 items-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-4 text-sm font-bold text-[#0758BD] shadow-xl"
+        >
+          <SlidersHorizontal size={18} /> Mostrar controles
+        </button>
+      )}
 
-      <div className="pointer-events-none absolute right-5 top-36 z-[450] hidden w-72 space-y-4 lg:block">
+      {!mapOnlyMode && !showOperationalPanel && (
+        <button
+          type="button"
+          onClick={() => setShowOperationalPanel(true)}
+          aria-expanded="false"
+          className="absolute right-5 top-52 z-[450] hidden min-h-11 items-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-4 text-sm font-bold text-[#0758BD] shadow-xl lg:inline-flex"
+        >
+          <Layers3 size={18} /> Visão operacional
+        </button>
+      )}
+
+      {!mapOnlyMode && showOperationalPanel && <div className="pointer-events-auto absolute bottom-5 right-5 top-52 z-[450] hidden w-80 space-y-4 overflow-y-auto rounded-lg border border-[#CDD8E7] bg-white p-4 shadow-2xl lg:block">
         <section className="pointer-events-auto rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-xl">
-          <h2 className="font-black">Visão operacional</h2>
-          <div className="mt-5 grid grid-cols-2 gap-4 border-b border-[#D8E1ED] pb-5 text-center">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="font-black">Visão operacional</h2>
+            <button type="button" onClick={() => setShowOperationalPanel(false)} aria-label="Fechar visão operacional" title="Fechar" className="flex size-8 shrink-0 items-center justify-center rounded-lg hover:bg-slate-100"><X size={17} /></button>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-4 border-b border-[#D8E1ED] pb-5 text-center">
             <div><p className="text-3xl font-black text-[#0758BD]">{protocols.length}</p><p className="text-sm text-slate-600">Total</p></div>
             <div><p className="text-3xl font-black text-[#0758BD]">{filteredProtocols.length}</p><p className="text-sm text-slate-600">Visíveis</p></div>
           </div>
@@ -369,71 +332,44 @@ export function AdminMap() {
               </div>
             ))}
           </div>
-          {withoutLocation > 0 && (
-            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
-              <div className="flex items-start gap-2">
-                <MapPinOff className="mt-0.5 shrink-0 text-amber-600" size={16} aria-hidden="true" />
-                <p className="text-xs leading-5 text-amber-900">
-                  <strong>{withoutLocation}</strong>{' '}
-                  {withoutLocation === 1
-                    ? 'solicitação sem localização confirmada não aparece no mapa.'
-                    : 'solicitações sem localização confirmada não aparecem no mapa.'}
-                </p>
+          <div className="mt-5 grid grid-cols-2 gap-4 border-t border-[#E2E8F0] pt-4 text-sm">
+            <div>
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">Tipo</h3>
+              <div className="mt-2 space-y-2.5">
+                {ALL_CATEGORIES.map((category) => {
+                  const CategoryIcon = CATEGORY_ICONS[category] || Ellipsis;
+                  return <div key={category} className="flex items-center gap-2"><CategoryIcon size={16} strokeWidth={2.5} className="shrink-0 text-[#0758BD]" /><span>{category}</span></div>;
+                })}
               </div>
-              <p className="mt-2 text-xs leading-5 text-amber-800">
-                Abertas antes do registro de coordenada. Localize-as pelo endereço já informado.
-              </p>
-              <button
-                type="button"
-                onClick={locatePendingProtocols}
-                disabled={locating}
-                className="mt-3 inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-lg border border-amber-300 bg-white px-3 text-xs font-bold text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {locating ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14} />}
-                {locating ? 'Localizando...' : 'Localizar pelo endereço'}
-              </button>
-              {locateFeedback && (
-                <p className="mt-2 text-xs leading-5 text-amber-900">{locateFeedback}</p>
-              )}
             </div>
-          )}
-        </section>
-        <section className="pointer-events-auto rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-xl">
-          <h2 className="font-black">Áreas com mais ocorrências</h2>
-          <div className="mt-3 divide-y divide-[#E2E8F0]">
-            {topAreas.map(([area, count]) => (
-              <div key={area} className="flex items-center justify-between py-3 text-sm"><span>{area}</span><strong>{count}</strong></div>
-            ))}
+            <div>
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">Status</h3>
+              <div className="mt-2 space-y-2.5">
+                {ALL_STATUSES.map((status) => <div key={status} className="flex items-center gap-2"><span className="size-3 shrink-0 rounded-full border-2" style={{ borderColor: STATUS_COLORS[status] }} /><span>{status}</span></div>)}
+              </div>
+            </div>
           </div>
         </section>
-      </div>
+      </div>}
 
-      <div className="pointer-events-none absolute inset-x-3 bottom-5 z-[450] flex flex-col items-center gap-3 lg:inset-x-5 lg:flex-row lg:items-end">
+      {!mapOnlyMode && <div className="pointer-events-none absolute inset-x-3 bottom-5 z-[450] flex items-end gap-3 lg:inset-x-5">
         <div className="pointer-events-auto flex items-center gap-3 rounded-lg border border-[#CDD8E7] bg-white p-2 shadow-xl">
-          <button type="button" onClick={() => navigateIncident('previous')} className="flex size-9 items-center justify-center rounded-lg hover:bg-slate-100"><ChevronLeft size={19} /></button>
+          <button type="button" onClick={() => navigateIncident('previous')} aria-label="Ocorrência anterior" className="flex size-9 items-center justify-center rounded-lg hover:bg-slate-100"><ChevronLeft size={19} /></button>
           <strong className="text-sm">{selectedIndex >= 0 ? selectedIndex + 1 : 0} de {filteredProtocols.length}</strong>
-          <button type="button" onClick={() => navigateIncident('next')} className="flex size-9 items-center justify-center rounded-lg hover:bg-slate-100"><ChevronRight size={19} /></button>
+          <button type="button" onClick={() => navigateIncident('next')} aria-label="Próxima ocorrência" className="flex size-9 items-center justify-center rounded-lg hover:bg-slate-100"><ChevronRight size={19} /></button>
         </div>
+      </div>}
 
-        <div className="pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-x-5 gap-y-2 rounded-lg border border-[#CDD8E7] bg-white px-5 py-3 text-xs shadow-xl lg:mx-auto">
-          <span className="font-black">Tipo</span>
-          {ALL_CATEGORIES.map((category) => { const CategoryIcon = CATEGORY_ICONS[category] || Ellipsis; return <span key={category} className="flex items-center gap-2"><CategoryIcon size={15} strokeWidth={2.5} className="text-[#0758BD]" />{category}</span>; })}
-          <span className="hidden h-7 w-px bg-[#D8E1ED] sm:block" />
-          <span className="font-black">Status</span>
-          {ALL_STATUSES.map((status) => <span key={status} className="flex items-center gap-2"><span className="size-3 rounded-full border-2" style={{ borderColor: STATUS_COLORS[status] }} />{status}</span>)}
-        </div>
-      </div>
-
-      <div className="absolute right-5 top-20 z-[450] flex flex-col overflow-hidden rounded-lg border border-[#CDD8E7] bg-white shadow-xl">
+      <div className="absolute right-5 top-24 z-[450] flex flex-col overflow-hidden rounded-lg border border-[#CDD8E7] bg-white shadow-xl">
         <button type="button" onClick={() => map?.setZoom((map?.getZoom() || 13) + 1)} className="flex size-11 items-center justify-center border-b border-[#D8E1ED] hover:bg-slate-50"><Plus size={20} /></button>
         <button type="button" onClick={() => map?.setZoom((map?.getZoom() || 13) - 1)} className="flex size-11 items-center justify-center hover:bg-slate-50"><Minus size={20} /></button>
       </div>
 
-      {activeIncident && (
+      {!mapOnlyMode && activeIncident && (
         <div className="pointer-events-auto absolute bottom-24 left-1/2 z-[460] hidden w-[330px] -translate-x-1/2 rounded-lg border border-[#CDD8E7] bg-white p-4 shadow-2xl sm:block">
           <div className="flex items-start justify-between gap-3">
             <div><p className="text-xs font-bold text-slate-500">#{activeIncident.id.slice(0, 8)}</p><h2 className="mt-1 font-black">{activeIncident.description || 'Solicitação de acessibilidade'}</h2></div>
-            <button type="button" onClick={() => setActiveIncident(null)} className="flex size-8 items-center justify-center rounded-lg hover:bg-slate-100"><X size={17} /></button>
+            <button type="button" onClick={closeIncident} aria-label="Fechar detalhes da ocorrência" title="Fechar" className="flex size-8 shrink-0 items-center justify-center rounded-lg hover:bg-slate-100"><X size={17} /></button>
           </div>
           <p className="mt-2 text-sm text-slate-600">{activeIncident.address}</p>
           <button type="button" onClick={() => navigate(`/protocolo/${activeIncident.id}`)} className="mt-4 min-h-10 w-full rounded-lg bg-blue-600 text-sm font-bold text-white hover:bg-blue-700">Ver detalhes</button>
@@ -446,15 +382,6 @@ export function AdminMap() {
         </div>
       )}
     </div>
-  );
-}
-
-function LayerSwitch({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button type="button" role="switch" aria-checked={active} onClick={onClick} className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-2 text-left text-sm font-semibold hover:bg-slate-50">
-      {label}
-      <span className={`flex h-6 w-10 items-center rounded-full p-1 ${active ? 'justify-end bg-blue-600' : 'justify-start bg-slate-300'}`}><span className="size-4 rounded-full bg-white" /></span>
-    </button>
   );
 }
 
@@ -494,7 +421,7 @@ function FilterGroup({ title, values, selected, onToggle, status = false }: { ti
   );
 }
 
-function ProtocolMarker({ protocol, selected, showMarker, showHeatmap, onClick }: { protocol: Protocol; selected: boolean; showMarker: boolean; showHeatmap: boolean; onClick: () => void }) {
+function ProtocolMarker({ protocol, selected, onClick }: { protocol: Protocol; selected: boolean; onClick: () => void }) {
   const status = canonicalStatus(protocol.status);
   // Sem coordenada confirmada o protocolo nao e plotado (ver mapUtils).
   const position = getMarkerPosition(protocol);
@@ -512,20 +439,15 @@ function ProtocolMarker({ protocol, selected, showMarker, showHeatmap, onClick }
   });
 
   return (
-    <>
-      {showHeatmap && <Circle center={position} radius={900} pathOptions={{ stroke: false, fillColor: status === 'Atrasado' ? '#E52207' : '#FFB800', fillOpacity: status === 'Atrasado' ? 0.18 : 0.11 }} />}
-      {showMarker && (
-        <Marker position={position} icon={icon} eventHandlers={{ click: onClick }}>
-          <Popup>
-            <div className="min-w-[210px] p-1">
-              <p className="text-xs font-bold text-slate-500">#{protocol.id.slice(0, 8)}</p>
-              <h3 className="mt-1 font-bold text-slate-900">{protocol.description || protocol.category}</h3>
-              <p className="mt-2 text-sm text-slate-600">{protocol.address}</p>
-              <p className="mt-2 text-xs font-bold" style={{ color: STATUS_COLORS[status] }}>{status}</p>
-            </div>
-          </Popup>
-        </Marker>
-      )}
-    </>
+    <Marker position={position} icon={icon} eventHandlers={{ click: onClick }}>
+      <Popup>
+        <div className="min-w-[210px] p-1">
+          <p className="text-xs font-bold text-slate-500">#{protocol.id.slice(0, 8)}</p>
+          <h3 className="mt-1 font-bold text-slate-900">{protocol.description || protocol.category}</h3>
+          <p className="mt-2 text-sm text-slate-600">{protocol.address}</p>
+          <p className="mt-2 text-xs font-bold" style={{ color: STATUS_COLORS[status] }}>{status}</p>
+        </div>
+      </Popup>
+    </Marker>
   );
 }

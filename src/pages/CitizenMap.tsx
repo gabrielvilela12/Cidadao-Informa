@@ -42,12 +42,21 @@ function canonicalStatus(status: string): CanonicalStatus {
   return 'Atrasado';
 }
 
-function markerConfig(status: string) {
+function categorySymbol(category?: string) {
+  const normalized = (category || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+  if (normalized.includes('visual')) return '👁';
+  if (normalized.includes('auditiv')) return '👂';
+  if (normalized.includes('fisic')) return '♿';
+  return '•••';
+}
+
+function markerConfig(status: string, category?: string) {
   const normalized = canonicalStatus(status);
-  if (normalized === 'Em Análise') return { color: '#D97706', symbol: '♿' };
-  if (normalized === 'Concluído') return { color: '#168821', symbol: '✓' };
-  if (normalized === 'Atrasado') return { color: '#E52207', symbol: '!' };
-  return { color: '#0758BD', symbol: '●' };
+  const symbol = categorySymbol(category);
+  if (normalized === 'Em Análise') return { color: '#D97706', symbol };
+  if (normalized === 'Concluído') return { color: '#168821', symbol };
+  if (normalized === 'Atrasado') return { color: '#E52207', symbol };
+  return { color: '#0758BD', symbol };
 }
 
 function MapController({ center }: { center: [number, number] }) {
@@ -331,16 +340,42 @@ function NearbyPanel({ protocols, loading, selected, selectedIndex, onSelect, on
   onNavigate: (direction: 'next' | 'previous') => void;
   onDetails: (protocol: Protocol) => void;
 }) {
+  const [isVisible, setIsVisible] = useState(true);
   const visibleProtocols = selected
     ? [selected, ...protocols.filter((protocol) => protocol.id !== selected.id)].slice(0, 3)
     : protocols.slice(0, 3);
 
+  if (!isVisible) {
+    return (
+      <button
+        type="button"
+        onClick={() => setIsVisible(true)}
+        className="absolute bottom-3 left-3 z-20 inline-flex min-h-11 items-center gap-2 rounded-md border border-[#CDD8E7] bg-white px-4 text-sm font-semibold text-[#0758bd] shadow-lg transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0758bd] focus-visible:ring-offset-2 md:bottom-5 md:left-5"
+        aria-controls="nearby-requests-panel"
+        aria-expanded="false"
+      >
+        <List size={18} aria-hidden="true" />
+        Mostrar solicitações
+      </button>
+    );
+  }
+
   return (
-    <section className="absolute bottom-3 left-3 right-3 z-20 flex max-h-[48vh] flex-col overflow-hidden rounded-lg border border-[#CDD8E7] bg-white/97 shadow-2xl backdrop-blur md:bottom-20 md:left-5 md:right-auto md:top-24 md:max-h-none md:w-[360px]">
+    <section id="nearby-requests-panel" className="absolute bottom-3 left-3 right-3 z-20 flex max-h-[48vh] flex-col overflow-hidden rounded-lg border border-[#CDD8E7] bg-white/97 shadow-2xl backdrop-blur md:bottom-20 md:left-5 md:right-auto md:top-24 md:max-h-none md:w-[360px]">
       <div className="border-b border-[#E3E9F1] px-5 py-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-black text-[#0b1b33]">Solicitações próximas</h2>
-          <button type="button" className="hidden size-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 md:flex" aria-label="Recolher painel"><ChevronLeft size={18} /></button>
+          <button
+            type="button"
+            onClick={() => setIsVisible(false)}
+            className="flex size-9 shrink-0 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-[#0b1b33] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0758bd]"
+            aria-label="Ocultar painel de solicitações"
+            aria-controls="nearby-requests-panel"
+            aria-expanded="true"
+            title="Ocultar painel"
+          >
+            <X size={19} aria-hidden="true" />
+          </button>
         </div>
         <div className="mt-3 flex items-center justify-between text-sm text-slate-600">
           <span>{protocols.length} encontrada{protocols.length !== 1 ? 's' : ''}</span>
@@ -362,7 +397,7 @@ function NearbyPanel({ protocols, loading, selected, selectedIndex, onSelect, on
           return (
             <article key={protocol.id} className={`rounded-lg border bg-white p-4 transition ${isSelected ? 'border-[#F9B900] shadow-[0_6px_18px_rgba(177,126,0,0.10)]' : 'border-[#CDD8E7]'}`}>
               <button type="button" onClick={() => onSelect(protocol, index)} className="flex w-full items-start gap-3 text-left">
-                <MarkerBadge status={protocol.status} />
+                <MarkerBadge status={protocol.status} category={protocol.category || protocol.service} />
                 <span className="min-w-0 flex-1">
                   <strong className="block truncate text-base text-[#0b1b33]">{protocol.description || protocol.service}</strong>
                   <span className="mt-1 block truncate text-sm text-slate-600">{protocol.address}</span>
@@ -388,8 +423,8 @@ function NearbyPanel({ protocols, loading, selected, selectedIndex, onSelect, on
   );
 }
 
-function MarkerBadge({ status }: { status: string }) {
-  const config = markerConfig(status);
+function MarkerBadge({ status, category }: { status: string; category?: string }) {
+  const config = markerConfig(status, category);
   return (
     <span className="flex size-11 shrink-0 items-center justify-center rounded-full text-lg font-black" style={{ backgroundColor: `${config.color}1A`, color: config.color }}>
       {config.symbol}
@@ -403,7 +438,7 @@ function ProtocolMarker({ protocol, selected, onClick }: { protocol: Protocol; s
 
   if (!position) return null;
 
-  const config = markerConfig(protocol.status);
+  const config = markerConfig(protocol.status, protocol.category || protocol.service);
   const icon = L.divIcon({
     className: 'protocol-marker-icon',
     html: `<span class="protocol-marker-pin${selected ? ' is-selected' : ''}" style="--marker-color:${config.color}"><span>${config.symbol}</span></span>`,

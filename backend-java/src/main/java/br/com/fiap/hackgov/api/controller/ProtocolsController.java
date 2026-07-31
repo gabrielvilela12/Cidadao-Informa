@@ -7,6 +7,7 @@ import br.com.fiap.hackgov.application.dto.protocol.ProtocolStatusUpdateInputDto
 import br.com.fiap.hackgov.application.dto.protocol.GeocodeBackfillInputDto;
 import br.com.fiap.hackgov.application.dto.protocol.PublicProtocolOutputDto;
 import br.com.fiap.hackgov.application.service.AiPriorityService;
+import br.com.fiap.hackgov.application.service.AiImageCorrectionService;
 import br.com.fiap.hackgov.application.service.GeocodingService;
 import br.com.fiap.hackgov.application.service.ProtocolAuditService;
 import br.com.fiap.hackgov.application.usecase.protocol.CreateProtocolUseCase;
@@ -44,6 +45,7 @@ public class ProtocolsController {
     private final ProtocolRepository protocolRepository;
     private final ProtocolAuditService auditService;
     private final AiPriorityService aiPriorityService;
+    private final AiImageCorrectionService aiImageCorrectionService;
     private final GeocodingService geocodingService;
 
     public ProtocolsController(
@@ -52,6 +54,7 @@ public class ProtocolsController {
             ProtocolRepository protocolRepository,
             ProtocolAuditService auditService,
             AiPriorityService aiPriorityService,
+            AiImageCorrectionService aiImageCorrectionService,
             GeocodingService geocodingService
     ) {
         this.createProtocolUseCase = createProtocolUseCase;
@@ -59,6 +62,7 @@ public class ProtocolsController {
         this.protocolRepository = protocolRepository;
         this.auditService = auditService;
         this.aiPriorityService = aiPriorityService;
+        this.aiImageCorrectionService = aiImageCorrectionService;
         this.geocodingService = geocodingService;
     }
 
@@ -87,7 +91,8 @@ public class ProtocolsController {
                             "status", created.status(),
                             "description_hash", auditService.hashValue(created.description()),
                             "address_hash", auditService.hashValue(created.address()),
-                            "requester_hash", auditService.hashValue(created.requester())
+                            "requester_hash", auditService.hashValue(created.requester()),
+                            "image_count", created.imageUrls().size()
                     )
             );
 
@@ -180,6 +185,41 @@ public class ProtocolsController {
             return ResponseEntity.ok(ProtocolOutputDto.from(updated));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(new ErrorResponse(ex.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/ai-correction")
+    public ResponseEntity<?> generateCorrectedImages(
+            @PathVariable String id,
+            Authentication authentication
+    ) {
+        try {
+            AuthenticatedUser user = requireAdmin(authentication);
+            Protocol updated = aiImageCorrectionService.generate(id);
+
+            auditService.append(
+                    id,
+                    "AI_CORRECTION_GENERATED",
+                    user.userId(),
+                    user.role(),
+                    updated.getStatus(),
+                    updated.getStatus(),
+                    Map.of(
+                            "source_image_count", updated.getImageUrls().size(),
+                            "generated_image_count", updated.getCorrectedImageUrls().size(),
+                            "disclaimer", "illustrative_ai_simulation"
+                    )
+            );
+
+            // O save devolve a entidade com o relacionamento de usuário já
+            // destacado do contexto JPA. Recarregar aplica o EntityGraph do
+            // repositório antes de montar o DTO (incluindo telefone/nome).
+            return ResponseEntity.ok(ProtocolOutputDto.from(findProtocol(id)));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(ex.getMessage()));
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                    .body(new ErrorResponse(ex.getMessage()));
         }
     }
 

@@ -141,8 +141,8 @@ export function AdminRequestsQueue() {
         </section>
 
         <section className="rounded-lg border border-[#CDD8E7] bg-white p-3 shadow-[0_7px_20px_rgba(15,45,85,0.035)]">
-          <div className="flex flex-col gap-2 xl:flex-row">
-            <label className="relative min-w-0 flex-1 xl:max-w-[390px]">
+          <div className="flex flex-col gap-2 2xl:flex-row">
+            <label className="relative min-w-0 flex-1 2xl:max-w-[390px]">
               <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={17} />
               <input
                 type="search"
@@ -152,9 +152,7 @@ export function AdminRequestsQueue() {
                 className="h-11 w-full rounded-lg border border-[#CDD8E7] bg-white pl-10 pr-3 text-sm outline-none focus:border-[#0758BD] focus:ring-2 focus:ring-blue-100"
               />
             </label>
-            {/* flex-wrap em vez de grid de colunas fixas: os filtros respeitam a
-                largura minima e quebram linha em vez de cortar o texto. */}
-            <div className="flex flex-1 flex-wrap gap-2">
+            <div className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
               <FilterSelect label="Status" value={statusFilter} onChange={(value) => { setStatusFilter(value); setPage(1); }} options={[
                 // Sem opcao 'Atrasado': atraso e condicao de prazo, filtrada no seletor de SLA.
                 ['all', 'Status'], ['open', 'Aberto'], ['analysis', 'Em análise'], ['resolved', 'Concluído'],
@@ -169,18 +167,18 @@ export function AdminRequestsQueue() {
                 ['all', 'SLA'], ['on-time', 'Em dia'], ['late', 'Vencido'],
               ]} />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 sm:justify-end">
               <button
                 type="button"
                 onClick={() => exportToExcel(filteredProtocols, 'fila_solicitacoes.xlsx')}
-                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white hover:bg-blue-700 xl:flex-none"
+                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white hover:bg-blue-700 sm:flex-none"
               >
                 <Download size={17} /> Exportar
               </button>
               <button
                 type="button"
                 onClick={resetFilters}
-                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50 xl:flex-none"
+                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50 sm:flex-none"
               >
                 <FilterX size={17} /> Limpar filtros
               </button>
@@ -310,10 +308,9 @@ function SummaryCard({ icon, value, label, tone }: { icon: React.ReactNode; valu
 
 function FilterSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: [string, string][] }) {
   return (
-    // min-w-[132px] impede que o grid comprima o campo a ponto de cortar
-    // rotulos como "Categoria" e "Prioridade"; pr-8 reserva espaco para a seta
-    // nativa do select, que antes cobria a ultima letra.
-    <label className="min-w-[132px] flex-1">
+    // A grade do contêiner controla a largura; pr-8 reserva espaço para a seta
+    // nativa do select, impedindo que ela cubra a última letra do rótulo.
+    <label className="min-w-0 w-full">
       <span className="sr-only">{label}</span>
       <select
         value={value}

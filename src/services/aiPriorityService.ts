@@ -2,12 +2,6 @@ import { apiRequest } from './http';
 
 type Priority = 'baixa' | 'media' | 'alta' | 'critica';
 
-interface AiPriorityResponse {
-  priority: Priority | null;
-  aiStatus: 'pending' | 'success' | 'failed';
-  errorMessage?: string;
-}
-
 interface ApiAuditLog {
   id: string;
   protocolId: string;
@@ -20,10 +14,6 @@ interface ApiAuditLog {
 }
 
 export const aiPriorityService = {
-  getPriority(protocolId: string): Promise<AiPriorityResponse> {
-    return apiRequest(`/api/ai-priority/${encodeURIComponent(protocolId)}`);
-  },
-
   async setManualPriority(
     protocolId: string,
     priority: string,
@@ -32,12 +22,6 @@ export const aiPriorityService = {
     await apiRequest(`/api/ai-priority/manual/${encodeURIComponent(protocolId)}`, {
       method: 'PUT',
       body: JSON.stringify({ priority, reason }),
-    });
-  },
-
-  async regeneratePriority(protocolId: string): Promise<void> {
-    await apiRequest(`/api/ai-priority/regenerate/${encodeURIComponent(protocolId)}`, {
-      method: 'POST',
     });
   },
 

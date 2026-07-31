@@ -50,3 +50,6 @@ app:
   supabase:
     edge-function-url: ${SUPABASE_EDGE_FUNCTION_URL}
     anon-key: ${SUPABASE_ANON_KEY}
+    corrected-image-function-url: ${SUPABASE_CORRECTED_IMAGE_FUNCTION_URL:}
+  ai:
+    image-function-secret: ${AI_IMAGE_FUNCTION_SECRET:${SUPABASE_ANON_KEY}}

@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
-  AlertCircle, ArrowLeft, ArrowRight, Box, Calendar, Check, CheckCircle2,
+  Accessibility, AlertCircle, ArrowLeft, ArrowRight, Box, Calendar, Check, CheckCircle2,
   ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Copy, ExternalLink,
-  FileText, Hash, Info, Link2, Loader2, LockKeyhole, MapPin, MapPinOff, MoreHorizontal,
-  Paperclip, RefreshCw, Settings, ShieldCheck, Tag, User,
+  Ear, Ellipsis, Eye, FileText, Hash, Info, Link2, Loader2, LockKeyhole, MapPin, MapPinOff, MoreHorizontal,
+  Paperclip, RefreshCw, Settings, ShieldCheck, Sparkles, Tag, User, WandSparkles,
 } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet';
 import { Header } from '../components/Header';
+import { ImageLightbox } from '../components/ImageLightbox';
 import { PrioritySection } from '../components/admin/PrioritySection';
 import { useApp } from '../context/AppContext';
 import type { Protocol } from '../constants';
@@ -19,12 +20,31 @@ import { getMarkerPosition } from '../utils/mapUtils';
 type DetailsTab = 'details' | 'blockchain';
 type DetailedProtocol = Protocol & { image_urls?: string[] };
 
-const DETAIL_MARKER_ICON = L.divIcon({
-  className: '',
-  html: '<span style="display:flex;width:42px;height:42px;align-items:center;justify-content:center;border:4px solid white;border-radius:50%;background:#0758BD;color:white;font-size:22px;box-shadow:0 5px 15px rgba(7,88,189,.35)">♿</span>',
-  iconSize: [42, 42],
-  iconAnchor: [21, 21],
-});
+const CATEGORY_PRESENTATION = {
+  Física: { Icon: Accessibility, mapSymbol: '♿' },
+  Visual: { Icon: Eye, mapSymbol: '👁' },
+  Auditiva: { Icon: Ear, mapSymbol: '👂' },
+  Outros: { Icon: Ellipsis, mapSymbol: '•••' },
+} as const;
+
+function normalizeCategory(category: string): keyof typeof CATEGORY_PRESENTATION {
+  const normalized = category.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+  if (normalized.includes('visual')) return 'Visual';
+  if (normalized.includes('auditiv')) return 'Auditiva';
+  if (normalized.includes('fisic')) return 'Física';
+  return 'Outros';
+}
+
+function createDetailMarkerIcon(category: string) {
+  const { mapSymbol } = CATEGORY_PRESENTATION[normalizeCategory(category)];
+  const fontSize = mapSymbol === '•••' ? 14 : 21;
+  return L.divIcon({
+    className: '',
+    html: `<span style="display:flex;width:42px;height:42px;align-items:center;justify-content:center;border:4px solid white;border-radius:50%;background:#0758BD;color:white;font-size:${fontSize}px;line-height:1;box-shadow:0 5px 15px rgba(7,88,189,.35)">${mapSymbol}</span>`,
+    iconSize: [42, 42],
+    iconAnchor: [21, 21],
+  });
+}
 
 const STATUS_OPTIONS = ['Aberto', 'Em Análise', 'Concluído', 'Atrasado'];
 
@@ -55,8 +75,9 @@ export function ProtocolDetails() {
   const [auditError, setAuditError] = useState('');
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [statusError, setStatusError] = useState('');
+  const [correctionGenerating, setCorrectionGenerating] = useState(false);
+  const [correctionError, setCorrectionError] = useState('');
   const [activeTab, setActiveTab] = useState<DetailsTab>('details');
-  const [copiedProtocol, setCopiedProtocol] = useState(false);
   // null = protocolo sem localizacao confirmada. Nao usar centro fixo aqui:
   // um default faria o card apontar para um lugar que nao e o da ocorrencia.
   const [mapPosition, setMapPosition] = useState<[number, number] | null>(null);
@@ -131,8 +152,21 @@ export function ProtocolDetails() {
   const copyProtocol = async () => {
     if (!protocol) return;
     await navigator.clipboard.writeText(protocol.id).catch(() => undefined);
-    setCopiedProtocol(true);
-    window.setTimeout(() => setCopiedProtocol(false), 1600);
+  };
+
+  const handleGenerateCorrection = async () => {
+    if (!id || !protocol || role !== 'admin') return;
+    setCorrectionGenerating(true);
+    setCorrectionError('');
+    try {
+      const updatedProtocol = await api.generateCorrectedImages(id);
+      setProtocol(updatedProtocol as DetailedProtocol);
+      await loadAuditTrail();
+    } catch (error) {
+      setCorrectionError(error instanceof Error ? error.message : 'Não foi possível gerar a simulação corrigida.');
+    } finally {
+      setCorrectionGenerating(false);
+    }
   };
 
   if (loading) {
@@ -164,34 +198,41 @@ export function ProtocolDetails() {
         action={role === 'admin' ? <HeaderActions protocol={protocol} onCopy={copyProtocol} onRefresh={loadProtocol} onOpenPublic={() => navigate(`/p/${protocol.id}`)} /> : undefined}
       />
       <div className="w-full px-4 pb-8 sm:px-6 lg:px-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <button type="button" onClick={copyProtocol} className="inline-flex min-h-10 max-w-full items-center gap-3 rounded-lg border border-[#CDD8E7] bg-white px-3 text-sm font-semibold text-slate-600 shadow-sm" title="Copiar número do protocolo">
-            <span className="truncate">Protocolo&nbsp; {protocol.id}</span>
-            {copiedProtocol ? <Check size={16} className="shrink-0 text-green-600" /> : <Copy size={16} className="shrink-0" />}
-          </button>
-          <StatusPill status={protocol.status} className="md:hidden" />
-        </div>
+        <div className="flex justify-end md:hidden"><StatusPill status={protocol.status} /></div>
         <Link to={backPath} className="mt-4 inline-flex items-center gap-2 font-bold text-[#0758BD] hover:text-blue-800"><ArrowLeft size={18} /> Voltar</Link>
         {role === 'admin' && <ProtocolTabs activeTab={activeTab} onChange={setActiveTab} auditCount={auditTrail?.blocks.length ?? 0} />}
         {role === 'admin' && activeTab === 'blockchain' ? (
           <BlockchainAuditPanel auditTrail={auditTrail} loading={auditLoading} error={auditError} onRefresh={loadAuditTrail} />
         ) : (
-          <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)]">
-            <div className="flex min-w-0 flex-col gap-4">
-              <ProtocolSummary protocol={protocol} category={category} />
+          <>
+            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)]">
+              <div className="flex min-w-0 flex-col gap-4">
+                <ProtocolSummary protocol={protocol} category={category} />
+                <DescriptionCard description={protocol.description || 'Nenhuma descrição informada.'} />
+                <AttachmentsCard
+                  images={protocol.image_urls || []}
+                  correctedImages={protocol.corrected_image_urls || []}
+                  correctionStatus={protocol.correction_status || 'idle'}
+                  correctionError={correctionError || protocol.correction_error || ''}
+                  correctionReport={protocol.correction_report || ''}
+                  canGenerate={role === 'admin'}
+                  generating={correctionGenerating}
+                  onGenerate={handleGenerateCorrection}
+                />
+              </div>
+              <div className="flex min-w-0 flex-col gap-4">
+                <RequesterCard protocol={protocol} />
+                {role === 'admin' && <>
+                  <StatusControlCard status={protocol.status} loading={statusUpdating} error={statusError} onSave={handleStatusChange} />
+                  <PrioritySection protocolId={protocol.id} initialPriority={protocol.ai_priority} initialStatus={protocol.ai_status} />
+                </>}
+                <TimelineCard events={timeline} />
+              </div>
+            </div>
+            <div className="mt-4">
               <LocationCard protocol={protocol} position={mapPosition} onOpenMap={() => navigate(role === 'admin' ? '/admin/mapa' : '/mapa')} />
-              <DescriptionCard description={protocol.description || 'Nenhuma descrição informada.'} />
-              <AttachmentsCard images={protocol.image_urls || []} />
             </div>
-            <div className="flex min-w-0 flex-col gap-4">
-              <RequesterCard protocol={protocol} />
-              {role === 'admin' && <>
-                <StatusControlCard status={protocol.status} loading={statusUpdating} error={statusError} onSave={handleStatusChange} />
-                <PrioritySection protocolId={protocol.id} initialPriority={protocol.ai_priority} initialStatus={protocol.ai_status} />
-              </>}
-              <TimelineCard events={timeline} />
-            </div>
-          </div>
+          </>
         )}
       </div>
     </div>
@@ -245,10 +286,14 @@ function ProtocolTabs({ activeTab, onChange, auditCount }: { activeTab: DetailsT
 }
 
 function ProtocolSummary({ protocol, category }: { protocol: DetailedProtocol; category: string }) {
+  const CategoryIcon = CATEGORY_PRESENTATION[normalizeCategory(category)].Icon;
+
   return (
     <section className="rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-sm">
       <div className="flex items-start gap-4">
-        <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-[#E7F0FF] text-3xl text-[#0758BD]" aria-hidden="true">♿</div>
+        <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-[#E7F0FF] text-[#0758BD]" aria-hidden="true">
+          <CategoryIcon size={32} strokeWidth={2.2} />
+        </div>
         <div className="min-w-0 flex-1">
           <h2 className="text-2xl font-black">{category}</h2>
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-600">
@@ -263,16 +308,24 @@ function ProtocolSummary({ protocol, category }: { protocol: DetailedProtocol; c
 }
 
 function LocationCard({ protocol, position, onOpenMap }: { protocol: DetailedProtocol; position: [number, number] | null; onOpenMap: () => void }) {
+  const category = protocol.category || protocol.service || 'Outros';
+  const markerIcon = useMemo(() => createDetailMarkerIcon(category), [category]);
+
   return (
     <section className="overflow-hidden rounded-lg border border-[#CDD8E7] bg-white shadow-sm">
-      <h2 className="flex items-center gap-2 px-5 py-4 font-black"><span className="flex size-7 items-center justify-center rounded-full bg-[#E7F0FF] text-[#0758BD]"><MapPin size={16} /></span>Localização da ocorrência</h2>
-      <div className="grid border-t border-[#E2E8F0] md:grid-cols-[1.35fr_0.8fr]">
-        <div className="relative h-56 min-w-0 md:h-64">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-6">
+        <h2 className="flex items-center gap-2 font-black"><span className="flex size-8 items-center justify-center rounded-full bg-[#E7F0FF] text-[#0758BD]"><MapPin size={17} /></span>Localização da ocorrência</h2>
+        <span className={`rounded-full px-3 py-1 text-xs font-bold ${position ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
+          {position ? 'Ponto confirmado no mapa' : 'Localização não confirmada'}
+        </span>
+      </div>
+      <div className="grid border-t border-[#E2E8F0] lg:grid-cols-[minmax(0,1.9fr)_minmax(320px,0.8fr)]">
+        <div className="relative h-64 min-w-0 sm:h-80 lg:h-[400px]">
           {position ? (
             <MapContainer center={position} zoom={15} zoomControl={false} style={{ width: '100%', height: '100%' }}>
               <MapCenter position={position} />
               <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" attribution='&copy; OpenStreetMap contributors &copy; CARTO' />
-              <Marker position={position} icon={DETAIL_MARKER_ICON} />
+              <Marker position={position} icon={markerIcon} />
             </MapContainer>
           ) : (
             <div className="flex size-full flex-col items-center justify-center gap-2 bg-slate-50 px-6 text-center">
@@ -282,9 +335,27 @@ function LocationCard({ protocol, position, onOpenMap }: { protocol: DetailedPro
             </div>
           )}
         </div>
-        <div className="flex flex-col justify-center p-5">
-          <p className="flex items-start gap-2 text-sm leading-6 text-slate-700"><MapPin className="mt-1 shrink-0 text-[#0758BD]" size={16} />{protocol.address || 'Endereço não informado'}</p>
-          <button type="button" onClick={onOpenMap} className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#0758BD] bg-white px-4 text-sm font-bold text-[#0758BD] hover:bg-blue-50"><ExternalLink size={16} /> Abrir no mapa estratégico</button>
+        <div className="flex flex-col justify-between border-t border-[#E2E8F0] p-5 sm:p-7 lg:border-l lg:border-t-0 lg:p-8">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Endereço informado</p>
+            <p className="mt-3 flex items-start gap-3 text-base font-semibold leading-7 text-slate-700">
+              <MapPin className="mt-1 shrink-0 text-[#0758BD]" size={19} />
+              <span>{protocol.address || 'Endereço não informado'}</span>
+            </p>
+            {position && (
+              <dl className="mt-6 grid grid-cols-2 gap-3">
+                <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFD] p-3">
+                  <dt className="text-xs font-semibold text-slate-500">Latitude</dt>
+                  <dd className="mt-1 font-mono text-sm font-bold text-[#0b1b33]">{position[0].toFixed(6)}</dd>
+                </div>
+                <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFD] p-3">
+                  <dt className="text-xs font-semibold text-slate-500">Longitude</dt>
+                  <dd className="mt-1 font-mono text-sm font-bold text-[#0b1b33]">{position[1].toFixed(6)}</dd>
+                </div>
+              </dl>
+            )}
+          </div>
+          <button type="button" onClick={onOpenMap} className="mt-7 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border border-[#0758BD] bg-white px-4 text-sm font-bold text-[#0758BD] transition hover:bg-blue-50"><ExternalLink size={17} /> Abrir no mapa estratégico</button>
         </div>
       </div>
     </section>
@@ -303,16 +374,129 @@ function DescriptionCard({ description }: { description: string }) {
   );
 }
 
-function AttachmentsCard({ images }: { images: string[] }) {
+function AttachmentsCard({
+  images,
+  correctedImages,
+  correctionStatus,
+  correctionError,
+  correctionReport,
+  canGenerate,
+  generating,
+  onGenerate,
+}: {
+  images: string[];
+  correctedImages: string[];
+  correctionStatus: 'idle' | 'processing' | 'success' | 'failed';
+  correctionError: string;
+  correctionReport: string;
+  canGenerate: boolean;
+  generating: boolean;
+  onGenerate: () => void;
+}) {
+  const [expandedImage, setExpandedImage] = useState<{ src: string; alt: string } | null>(null);
+  const isProcessing = generating || correctionStatus === 'processing';
+
   return (
-    <section className="rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-sm">
-      <h2 className="flex items-center gap-2 font-black"><span className="flex size-7 items-center justify-center rounded-full bg-[#E7F0FF] text-[#0758BD]"><Paperclip size={16} /></span>Anexos</h2>
-      {images.length === 0 ? <p className="mt-4 text-sm text-slate-500">Nenhum anexo enviado</p> : (
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {images.map((url, index) => <a key={url} href={url} target="_blank" rel="noreferrer" className="block aspect-video overflow-hidden rounded-lg border border-[#CDD8E7]"><img src={url} alt={`Anexo ${index + 1}`} className="size-full object-cover" /></a>)}
+    <>
+      <section className="rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 font-black"><span className="flex size-7 items-center justify-center rounded-full bg-[#E7F0FF] text-[#0758BD]"><Paperclip size={16} /></span>Anexos</h2>
+            {images.length > 0 && <p className="mt-1 text-xs text-slate-500">Fotos originais enviadas pelo cidadão.</p>}
+          </div>
+          {canGenerate && images.length > 0 && (
+            <button
+              type="button"
+              onClick={onGenerate}
+              disabled={isProcessing}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#0758BD] px-4 text-sm font-bold text-[#FFFFFF] shadow-sm transition hover:bg-blue-800 disabled:cursor-wait disabled:opacity-65"
+            >
+              {isProcessing ? <Loader2 className="animate-spin" size={17} /> : <WandSparkles size={17} />}
+              {isProcessing ? 'Gerando simulação...' : correctedImages.length > 0 ? 'Reenviar corrigida' : 'Gerar corrigida com IA'}
+            </button>
+          )}
         </div>
+
+        {images.length === 0 ? <p className="mt-4 text-sm text-slate-500">Nenhum anexo enviado</p> : (
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {images.map((url, index) => {
+              const alt = `Anexo ${index + 1}`;
+              return (
+                <button
+                  key={`${index}-${url.slice(0, 40)}`}
+                  type="button"
+                  aria-label={`Ampliar ${alt.toLocaleLowerCase('pt-BR')}`}
+                  onClick={() => setExpandedImage({ src: url, alt })}
+                  className="group relative block aspect-video overflow-hidden rounded-lg border border-[#CDD8E7] bg-slate-100 text-left transition hover:border-[#0758BD] focus:outline-none focus:ring-2 focus:ring-[#0758BD] focus:ring-offset-2"
+                >
+                  <img src={url} alt={alt} className="size-full object-cover transition duration-300 group-hover:scale-105" />
+                  <span className="absolute inset-0 flex items-center justify-center bg-slate-950/0 text-sm font-bold text-white opacity-0 transition group-hover:bg-slate-950/35 group-hover:opacity-100">Ampliar</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {canGenerate && isProcessing && (
+          <div className="mt-5 flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800" role="status">
+            <Loader2 className="mt-0.5 shrink-0 animate-spin" size={18} />
+            <div><strong className="block">A IA está corrigindo as fotos</strong><span className="mt-1 block text-xs">Isso pode levar até um minuto. Não feche esta página.</span></div>
+          </div>
+        )}
+
+        {canGenerate && !isProcessing && correctionError && (
+          <div className="mt-5 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">
+            <AlertCircle className="mt-0.5 shrink-0" size={17} /><span>{correctionError}</span>
+          </div>
+        )}
+
+        {canGenerate && correctedImages.length > 0 && (
+          <div className="mt-6 border-t border-slate-200 pt-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="flex items-center gap-2 font-black text-slate-900"><Sparkles className="text-violet-600" size={18} />Simulação corrigida</h3>
+              <span className="rounded-full bg-violet-100 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-violet-700">Gerada por IA</span>
+            </div>
+            <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-800">
+              Imagem gerada por IA, a IA pode cometer erros. Esta é uma simulação meramente ilustrativa, mostra uma possível correção e não comprova que o serviço foi executado.
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {correctedImages.map((url, index) => {
+                const alt = `Simulação corrigida ${index + 1}`;
+                return (
+                  <button
+                    key={`${index}-${url.slice(0, 40)}`}
+                    type="button"
+                    aria-label={`Ampliar ${alt.toLocaleLowerCase('pt-BR')}`}
+                    onClick={() => setExpandedImage({ src: url, alt })}
+                    className="group relative block aspect-video overflow-hidden rounded-lg border-2 border-violet-200 bg-violet-50 text-left transition hover:border-violet-600 focus:outline-none focus:ring-2 focus:ring-violet-600 focus:ring-offset-2"
+                  >
+                    <img src={url} alt={alt} className="size-full object-cover transition duration-300 group-hover:scale-105" />
+                    <span className="absolute bottom-2 left-2 rounded-full bg-violet-700/90 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-white">Simulação IA</span>
+                    <span className="absolute inset-0 flex items-center justify-center bg-slate-950/0 text-sm font-bold text-white opacity-0 transition group-hover:bg-slate-950/35 group-hover:opacity-100">Ampliar</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-4 rounded-lg border border-violet-200 bg-violet-50/60 p-4">
+              <h4 className="flex items-center gap-2 text-sm font-black text-violet-950">
+                <ClipboardList size={17} className="text-violet-600" />Relatório da geração pela IA
+              </h4>
+              {correctionReport ? (
+                <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700">{correctionReport}</p>
+              ) : (
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  O relatório não está disponível para esta geração anterior. Gere novamente para criar a imagem com o plano detalhado.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {expandedImage && (
+        <ImageLightbox src={expandedImage.src} alt={expandedImage.alt} onClose={() => setExpandedImage(null)} />
       )}
-    </section>
+    </>
   );
 }
 

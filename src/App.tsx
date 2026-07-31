@@ -76,7 +76,7 @@ function AppContent() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#080d12] text-white font-sans">
+    <div className="flex h-dvh overflow-hidden bg-[#080d12] text-white font-sans">
       <Sidebar />
       {isSidebarCollapsed && (
         <button
@@ -88,7 +88,7 @@ function AppContent() {
           <PanelLeftOpen size={18} />
         </button>
       )}
-      <main className={`flex-1 ml-0 ${isSidebarCollapsed ? 'md:ml-0' : 'md:ml-72'} flex flex-col h-screen overflow-hidden transition-all duration-300`}>
+      <main className={`ml-0 flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'md:ml-0' : 'md:ml-72'}`}>
         <Routes location={routeLocation}>
           {/* Default Route when authenticated */}
           <Route path="/login" element={<Navigate to={role === 'citizen' ? '/' : '/admin'} replace />} />

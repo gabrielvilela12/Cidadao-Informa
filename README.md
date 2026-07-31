@@ -67,7 +67,14 @@ CORS_ALLOWED_ORIGINS=http://localhost:3000
 
 SUPABASE_EDGE_FUNCTION_URL=https://<project-ref>.supabase.co/functions/v1/classify-priority
 SUPABASE_ANON_KEY=<supabase-anon-key>
+SUPABASE_CORRECTED_IMAGE_FUNCTION_URL=https://<project-ref>.supabase.co/functions/v1/generate-corrected-image
+AI_IMAGE_FUNCTION_SECRET=<segredo-compartilhado-com-a-edge-function>
 ```
+
+Para habilitar a simulação de correção por IA, publique a função
+`generate-corrected-image` e configure nela os segredos `OPENROUTER_API_KEY` e
+`AI_IMAGE_FUNCTION_SECRET`. O modelo pode ser alterado pelo segredo opcional
+`OPENROUTER_IMAGE_MODEL`; o padrão é `google/gemini-3.1-flash-lite-image`.
 
 Use a conexão Session Pooler mostrada no botão `Connect` do projeto para
 funcionar também em hospedagens e redes compatíveis apenas com IPv4. Nunca

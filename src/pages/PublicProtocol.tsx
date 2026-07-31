@@ -1,11 +1,12 @@
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, MapPinOff, Calendar, Clock, FileText, CheckCircle, AlertCircle, Shield, Share2, Check, ExternalLink, Image as ImageIcon } from 'lucide-react';
+import { MapPin, MapPinOff, Calendar, Clock, FileText, CheckCircle, AlertCircle, Shield, Share2, Check, Image as ImageIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { api } from '../services/api';
 import { CidadaoBrand } from '../components/CidadaoBrand';
+import { ImageLightbox } from '../components/ImageLightbox';
 import { getMarkerPosition } from '../utils/mapUtils';
 
 // Fix leaflet icons
@@ -46,6 +47,7 @@ export function PublicProtocol() {
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
     const [notFound, setNotFound] = useState(false);
+    const [expandedImage, setExpandedImage] = useState<{ src: string; alt: string } | null>(null);
     // Coordenada confirmada do protocolo, ou null quando nao houver.
     const publicPosition = protocol ? getMarkerPosition(protocol) : null;
 
@@ -189,15 +191,18 @@ export function PublicProtocol() {
                                             <ImageIcon size={16} className="text-blue-400" /> Fotos Anexadas
                                         </h3>
                                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                            {protocol.image_urls.map((url: string, i: number) => (
-                                                <a key={i} href={url} target="_blank" rel="noopener noreferrer"
-                                                    className="block aspect-video rounded-xl overflow-hidden border border-white/8 hover:border-blue-500/40 transition-colors bg-white/5 group relative">
-                                                    <img src={url} alt={`Foto ${i + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                                                        <ExternalLink size={16} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                    </div>
-                                                </a>
-                                            ))}
+                                            {protocol.image_urls.map((url: string, i: number) => {
+                                                const alt = `Foto ${i + 1}`;
+                                                return (
+                                                    <button key={i} type="button" aria-label={`Ampliar ${alt.toLocaleLowerCase('pt-BR')}`} onClick={() => setExpandedImage({ src: url, alt })}
+                                                        className="block aspect-video rounded-xl overflow-hidden border border-white/8 hover:border-blue-500/40 transition-colors bg-white/5 group relative focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                                        <img src={url} alt={alt} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                                                            <span className="text-sm font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity">Ampliar</span>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 )}
@@ -271,6 +276,10 @@ export function PublicProtocol() {
                     © {new Date().getFullYear()} Cidadão Informa - Portal de Acessibilidade Urbana
                 </div>
             </footer>
+
+            {expandedImage && (
+                <ImageLightbox src={expandedImage.src} alt={expandedImage.alt} onClose={() => setExpandedImage(null)} />
+            )}
         </div>
     );
 }

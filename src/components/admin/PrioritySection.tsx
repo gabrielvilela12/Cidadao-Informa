@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, Pencil, RefreshCw, Star } from 'lucide-react';
+import { Loader2, Pencil, Star } from 'lucide-react';
 import { ChangePriorityModal } from './ChangePriorityModal';
 import { aiPriorityService } from '../../services/aiPriorityService';
 
@@ -23,33 +23,10 @@ export const PrioritySection: React.FC<PrioritySectionProps> = ({ protocolId, in
   const [status, setStatus] = useState(initialStatus);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [regenerating, setRegenerating] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => setPriority(initialPriority), [initialPriority]);
   useEffect(() => setStatus(initialStatus), [initialStatus]);
-
-  const handleRegenerate = async () => {
-    setRegenerating(true);
-    setError('');
-    try {
-      await aiPriorityService.regeneratePriority(protocolId);
-      setStatus('pending');
-      window.setTimeout(async () => {
-        try {
-          const data = await aiPriorityService.getPriority(protocolId);
-          setPriority(data.priority);
-          setStatus(data.aiStatus as 'success' | 'failed' | 'pending');
-        } catch {
-          setError('Não foi possível obter o resultado da classificação.');
-        }
-      }, 5000);
-    } catch (regenerateError) {
-      setError(regenerateError instanceof Error ? regenerateError.message : 'Não foi possível reprocessar a prioridade.');
-    } finally {
-      setRegenerating(false);
-    }
-  };
 
   const handleChangePriority = async (newPriority: Priority, reason?: string) => {
     setLoading(true);
@@ -89,14 +66,11 @@ export const PrioritySection: React.FC<PrioritySectionProps> = ({ protocolId, in
       </div>
 
       <p className="mt-3 text-xs text-slate-500">
-        {status === 'pending' ? 'A classificação está sendo analisada.' : status === 'failed' ? 'Reprocesse ou defina a prioridade manualmente.' : 'Prioridade registrada para a triagem.'}
+        {status === 'pending' ? 'A classificação está sendo analisada.' : status === 'failed' ? 'Defina a prioridade manualmente.' : 'Prioridade registrada para a triagem.'}
       </p>
 
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        <button type="button" onClick={handleRegenerate} disabled={regenerating || loading} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#0758BD] bg-white px-2 whitespace-nowrap text-xs font-bold text-[#0758BD] disabled:opacity-50">
-          {regenerating ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} {regenerating ? 'Reprocessando...' : 'Reprocessar IA'}
-        </button>
-        <button type="button" onClick={() => setShowModal(true)} disabled={loading} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#0758BD] bg-white px-2 whitespace-nowrap text-xs font-bold text-[#0758BD] disabled:opacity-50">
+      <div className="mt-3">
+        <button type="button" onClick={() => setShowModal(true)} disabled={loading} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#0758BD] bg-white px-4 whitespace-nowrap text-xs font-bold text-[#0758BD] disabled:opacity-50">
           <Pencil size={16} /> Definir manualmente
         </button>
       </div>

@@ -30,16 +30,7 @@ describe('AI Priority Classification - E2E', () => {
     expect(true).toBe(true); // Placeholder
   });
 
-  test('Test 3: Admin can regenerate priority', () => {
-    // 1. Click on protocol in detail page
-    // 2. Scroll to "Prioridade" section
-    // 3. Click "Regenerar IA" button
-    // Expected: Status shows "Processando..."
-    // Expected: After 5 seconds, priority updates
-    expect(true).toBe(true); // Placeholder
-  });
-
-  test('Test 4: Admin can manually override priority', () => {
+  test('Test 3: Admin can manually override priority', () => {
     // 1. In protocol detail, click "Trocar" button
     // 2. Select a different priority (e.g., if it was ALTA, select BAIXA)
     // 3. Enter reason: "falso alarme"
@@ -50,17 +41,17 @@ describe('AI Priority Classification - E2E', () => {
     expect(true).toBe(true); // Placeholder
   });
 
-  test('Test 5: Failed classification shows graceful error', () => {
+  test('Test 4: Failed classification shows graceful error', () => {
     // 1. Temporarily disable Edge Function or API key
     // 2. Create a new solicitação
     // 3. Wait 10 seconds
     // 4. Go to admin queue
     // Expected: Priority badge shows ⚠️ "IA Falhou"
-    // Expected: Admin can still regenerate or manually set priority
+    // Expected: Admin can manually set priority
     expect(true).toBe(true); // Placeholder
   });
 
-  test('Test 6: AI Logs page shows all changes', () => {
+  test('Test 5: AI Logs page shows all changes', () => {
     // 1. Go to Admin → Logs IA
     // 2. Check protocol from Test 4
     // Expected: Shows entry from IA classification (source: 🤖 IA)
@@ -69,7 +60,7 @@ describe('AI Priority Classification - E2E', () => {
     expect(true).toBe(true); // Placeholder
   });
 
-  test('Test 7: Retry mechanism (advanced)', () => {
+  test('Test 6: Retry mechanism (advanced)', () => {
     // 1. Create solicitação while Edge Function is down
     // 2. Wait 5+ minutes for pg_cron to retry
     // Expected: Failed job status changes to success
@@ -78,7 +69,7 @@ describe('AI Priority Classification - E2E', () => {
     expect(true).toBe(true); // Placeholder
   });
 
-  test('Test 8: Performance - priority visible within 10 seconds', () => {
+  test('Test 7: Performance - priority visible within 10 seconds', () => {
     // 1. Create 5 solicitações in quick succession
     // 2. Go to admin queue
     // 3. Measure time until all priorities appear

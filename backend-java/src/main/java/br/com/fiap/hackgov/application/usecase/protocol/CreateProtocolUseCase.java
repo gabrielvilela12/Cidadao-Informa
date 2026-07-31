@@ -6,8 +6,13 @@ import br.com.fiap.hackgov.domain.entity.Protocol;
 import br.com.fiap.hackgov.domain.repository.ProtocolRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class CreateProtocolUseCase {
+
+    private static final int MAX_IMAGES = 4;
+    private static final int MAX_IMAGE_DATA_URL_LENGTH = 2_800_000;
 
     private final ProtocolRepository repository;
 
@@ -23,6 +28,7 @@ public class CreateProtocolUseCase {
         }
 
         validateCoordinates(input.latitude(), input.longitude());
+        List<String> imageUrls = validateImages(input.imageUrls());
 
         Protocol protocol = new Protocol();
         protocol.setCategory(input.category().trim());
@@ -36,6 +42,7 @@ public class CreateProtocolUseCase {
         // chegar ao local, entao ela e persistida junto do chamado.
         protocol.setLatitude(input.latitude());
         protocol.setLongitude(input.longitude());
+        protocol.setImageUrls(imageUrls);
 
         Protocol createdProtocol = repository.add(protocol);
 
@@ -61,5 +68,26 @@ public class CreateProtocolUseCase {
                 || longitude < -180 || longitude > 180) {
             throw new IllegalArgumentException("Coordenadas fora da faixa válida.");
         }
+    }
+
+    private List<String> validateImages(List<String> imageUrls) {
+        if (imageUrls == null || imageUrls.isEmpty()) {
+            return List.of();
+        }
+        if (imageUrls.size() > MAX_IMAGES) {
+            throw new IllegalArgumentException("Envie no máximo 4 fotos.");
+        }
+
+        return imageUrls.stream().map(imageUrl -> {
+            if (imageUrl == null
+                    || !(imageUrl.startsWith("data:image/jpeg;base64,")
+                    || imageUrl.startsWith("data:image/png;base64,"))) {
+                throw new IllegalArgumentException("Formato de imagem inválido. Use JPG ou PNG.");
+            }
+            if (imageUrl.length() > MAX_IMAGE_DATA_URL_LENGTH) {
+                throw new IllegalArgumentException("Uma das fotos excede o tamanho permitido.");
+            }
+            return imageUrl;
+        }).toList();
     }
 }

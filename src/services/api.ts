@@ -15,6 +15,13 @@ interface ApiProtocol {
     longitude?: number | null;
     aiPriority?: 'baixa' | 'media' | 'alta' | 'critica' | null;
     aiStatus?: 'pending' | 'success' | 'failed' | null;
+    imageUrls?: string[];
+    image_urls?: string[];
+    correctedImageUrls?: string[];
+    correctionStatus?: 'idle' | 'processing' | 'success' | 'failed';
+    correctionError?: string | null;
+    correctionGeneratedAt?: string | null;
+    correctionReport?: string | null;
 }
 
 export interface ProtocolAuditBlock {
@@ -83,6 +90,12 @@ function mapProtocol(item: ApiProtocol) {
         // o mapa depende do null para omitir o pin em vez de inventar posição.
         latitude: typeof item.latitude === 'number' ? item.latitude : null,
         longitude: typeof item.longitude === 'number' ? item.longitude : null,
+        image_urls: item.imageUrls ?? item.image_urls ?? [],
+        corrected_image_urls: item.correctedImageUrls ?? [],
+        correction_status: item.correctionStatus ?? 'idle',
+        correction_error: item.correctionError ?? null,
+        correction_generated_at: item.correctionGeneratedAt ?? null,
+        correction_report: item.correctionReport ?? null,
     };
 }
 
@@ -182,6 +195,7 @@ export const api = {
                 // usa para chegar ao local, então precisa ser persistida.
                 latitude: data.latitude ?? null,
                 longitude: data.longitude ?? null,
+                imageUrls: data.imageUrls ?? [],
             }),
         });
     },
@@ -222,6 +236,14 @@ export const api = {
                 method: 'PATCH',
                 body: JSON.stringify({ status, reason }),
             },
+        );
+        return mapProtocol(data);
+    },
+
+    async generateCorrectedImages(protocolId: string) {
+        const data = await apiRequest<ApiProtocol>(
+            `/api/protocols/${encodeURIComponent(protocolId)}/ai-correction`,
+            { method: 'POST' },
         );
         return mapProtocol(data);
     },

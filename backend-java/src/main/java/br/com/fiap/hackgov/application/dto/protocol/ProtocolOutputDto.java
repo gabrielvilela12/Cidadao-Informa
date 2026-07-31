@@ -3,6 +3,7 @@ package br.com.fiap.hackgov.application.dto.protocol;
 import br.com.fiap.hackgov.domain.entity.Protocol;
 
 import java.time.Instant;
+import java.util.List;
 
 public record ProtocolOutputDto(
         String id,
@@ -17,7 +18,13 @@ public record ProtocolOutputDto(
         String aiPriority,
         String aiStatus,
         Double latitude,
-        Double longitude
+        Double longitude,
+        List<String> imageUrls,
+        List<String> correctedImageUrls,
+        String correctionStatus,
+        String correctionError,
+        Instant correctionGeneratedAt,
+        String correctionReport
 ) {
     public static ProtocolOutputDto from(Protocol protocol) {
         return new ProtocolOutputDto(
@@ -33,7 +40,13 @@ public record ProtocolOutputDto(
                 protocol.getAiPriority(),
                 protocol.getAiStatus(),
                 protocol.getLatitude(),
-                protocol.getLongitude()
+                protocol.getLongitude(),
+                protocol.getImageUrls(),
+                protocol.getCorrectedImageUrls(),
+                protocol.getCorrectionStatus(),
+                protocol.getCorrectionError(),
+                protocol.getCorrectionGeneratedAt(),
+                protocol.getCorrectionReport()
         );
     }
 }

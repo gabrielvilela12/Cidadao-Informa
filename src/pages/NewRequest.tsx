@@ -20,6 +20,76 @@ const DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 type SubmitStatus = 'idle' | 'submitting' | 'success' | 'error';
+type AddressForm = {
+  street: string;
+  number: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+};
+
+const MAX_IMAGES = 4;
+const MAX_STORED_IMAGE_LENGTH = 2_800_000;
+
+function readBlobAsDataUrl(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error('Não foi possível preparar uma das fotos.'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+function loadImage(file: File) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error(`Não foi possível ler a foto ${file.name}.`));
+    };
+    image.src = objectUrl;
+  });
+}
+
+async function renderCompressedImage(image: HTMLImageElement, maxDimension: number, quality: number) {
+  const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+  const width = Math.max(1, Math.round(image.naturalWidth * scale));
+  const height = Math.max(1, Math.round(image.naturalHeight * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Não foi possível preparar as fotos para envio.');
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, width, height);
+  context.drawImage(image, 0, 0, width, height);
+
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      result => result ? resolve(result) : reject(new Error('Não foi possível compactar uma das fotos.')),
+      'image/jpeg',
+      quality,
+    );
+  });
+  return readBlobAsDataUrl(blob);
+}
+
+async function prepareImageForStorage(file: File) {
+  const image = await loadImage(file);
+  let dataUrl = await renderCompressedImage(image, 1600, 0.8);
+  if (dataUrl.length > MAX_STORED_IMAGE_LENGTH) {
+    dataUrl = await renderCompressedImage(image, 1100, 0.68);
+  }
+  if (dataUrl.length > MAX_STORED_IMAGE_LENGTH) {
+    throw new Error(`A foto ${file.name} ficou muito grande mesmo após a compactação.`);
+  }
+  return dataUrl;
+}
 
 function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error && error.message ? error.message : fallback;
@@ -85,6 +155,8 @@ export function NewRequest() {
   });
   const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  const [isLocatingNumber, setIsLocatingNumber] = useState(false);
+  const [numberLocationMessage, setNumberLocationMessage] = useState('');
   const [category, setCategory] = useState(requestPreset?.category || 'Física');
   const [serviceDesc, setServiceDesc] = useState(requestPreset?.serviceDesc || '');
   const [description, setDescription] = useState('');
@@ -100,6 +172,78 @@ export function NewRequest() {
 
   // Address search debounce timer
   const searchTimeout = React.useRef<NodeJS.Timeout | null>(null);
+  const numberSearchTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const numberLookupId = React.useRef(0);
+
+  React.useEffect(() => () => {
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    if (numberSearchTimeout.current) clearTimeout(numberSearchTimeout.current);
+    numberLookupId.current += 1;
+  }, []);
+
+  const cancelNumberLookup = () => {
+    numberLookupId.current += 1;
+    if (numberSearchTimeout.current) clearTimeout(numberSearchTimeout.current);
+    numberSearchTimeout.current = null;
+    setIsLocatingNumber(false);
+  };
+
+  const locateExactAddress = async (address: AddressForm, lookupId: number) => {
+    const query = [address.street, address.number, address.neighborhood, address.city, address.state, 'Brasil']
+      .filter(Boolean)
+      .join(', ');
+
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1&countrycodes=br`, {
+        headers: { 'Accept-Language': 'pt-BR' },
+      });
+      if (!response.ok) throw new Error(`Nominatim respondeu com status ${response.status}.`);
+      const results = await response.json();
+      if (lookupId !== numberLookupId.current) return;
+
+      const expectedNumber = address.number.toLocaleLowerCase('pt-BR').replace(/[^a-z0-9]/g, '');
+      const exactResult = Array.isArray(results)
+        ? results.find(result => String(result.address?.house_number || '').toLocaleLowerCase('pt-BR').replace(/[^a-z0-9]/g, '') === expectedNumber)
+        : null;
+
+      if (!exactResult) {
+        setPosition(null);
+        setNumberLocationMessage('Número não localizado automaticamente. Clique no ponto exato no mapa.');
+        return;
+      }
+
+      const lat = Number(exactResult.lat);
+      const lng = Number(exactResult.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error('Coordenadas inválidas para o endereço.');
+      setPosition({ lat, lng });
+      setMapCenter([lat, lng]);
+      setNumberLocationMessage(`Número ${address.number} localizado e marcado no mapa.`);
+    } catch (error) {
+      if (lookupId !== numberLookupId.current) return;
+      console.error('Erro ao localizar o número do endereço', error);
+      setPosition(null);
+      setNumberLocationMessage('Não foi possível localizar o número. Clique no ponto exato no mapa.');
+    } finally {
+      if (lookupId === numberLookupId.current) setIsLocatingNumber(false);
+    }
+  };
+
+  const scheduleExactAddressLookup = (address: AddressForm) => {
+    cancelNumberLookup();
+    setNumberLocationMessage('');
+
+    if (!address.street.trim() || !address.number.trim() || !address.city.trim() || !address.state.trim()) {
+      return;
+    }
+
+    setPosition(null);
+    setIsLocatingNumber(true);
+    const lookupId = numberLookupId.current;
+    numberSearchTimeout.current = setTimeout(() => {
+      numberSearchTimeout.current = null;
+      void locateExactAddress(address, lookupId);
+    }, 700);
+  };
 
   const handleAddressSearch = (value: string) => {
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
@@ -127,24 +271,50 @@ export function NewRequest() {
 
   const selectAddress = (sug: any) => {
     const addr = sug.address || {};
-    setAddressObj({
+    const selectedAddress: AddressForm = {
       street: addr.road || addr.pedestrian || addr.path || sug.name || '',
       number: addr.house_number || '',
       neighborhood: addr.suburb || addr.neighbourhood || addr.city_district || addr.residential || '',
       city: addr.city || addr.town || addr.village || addr.municipality || '',
       state: addr.state || ''
-    });
+    };
+    cancelNumberLookup();
+    setAddressObj(selectedAddress);
     setAddressSuggestions([]);
     const lat = parseFloat(sug.lat);
     const lon = parseFloat(sug.lon);
     setPosition({ lat, lng: lon });
     setMapCenter([lat, lon]);
+    setNumberLocationMessage(selectedAddress.number
+      ? `Número ${selectedAddress.number} localizado e marcado no mapa.`
+      : 'Digite o número para localizar o ponto exato no mapa.');
+  };
+
+  const handleManualMapPosition = (nextPosition: { lat: number; lng: number }) => {
+    cancelNumberLookup();
+    setPosition(nextPosition);
+    setNumberLocationMessage('Ponto definido manualmente no mapa.');
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newImages = Array.from(e.target.files);
+      if (newImages.some(file => !['image/jpeg', 'image/png'].includes(file.type))) {
+        setSubmitStatus('error');
+        setSubmitMessage('Selecione somente fotos JPG ou PNG.');
+        e.target.value = '';
+        return;
+      }
+      if (images.length + newImages.length > MAX_IMAGES) {
+        setSubmitStatus('error');
+        setSubmitMessage(`Você pode enviar no máximo ${MAX_IMAGES} fotos.`);
+        e.target.value = '';
+        return;
+      }
+      setSubmitStatus('idle');
+      setSubmitMessage('');
       setImages(prev => [...prev, ...newImages]);
+      e.target.value = '';
     }
   };
 
@@ -157,8 +327,10 @@ export function NewRequest() {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const { latitude, longitude } = pos.coords;
+          cancelNumberLookup();
           setPosition({ lat: latitude, lng: longitude });
           setMapCenter([latitude, longitude]);
+          setNumberLocationMessage('Ponto definido pela sua localização atual.');
           fetchAddress(latitude, longitude, setAddressObj);
         },
         (err) => {
@@ -219,6 +391,7 @@ export function NewRequest() {
     const fullAddress = buildFullAddress(addressObj);
 
     try {
+      const imageUrls = await Promise.all(images.map(prepareImageForStorage));
       await api.createProtocol({
         category: category,
         description: serviceDesc + (description ? ` - ${description}` : ''),
@@ -228,6 +401,7 @@ export function NewRequest() {
         // para chegar ao local, entao precisa ser persistida junto.
         latitude: position?.lat ?? null,
         longitude: position?.lng ?? null,
+        imageUrls,
       });
       setLoading(false);
       setSubmitStatus('success');
@@ -243,8 +417,8 @@ export function NewRequest() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#f4f8fc] text-[#0b1b33]">
-      <main className="mx-auto flex min-h-full w-full max-w-[1480px] flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+    <div className="min-h-0 flex-1 overflow-y-auto bg-[#f4f8fc] text-[#0b1b33]">
+      <main className="mx-auto flex w-full max-w-[1480px] flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
         <section className="flex flex-col justify-between gap-6 lg:flex-row lg:items-start">
           <div>
             <button
@@ -346,7 +520,9 @@ export function NewRequest() {
                           value={addressObj.street}
                           autoComplete="street-address"
                           onChange={(event) => {
-                            setAddressObj({ ...addressObj, street: event.target.value });
+                            const nextAddress = { ...addressObj, street: event.target.value };
+                            setAddressObj(nextAddress);
+                            scheduleExactAddressLookup(nextAddress);
                             handleAddressSearch(event.target.value);
                           }}
                         />
@@ -370,16 +546,34 @@ export function NewRequest() {
                     </div>
 
                     <Field label="Número" id="number">
-                      <input id="number" className={fieldClass} placeholder="Ex: 1578" value={addressObj.number} onChange={(event) => setAddressObj({ ...addressObj, number: event.target.value })} />
+                      <div>
+                        <input
+                          id="number"
+                          className={fieldClass}
+                          placeholder="Ex: 1578"
+                          value={addressObj.number}
+                          onChange={(event) => {
+                            const nextAddress = { ...addressObj, number: event.target.value };
+                            setAddressObj(nextAddress);
+                            scheduleExactAddressLookup(nextAddress);
+                          }}
+                        />
+                        {(isLocatingNumber || numberLocationMessage) && (
+                          <p className={`mt-2 flex items-start gap-2 text-xs font-semibold ${isLocatingNumber ? 'text-[#0758bd]' : position ? 'text-green-700' : 'text-amber-700'}`} role="status">
+                            {isLocatingNumber ? <Loader2 className="mt-0.5 shrink-0 animate-spin" size={14} /> : position ? <CheckCircle className="mt-0.5 shrink-0" size={14} /> : <AlertCircle className="mt-0.5 shrink-0" size={14} />}
+                            <span>{isLocatingNumber ? 'Localizando o número no mapa...' : numberLocationMessage}</span>
+                          </p>
+                        )}
+                      </div>
                     </Field>
                     <Field label="Bairro" id="neighborhood">
                       <input id="neighborhood" className={fieldClass} placeholder="Ex: Centro" value={addressObj.neighborhood} onChange={(event) => setAddressObj({ ...addressObj, neighborhood: event.target.value })} />
                     </Field>
                     <Field label="Cidade" id="city">
-                      <input id="city" className={fieldClass} placeholder="São Paulo" value={addressObj.city} onChange={(event) => setAddressObj({ ...addressObj, city: event.target.value })} />
+                      <input id="city" className={fieldClass} placeholder="São Paulo" value={addressObj.city} onChange={(event) => { const nextAddress = { ...addressObj, city: event.target.value }; setAddressObj(nextAddress); scheduleExactAddressLookup(nextAddress); }} />
                     </Field>
                     <Field label="Estado" id="state">
-                      <input id="state" className={fieldClass} placeholder="SP" value={addressObj.state} onChange={(event) => setAddressObj({ ...addressObj, state: event.target.value })} />
+                      <input id="state" className={fieldClass} placeholder="SP" value={addressObj.state} onChange={(event) => { const nextAddress = { ...addressObj, state: event.target.value }; setAddressObj(nextAddress); scheduleExactAddressLookup(nextAddress); }} />
                     </Field>
                     <Field label="Descrição detalhada (opcional)" id="details" wide>
                       <textarea
@@ -401,11 +595,11 @@ export function NewRequest() {
                       <p className="text-sm text-slate-600">Adicione imagens que mostrem o problema.</p>
                     </div>
                   </div>
-                  <label className="mt-5 flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-blue-200 bg-blue-50/50 p-6 text-center transition hover:border-[#1260c9] hover:bg-blue-50">
+                  <label className="relative mt-5 flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-blue-200 bg-blue-50/50 p-6 text-center transition hover:border-[#1260c9] hover:bg-blue-50">
                     <input className="sr-only" multiple type="file" accept="image/png,image/jpeg" onChange={handleImageUpload} />
                     <CloudUpload className="text-[#1260c9]" size={34} />
                     <span className="mt-3 font-semibold text-[#0b1b33]">Selecionar fotos</span>
-                    <span className="mt-1 text-sm text-slate-500">JPG ou PNG</span>
+                    <span className="mt-1 text-sm text-slate-500">JPG ou PNG · até {MAX_IMAGES} fotos</span>
                   </label>
                   {images.length > 0 && (
                     <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -460,7 +654,7 @@ export function NewRequest() {
               <MapGuide
                 mapCenter={mapCenter}
                 position={position}
-                setPosition={setPosition}
+                setPosition={handleManualMapPosition}
                 setAddressObj={setAddressObj}
                 onUseLocation={handleUseMyLocation}
               />
@@ -470,7 +664,7 @@ export function NewRequest() {
           </aside>
         </div>
 
-        <section className="sticky bottom-0 z-40 rounded-lg border border-slate-200 bg-white/95 p-4 shadow-[0_-6px_24px_rgba(15,42,73,0.08)] backdrop-blur sm:p-5">
+        <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-[0_10px_30px_rgba(15,42,73,0.04)] sm:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <SubmitStatusBanner status={submitStatus} message={submitMessage} />
             <div className="flex w-full gap-3 sm:justify-end lg:w-auto">

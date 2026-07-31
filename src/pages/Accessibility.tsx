@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Accessibility as AccessibilityIcon,
     Activity,
@@ -64,11 +64,35 @@ export function Accessibility() {
     const [isReading, setIsReading] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [showNotice, setShowNotice] = useState(true);
+    const [fontSizeInput, setFontSizeInput] = useState(String(fontSize));
+    const [fontSizeError, setFontSizeError] = useState('');
+    const [fontSizeConfirmation, setFontSizeConfirmation] = useState('');
     const navigate = useNavigate();
     const location = useLocation();
     const { isAuthenticated, role, toggleMobileMenu } = useApp();
 
     const fallbackPath = isAuthenticated ? (role === 'admin' ? '/admin' : '/') : '/login';
+
+    useEffect(() => {
+        setFontSizeInput(String(fontSize));
+    }, [fontSize]);
+
+    const confirmFontSize = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        const value = Number(fontSizeInput);
+        if (!/^\d+$/.test(fontSizeInput.trim()) || !Number.isInteger(value) || value < 100 || value > 200) {
+            setFontSizeError('Digite um valor inteiro entre 100 e 200.');
+            setFontSizeConfirmation('');
+            return;
+        }
+
+        setFontSize(value);
+        setFontSizeInput(String(value));
+        setFontSizeError('');
+        setFontSizeConfirmation(`Tamanho da fonte alterado para ${value}%.`);
+    };
+
     const handleBack = () => {
         if (location.key !== 'default') {
             navigate(-1);
@@ -116,6 +140,9 @@ export function Accessibility() {
 
     const resetPreferences = () => {
         setFontSize(100);
+        setFontSizeInput('100');
+        setFontSizeError('');
+        setFontSizeConfirmation('');
         setTheme('light');
         setColorblindMode('none');
         setTextSpacing('normal');
@@ -219,24 +246,52 @@ export function Accessibility() {
                             Ajuste o tamanho de todos os textos da aplicação: <strong className="text-[#0758BD]">{fontSize}%</strong>
                         </p>
                         <div className="mt-6 flex flex-1 flex-col justify-center rounded-lg border border-[#D7E0EC] bg-[#FBFCFE] px-5 py-6 sm:px-8">
-                            <div className="flex items-center gap-4 sm:gap-6">
-                                <span className="text-xl font-bold text-slate-700" aria-hidden="true">A</span>
-                                <input
-                                    type="range"
-                                    min="100"
-                                    max="200"
-                                    step="25"
-                                    value={fontSize}
-                                    onChange={(event) => setFontSize(Number(event.target.value))}
-                                    className="h-2 min-w-0 flex-1 cursor-pointer accent-[#0758BD]"
-                                    aria-label="Tamanho da fonte"
-                                    aria-valuetext={`${fontSize}%`}
-                                />
-                                <span className="text-3xl font-black text-[#0B1B33]" aria-hidden="true">A</span>
-                            </div>
-                            <div className="mt-4 grid grid-cols-5 text-center text-xs font-semibold text-slate-600 sm:text-sm">
-                                {[100, 125, 150, 175, 200].map((value) => <span key={value}>{value}%</span>)}
-                            </div>
+                            <form onSubmit={confirmFontSize} noValidate>
+                                <label htmlFor="font-size-input" className="block text-sm font-bold text-[#17233A]">
+                                    Tamanho da fonte (%)
+                                </label>
+                                <p id="font-size-help" className="mt-1 text-xs leading-5 text-slate-600 sm:text-sm">
+                                    Digite um valor entre 100 e 200 e confirme para aplicar.
+                                </p>
+                                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start">
+                                    <div className="relative w-full sm:max-w-[220px]">
+                                        <input
+                                            id="font-size-input"
+                                            type="text"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
+                                            value={fontSizeInput}
+                                            onChange={(event) => {
+                                                setFontSizeInput(event.target.value);
+                                                setFontSizeError('');
+                                                setFontSizeConfirmation('');
+                                            }}
+                                            className={`h-12 w-full rounded-lg border bg-white px-4 pr-11 text-base font-semibold text-[#17233A] outline-none transition-shadow focus:ring-2 focus:ring-[#0758BD]/25 ${fontSizeError ? 'border-red-500' : 'border-[#AEBFD5] focus:border-[#0758BD]'}`}
+                                            aria-invalid={Boolean(fontSizeError)}
+                                            aria-describedby={fontSizeError ? 'font-size-help font-size-error' : 'font-size-help'}
+                                            autoComplete="off"
+                                        />
+                                        <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center font-semibold text-slate-500" aria-hidden="true">%</span>
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-blue-600 px-6 text-sm font-bold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-[#0758BD] focus:ring-offset-2 sm:w-auto"
+                                    >
+                                        Confirmar
+                                    </button>
+                                </div>
+                                {fontSizeError && (
+                                    <p id="font-size-error" className="mt-3 text-sm font-semibold text-red-600" role="alert">
+                                        {fontSizeError}
+                                    </p>
+                                )}
+                                {fontSizeConfirmation && (
+                                    <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#168821]" role="status">
+                                        <CheckCircle2 size={18} aria-hidden="true" />
+                                        {fontSizeConfirmation}
+                                    </p>
+                                )}
+                            </form>
                         </div>
                     </motion.section>
 

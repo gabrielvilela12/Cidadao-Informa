@@ -913,7 +913,8 @@ a {
   background-color: #ffffff !important;
   color: #071a3a !important;
 }
-.dashboard-inverse-text {
+.dashboard-inverse-text,
+.map-theme .dashboard-inverse-text {
   color: #ffffff !important;
 }
 
@@ -948,7 +949,7 @@ a {
   align-items: center;
   justify-content: center;
   color: #ffffff !important;
-  font-family: 'Segoe UI Symbol', sans-serif;
+  font-family: 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
   font-size: 19px;
   line-height: 1;
   transform: rotate(45deg);
