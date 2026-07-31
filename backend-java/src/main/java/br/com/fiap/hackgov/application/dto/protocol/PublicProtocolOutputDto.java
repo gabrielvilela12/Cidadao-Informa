@@ -12,7 +12,9 @@ public record PublicProtocolOutputDto(
         Instant createdAt,
         String status,
         String aiPriority,
-        String aiStatus
+        String aiStatus,
+        Double latitude,
+        Double longitude
 ) {
     public static PublicProtocolOutputDto from(Protocol protocol) {
         return new PublicProtocolOutputDto(
@@ -23,7 +25,9 @@ public record PublicProtocolOutputDto(
                 protocol.getCreatedAt(),
                 protocol.getStatus(),
                 protocol.getAiPriority(),
-                protocol.getAiStatus()
+                protocol.getAiStatus(),
+                protocol.getLatitude(),
+                protocol.getLongitude()
         );
     }
 }

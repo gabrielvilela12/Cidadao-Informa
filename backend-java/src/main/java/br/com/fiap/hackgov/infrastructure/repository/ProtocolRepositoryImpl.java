@@ -3,6 +3,7 @@ package br.com.fiap.hackgov.infrastructure.repository;
 import br.com.fiap.hackgov.domain.entity.Protocol;
 import br.com.fiap.hackgov.domain.repository.ProtocolRepository;
 import br.com.fiap.hackgov.infrastructure.persistence.repository.JpaProtocolRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -35,6 +36,16 @@ public class ProtocolRepositoryImpl implements ProtocolRepository {
     @Override
     public List<Protocol> getByUserId(String userId) {
         return repository.findByUserIdOrderByCreatedAtDesc(userId);
+    }
+
+    @Override
+    public List<Protocol> getWithoutCoordinates(int limit) {
+        return repository.findByLatitudeIsNullOrderByCreatedAtDesc(PageRequest.of(0, limit));
+    }
+
+    @Override
+    public long countWithoutCoordinates() {
+        return repository.countByLatitudeIsNull();
     }
 
     @Override

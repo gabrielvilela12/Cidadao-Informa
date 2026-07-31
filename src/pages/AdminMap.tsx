@@ -29,6 +29,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { type Protocol } from '../constants';
 import { useProtocols } from '../hooks/useProtocols';
+import { api } from '../services/api';
 import { exportToExcel } from '../utils/exportUtils';
 import { countWithoutLocation, DEFAULT_MAP_CENTER, getMarkerPosition } from '../utils/mapUtils';
 
@@ -97,7 +98,7 @@ function MapTracker({ onReady }: { onReady: (map: L.Map) => void }) {
 }
 
 export function AdminMap() {
-  const { protocols, loading } = useProtocols('admin');
+  const { protocols, loading, refetch } = useProtocols('admin');
   const { toggleMobileMenu } = useApp();
   const navigate = useNavigate();
   const [map, setMap] = useState<L.Map | null>(null);
@@ -115,6 +116,8 @@ export function AdminMap() {
   const [quickStatus, setQuickStatus] = useState<'all' | CanonicalStatus>('all');
   const [activeIncident, setActiveIncident] = useState<Protocol | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [locating, setLocating] = useState(false);
+  const [locateFeedback, setLocateFeedback] = useState('');
 
   const filteredProtocols = useMemo(() => protocols.filter((protocol) => {
     const status = canonicalStatus(protocol.status);
@@ -225,6 +228,33 @@ export function AdminMap() {
     const position = getMarkerPosition(incident);
     if (position) map?.flyTo(position, 16);
   }, [filteredProtocols, map, selectedIndex]);
+
+  // O servidor geocodifica um lote por vez para respeitar o limite de 1
+  // requisicao por segundo do Nominatim. Repetir a chamada esvazia a fila.
+  const locatePendingProtocols = async () => {
+    if (locating) return;
+    setLocating(true);
+    setLocateFeedback('');
+    try {
+      const result = await api.backfillCoordinates();
+      await refetch();
+      if (result.located > 0) {
+        setLocateFeedback(
+          result.remaining > 0
+            ? `${result.located} localizada(s). Ainda faltam ${result.remaining} — clique de novo.`
+            : `${result.located} localizada(s). Nenhuma pendente.`,
+        );
+      } else {
+        setLocateFeedback(
+          'Nenhum endereço pôde ser localizado neste lote. Verifique se os endereços estão completos.',
+        );
+      }
+    } catch (error) {
+      setLocateFeedback(error instanceof Error ? error.message : 'Não foi possível localizar agora.');
+    } finally {
+      setLocating(false);
+    }
+  };
 
   const handleMarkerClick = (protocol: Protocol, index: number) => {
     setActiveIncident(protocol);
@@ -351,8 +381,20 @@ export function AdminMap() {
                 </p>
               </div>
               <p className="mt-2 text-xs leading-5 text-amber-800">
-                Abertas antes do registro de coordenada. Use o endereço na fila para localizá-las.
+                Abertas antes do registro de coordenada. Localize-as pelo endereço já informado.
               </p>
+              <button
+                type="button"
+                onClick={locatePendingProtocols}
+                disabled={locating}
+                className="mt-3 inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-lg border border-amber-300 bg-white px-3 text-xs font-bold text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {locating ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14} />}
+                {locating ? 'Localizando...' : 'Localizar pelo endereço'}
+              </button>
+              {locateFeedback && (
+                <p className="mt-2 text-xs leading-5 text-amber-900">{locateFeedback}</p>
+              )}
             </div>
           )}
         </section>

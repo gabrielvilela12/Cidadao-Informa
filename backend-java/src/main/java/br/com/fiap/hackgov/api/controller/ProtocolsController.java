@@ -4,8 +4,10 @@ import br.com.fiap.hackgov.api.response.ErrorResponse;
 import br.com.fiap.hackgov.application.dto.protocol.ProtocolInputDto;
 import br.com.fiap.hackgov.application.dto.protocol.ProtocolOutputDto;
 import br.com.fiap.hackgov.application.dto.protocol.ProtocolStatusUpdateInputDto;
+import br.com.fiap.hackgov.application.dto.protocol.GeocodeBackfillInputDto;
 import br.com.fiap.hackgov.application.dto.protocol.PublicProtocolOutputDto;
 import br.com.fiap.hackgov.application.service.AiPriorityService;
+import br.com.fiap.hackgov.application.service.GeocodingService;
 import br.com.fiap.hackgov.application.service.ProtocolAuditService;
 import br.com.fiap.hackgov.application.usecase.protocol.CreateProtocolUseCase;
 import br.com.fiap.hackgov.application.usecase.protocol.GetProtocolsUseCase;
@@ -42,19 +44,22 @@ public class ProtocolsController {
     private final ProtocolRepository protocolRepository;
     private final ProtocolAuditService auditService;
     private final AiPriorityService aiPriorityService;
+    private final GeocodingService geocodingService;
 
     public ProtocolsController(
             CreateProtocolUseCase createProtocolUseCase,
             GetProtocolsUseCase getProtocolsUseCase,
             ProtocolRepository protocolRepository,
             ProtocolAuditService auditService,
-            AiPriorityService aiPriorityService
+            AiPriorityService aiPriorityService,
+            GeocodingService geocodingService
     ) {
         this.createProtocolUseCase = createProtocolUseCase;
         this.getProtocolsUseCase = getProtocolsUseCase;
         this.protocolRepository = protocolRepository;
         this.auditService = auditService;
         this.aiPriorityService = aiPriorityService;
+        this.geocodingService = geocodingService;
     }
 
     @PostMapping
@@ -175,6 +180,27 @@ public class ProtocolsController {
             return ResponseEntity.ok(ProtocolOutputDto.from(updated));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(new ErrorResponse(ex.getMessage()));
+        }
+    }
+
+    /**
+     * Preenche as coordenadas dos chamados abertos antes de a posicao do mapa
+     * passar a ser gravada. Processa um lote por chamada (limite do Nominatim):
+     * repita enquanto `remaining` for maior que zero.
+     */
+    @PostMapping("/geocode/backfill")
+    public ResponseEntity<?> backfillCoordinates(
+            @RequestBody(required = false) GeocodeBackfillInputDto input,
+            Authentication authentication
+    ) {
+        try {
+            requireAdmin(authentication);
+            return ResponseEntity.ok(
+                    geocodingService.backfill(input == null ? null : input.limit())
+            );
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ErrorResponse(ex.getMessage()));
         }
     }
 

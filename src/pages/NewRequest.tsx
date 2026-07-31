@@ -214,7 +214,7 @@ export function NewRequest() {
 
     setLoading(true);
     setSubmitStatus('submitting');
-    setSubmitMessage('Enviando solicitação para a API...');
+    setSubmitMessage('Enviando sua solicitação. Aguarde um instante...');
 
     const fullAddress = buildFullAddress(addressObj);
 
