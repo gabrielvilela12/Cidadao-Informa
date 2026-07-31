@@ -15,7 +15,9 @@ public record ProtocolOutputDto(
         String requester,
         String phone,
         String aiPriority,
-        String aiStatus
+        String aiStatus,
+        Double latitude,
+        Double longitude
 ) {
     public static ProtocolOutputDto from(Protocol protocol) {
         return new ProtocolOutputDto(
@@ -29,7 +31,9 @@ public record ProtocolOutputDto(
                 protocol.getRequester(),
                 protocol.getUser() != null ? protocol.getUser().getPhone() : null,
                 protocol.getAiPriority(),
-                protocol.getAiStatus()
+                protocol.getAiStatus(),
+                protocol.getLatitude(),
+                protocol.getLongitude()
         );
     }
 }

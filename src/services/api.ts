@@ -180,10 +180,27 @@ export const api = {
                 address: data.address,
                 // Posição que o solicitante confirmou no mapa. É o que a equipe
                 // usa para chegar ao local, então precisa ser persistida.
-                // PENDENTE: o backend Java ainda ignora estes dois campos.
                 latitude: data.latitude ?? null,
                 longitude: data.longitude ?? null,
             }),
+        });
+    },
+
+    /**
+     * Geocodifica no servidor os protocolos abertos antes de a posição do mapa
+     * ser gravada. Processa um lote por chamada (limite de uso do Nominatim):
+     * repita enquanto `remaining` for maior que zero. Restrito a administradores.
+     */
+    async backfillCoordinates(limit?: number) {
+        return apiRequest<{
+            processed: number;
+            located: number;
+            skipped: number;
+            failed: number;
+            remaining: number;
+        }>('/api/protocols/geocode/backfill', {
+            method: 'POST',
+            body: JSON.stringify({ limit: limit ?? null }),
         });
     },
 

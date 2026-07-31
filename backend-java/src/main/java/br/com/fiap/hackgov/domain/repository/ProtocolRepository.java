@@ -15,5 +15,11 @@ public interface ProtocolRepository {
 
     List<Protocol> getByUserId(String userId);
 
+    /** Protocolos sem coordenada, do mais recente para o mais antigo. */
+    List<Protocol> getWithoutCoordinates(int limit);
+
+    /** Quantos protocolos ainda estao sem coordenada. */
+    long countWithoutCoordinates();
+
     Protocol update(Protocol protocol);
 }
