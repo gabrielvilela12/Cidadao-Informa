@@ -3,7 +3,8 @@ const IMAGE_FUNCTION_SECRET = Deno.env.get("AI_IMAGE_FUNCTION_SECRET")
   ?? Deno.env.get("SUPABASE_ANON_KEY")
   ?? "";
 const IMAGE_MODEL = Deno.env.get("OPENROUTER_IMAGE_MODEL")
-  ?? "google/gemini-3.1-flash-lite-image";
+  ?? "google/gemini-3.1-flash-image";
+const IMAGE_RESOLUTION = Deno.env.get("OPENROUTER_IMAGE_RESOLUTION") ?? "4K";
 const OPENROUTER_IMAGES_URL = "https://openrouter.ai/api/v1/images";
 const OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions";
 const REPORT_MODEL = Deno.env.get("OPENROUTER_REPORT_MODEL")
@@ -59,7 +60,7 @@ function isSupportedDataUrl(value: unknown): value is string {
 }
 
 function buildCorrectionPrompt(category: string, description: string, correctionReport: string): string {
-  return `Edite esta fotografia de uma ocorrência urbana para criar uma simulação realista de como o mesmo local ficaria após o problema ser completamente corrigido pela equipe pública.
+  return `Edite esta fotografia de uma ocorrência urbana para criar uma simulação realista, nítida e em alta resolução de como o mesmo local ficaria após o problema ser completamente corrigido pela equipe pública.
 
 Problema relatado: ${description}
 Categoria: ${category}
@@ -68,9 +69,12 @@ PLANO DE CORREÇÃO DEFINIDO PELA IA:
 ${correctionReport}
 
 REGRAS OBRIGATÓRIAS:
+- Faça restauração fotográfica antes da edição: remova borrões, pixelização, ruído, manchas de compressão e artefatos de baixa resolução.
+- Entregue uma imagem final com aparência 4K, extremamente nítida, legível e bem focada em toda a cena, preservando textura realista de calçada, asfalto, meio-fio e objetos urbanos.
+- Não crie efeito de desfoque artístico, profundidade de campo artificial, brilho excessivo, manchas translúcidas, halos, rastros ou áreas "derretidas".
 - Preserve rigorosamente o mesmo enquadramento, perspectiva, horário, iluminação, clima, arquitetura, vegetação, calçadas, rua, postes, veículos e demais elementos que não fazem parte do problema.
 - Altere somente a área necessária para resolver o problema relatado.
-- O resultado deve parecer uma fotografia real do mesmo local depois do reparo, sem aparência de ilustração ou montagem.
+- O resultado deve parecer uma fotografia real, limpa e tecnicamente clara do mesmo local depois do reparo, sem aparência de ilustração, montagem ou filtro.
 - Não adicione pessoas, equipes, máquinas, placas, logotipos, textos, legendas ou marcas d'água.
 - Não esconda o local nem produza uma cena diferente.
 - Retorne apenas uma imagem corrigida.`;
@@ -138,7 +142,9 @@ async function correctOneImage(image: string, prompt: string): Promise<string> {
     body: JSON.stringify({
       model: IMAGE_MODEL,
       prompt,
-      resolution: "1K",
+      resolution: IMAGE_RESOLUTION,
+      quality: "high",
+      output_format: "png",
       n: 1,
       input_references: [
         {
