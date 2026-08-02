@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,6 +21,8 @@ public interface JpaProtocolRepository extends JpaRepository<Protocol, String> {
 
     @EntityGraph(attributePaths = "user")
     List<Protocol> findByUserIdOrderByCreatedAtDesc(String userId);
+
+    long countByStatusIn(Collection<String> statuses);
 
     @Override
     @EntityGraph(attributePaths = "user")

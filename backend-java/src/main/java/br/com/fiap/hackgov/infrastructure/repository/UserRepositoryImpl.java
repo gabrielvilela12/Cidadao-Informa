@@ -32,6 +32,11 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
+    public long countByRole(String role) {
+        return repository.countByRoleIgnoreCase(role);
+    }
+
+    @Override
     public User add(User user) {
         return repository.save(user);
     }

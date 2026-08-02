@@ -39,6 +39,16 @@ public class ProtocolRepositoryImpl implements ProtocolRepository {
     }
 
     @Override
+    public long countAll() {
+        return repository.count();
+    }
+
+    @Override
+    public long countByStatuses(List<String> statuses) {
+        return repository.countByStatusIn(statuses);
+    }
+
+    @Override
     public List<Protocol> getWithoutCoordinates(int limit) {
         return repository.findByLatitudeIsNullOrderByCreatedAtDesc(PageRequest.of(0, limit));
     }

@@ -10,4 +10,6 @@ public interface JpaUserRepository extends JpaRepository<User, String> {
     Optional<User> findByCpf(String cpf);
 
     Optional<User> findByEmail(String email);
+
+    long countByRoleIgnoreCase(String role);
 }

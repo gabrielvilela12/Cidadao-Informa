@@ -12,6 +12,8 @@ public interface UserRepository {
 
     Optional<User> getById(String id);
 
+    long countByRole(String role);
+
     User add(User user);
 
     User update(User user);

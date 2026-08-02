@@ -151,11 +151,7 @@ export const api = {
     /**
      * Métricas agregadas da landing pública (sem autenticação, só contagens).
      *
-     * PENDENTE NO BACKEND: `GET /api/protocols/stats` ainda não existe. Até ser
-     * criado, a chamada falha e a landing exibe "—" nos cartões. Isso é
-     * deliberado: antes havia números fixos inventados ("12.4 mil atendidas",
-     * "98% de satisfação") sem lastro nos dados, e um traço honesto é melhor
-     * que um número falso.
+     * Contrato entregue pelo backend Java em `GET /api/protocols/stats`.
      *
      * Contrato esperado:
      *   { total: number, resolved: number, resolutionRate: number|null, citizens: number }

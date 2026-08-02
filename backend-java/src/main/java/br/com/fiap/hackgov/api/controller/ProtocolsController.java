@@ -11,6 +11,7 @@ import br.com.fiap.hackgov.application.service.AiImageCorrectionService;
 import br.com.fiap.hackgov.application.service.GeocodingService;
 import br.com.fiap.hackgov.application.service.ProtocolAuditService;
 import br.com.fiap.hackgov.application.usecase.protocol.CreateProtocolUseCase;
+import br.com.fiap.hackgov.application.usecase.protocol.GetPublicStatsUseCase;
 import br.com.fiap.hackgov.application.usecase.protocol.GetProtocolsUseCase;
 import br.com.fiap.hackgov.domain.entity.Protocol;
 import br.com.fiap.hackgov.domain.repository.ProtocolRepository;
@@ -42,6 +43,7 @@ public class ProtocolsController {
 
     private final CreateProtocolUseCase createProtocolUseCase;
     private final GetProtocolsUseCase getProtocolsUseCase;
+    private final GetPublicStatsUseCase getPublicStatsUseCase;
     private final ProtocolRepository protocolRepository;
     private final ProtocolAuditService auditService;
     private final AiPriorityService aiPriorityService;
@@ -51,6 +53,7 @@ public class ProtocolsController {
     public ProtocolsController(
             CreateProtocolUseCase createProtocolUseCase,
             GetProtocolsUseCase getProtocolsUseCase,
+            GetPublicStatsUseCase getPublicStatsUseCase,
             ProtocolRepository protocolRepository,
             ProtocolAuditService auditService,
             AiPriorityService aiPriorityService,
@@ -59,6 +62,7 @@ public class ProtocolsController {
     ) {
         this.createProtocolUseCase = createProtocolUseCase;
         this.getProtocolsUseCase = getProtocolsUseCase;
+        this.getPublicStatsUseCase = getPublicStatsUseCase;
         this.protocolRepository = protocolRepository;
         this.auditService = auditService;
         this.aiPriorityService = aiPriorityService;
@@ -118,6 +122,11 @@ public class ProtocolsController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse(ex.getMessage()));
         }
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<?> getPublicStats() {
+        return ResponseEntity.ok(getPublicStatsUseCase.execute());
     }
 
     @GetMapping("/{id}")
