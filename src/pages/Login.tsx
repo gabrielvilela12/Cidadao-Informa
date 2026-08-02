@@ -350,10 +350,10 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
 
                 <div className={`hidden lg:flex flex-1 items-center justify-center overflow-hidden ${isAdmin ? 'order-2 bg-[#fff8dd]' : 'order-1 auth-citizen-gradient'}`}>
                     <img
-                        src={isAdmin ? '/login-servidor-hero.jpg' : '/login-participacao-hero.jpg'}
+                        src={isAdmin ? '/login-servidor-hero.svg' : '/login-participacao-hero@2x.png'}
                         alt=""
                         aria-hidden="true"
-                        className="h-full w-full object-contain"
+                        className="block h-full w-full object-contain"
                     />
                 </div>
             </div>

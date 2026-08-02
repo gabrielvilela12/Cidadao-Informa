@@ -23,7 +23,7 @@ import {
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { type Protocol } from '../constants';
 import { useProtocols } from '../hooks/useProtocols';
@@ -36,6 +36,35 @@ interface AddressSuggestion {
   display_name: string;
   lat: string;
   lon: string;
+}
+
+interface VisibleProtocolMarker {
+  protocol: Protocol;
+  protocolIndex: number;
+  exactPosition: [number, number];
+  position: [number, number];
+  overlapCount: number;
+  overlapIndex: number;
+}
+
+const OVERLAP_COORDINATE_PRECISION = 6;
+const OVERLAP_SPREAD_METERS = 32;
+const METERS_PER_DEGREE_LATITUDE = 111_320;
+
+function markerGroupKey(position: [number, number]): string {
+  return `${position[0].toFixed(OVERLAP_COORDINATE_PRECISION)},${position[1].toFixed(OVERLAP_COORDINATE_PRECISION)}`;
+}
+
+function spreadOverlappingMarker(position: [number, number], overlapIndex: number, overlapCount: number): [number, number] {
+  if (overlapCount <= 1) return position;
+
+  const angle = ((Math.PI * 2) / overlapCount) * overlapIndex - Math.PI / 2;
+  const radiusMeters = Math.min(64, OVERLAP_SPREAD_METERS + Math.floor((overlapCount - 1) / 6) * 8);
+  const latitudeOffset = (Math.sin(angle) * radiusMeters) / METERS_PER_DEGREE_LATITUDE;
+  const longitudeScale = Math.max(Math.cos((position[0] * Math.PI) / 180), 0.2);
+  const longitudeOffset = (Math.cos(angle) * radiusMeters) / (METERS_PER_DEGREE_LATITUDE * longitudeScale);
+
+  return [position[0] + latitudeOffset, position[1] + longitudeOffset];
 }
 
 const ALL_CATEGORIES = ['Física', 'Visual', 'Auditiva', 'Outros'];
@@ -97,7 +126,6 @@ function MapTracker({ onReady }: { onReady: (map: L.Map) => void }) {
 export function AdminMap() {
   const { protocols, loading } = useProtocols('admin');
   const { toggleMobileMenu } = useApp();
-  const navigate = useNavigate();
   const [map, setMap] = useState<L.Map | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>(DEFAULT_MAP_CENTER);
   const [search, setSearch] = useState('');
@@ -118,6 +146,38 @@ export function AdminMap() {
       && activeStatuses.includes(status);
   }), [activeCategories, activeStatuses, protocols]);
 
+  const visibleProtocolMarkers = useMemo<VisibleProtocolMarker[]>(() => {
+    const positioned = filteredProtocols.flatMap((protocol, protocolIndex) => {
+      const exactPosition = getMarkerPosition(protocol);
+      return exactPosition ? [{ protocol, protocolIndex, exactPosition }] : [];
+    });
+
+    const groups = new Map<string, typeof positioned>();
+    positioned.forEach((marker) => {
+      const key = markerGroupKey(marker.exactPosition);
+      const group = groups.get(key);
+
+      if (group) {
+        group.push(marker);
+        return;
+      }
+
+      groups.set(key, [marker]);
+    });
+
+    return positioned.map((marker) => {
+      const group = groups.get(markerGroupKey(marker.exactPosition)) || [marker];
+      const overlapIndex = group.findIndex((item) => item.protocol.id === marker.protocol.id);
+      const resolvedOverlapIndex = overlapIndex >= 0 ? overlapIndex : 0;
+
+      return {
+        ...marker,
+        position: spreadOverlappingMarker(marker.exactPosition, resolvedOverlapIndex, group.length),
+        overlapCount: group.length,
+        overlapIndex: resolvedOverlapIndex,
+      };
+    });
+  }, [filteredProtocols]);
   const stats = useMemo(() => ALL_STATUSES.map((status) => ({
     status,
     count: protocols.filter((protocol) => canonicalStatus(protocol.status) === status).length,
@@ -197,11 +257,12 @@ export function AdminMap() {
       ? (selectedIndex + 1) % filteredProtocols.length
       : selectedIndex <= 0 ? filteredProtocols.length - 1 : selectedIndex - 1;
     const incident = filteredProtocols[nextIndex];
+    const visibleMarker = visibleProtocolMarkers.find((marker) => marker.protocol.id === incident.id);
     setSelectedIndex(nextIndex);
     setActiveIncident(incident);
-    const position = getMarkerPosition(incident);
+    const position = visibleMarker?.position || getMarkerPosition(incident);
     if (position) map?.flyTo(position, 16);
-  }, [filteredProtocols, map, selectedIndex]);
+  }, [filteredProtocols, map, selectedIndex, visibleProtocolMarkers]);
 
   const handleMarkerClick = (protocol: Protocol, index: number) => {
     setActiveIncident(protocol);
@@ -230,12 +291,15 @@ export function AdminMap() {
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
         />
-        {!loading && filteredProtocols.map((protocol, index) => (
+        {!loading && visibleProtocolMarkers.map(({ protocol, protocolIndex, position, overlapCount, overlapIndex }) => (
           <ProtocolMarker
             key={protocol.id}
             protocol={protocol}
+            position={position}
             selected={activeIncident?.id === protocol.id}
-            onClick={() => handleMarkerClick(protocol, index)}
+            overlapCount={overlapCount}
+            overlapIndex={overlapIndex}
+            onClick={() => handleMarkerClick(protocol, protocolIndex)}
           />
         ))}
       </MapContainer>
@@ -308,23 +372,23 @@ export function AdminMap() {
           type="button"
           onClick={() => setShowOperationalPanel(true)}
           aria-expanded="false"
-          className="absolute right-5 top-52 z-[450] hidden min-h-11 items-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-4 text-sm font-bold text-[#0758BD] shadow-xl lg:inline-flex"
+          className="absolute left-5 top-24 z-[450] hidden min-h-10 items-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-3 text-xs font-bold text-[#0758BD] shadow-xl lg:inline-flex"
         >
           <Layers3 size={18} /> Visão operacional
         </button>
       )}
 
-      {!mapOnlyMode && showOperationalPanel && <div className="pointer-events-auto absolute bottom-5 right-5 top-52 z-[450] hidden w-80 space-y-4 overflow-y-auto rounded-lg border border-[#CDD8E7] bg-white p-4 shadow-2xl lg:block">
-        <section className="pointer-events-auto rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-xl">
+      {!mapOnlyMode && showOperationalPanel && <div className="pointer-events-auto absolute left-5 top-24 z-[450] hidden max-h-[calc(100%-7rem)] w-72 overflow-y-auto rounded-lg border border-[#CDD8E7] bg-white p-3 shadow-2xl lg:block">
+        <section className="pointer-events-auto">
           <div className="flex items-center justify-between gap-3">
             <h2 className="font-black">Visão operacional</h2>
             <button type="button" onClick={() => setShowOperationalPanel(false)} aria-label="Fechar visão operacional" title="Fechar" className="flex size-8 shrink-0 items-center justify-center rounded-lg hover:bg-slate-100"><X size={17} /></button>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-4 border-b border-[#D8E1ED] pb-5 text-center">
-            <div><p className="text-3xl font-black text-[#0758BD]">{protocols.length}</p><p className="text-sm text-slate-600">Total</p></div>
-            <div><p className="text-3xl font-black text-[#0758BD]">{filteredProtocols.length}</p><p className="text-sm text-slate-600">Visíveis</p></div>
+          <div className="mt-3 grid grid-cols-2 gap-3 border-b border-[#D8E1ED] pb-4 text-center">
+            <div><p className="text-2xl font-black text-[#0758BD]">{protocols.length}</p><p className="text-xs text-slate-600">Total</p></div>
+            <div><p className="text-2xl font-black text-[#0758BD]">{filteredProtocols.length}</p><p className="text-xs text-slate-600">Visíveis</p></div>
           </div>
-          <div className="mt-4 space-y-3">
+          <div className="mt-3 space-y-2.5">
             {stats.map((item) => (
               <div key={item.status} className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-2"><span className="size-3 rounded-full" style={{ backgroundColor: STATUS_COLORS[item.status] }} />{item.status}</span>
@@ -332,7 +396,7 @@ export function AdminMap() {
               </div>
             ))}
           </div>
-          <div className="mt-5 grid grid-cols-2 gap-4 border-t border-[#E2E8F0] pt-4 text-sm">
+          <div className="mt-4 grid grid-cols-2 gap-3 border-t border-[#E2E8F0] pt-3 text-sm">
             <div>
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">Tipo</h3>
               <div className="mt-2 space-y-2.5">
@@ -364,18 +428,6 @@ export function AdminMap() {
         <button type="button" onClick={() => map?.setZoom((map?.getZoom() || 13) + 1)} className="flex size-11 items-center justify-center border-b border-[#D8E1ED] hover:bg-slate-50"><Plus size={20} /></button>
         <button type="button" onClick={() => map?.setZoom((map?.getZoom() || 13) - 1)} className="flex size-11 items-center justify-center hover:bg-slate-50"><Minus size={20} /></button>
       </div>
-
-      {!mapOnlyMode && activeIncident && (
-        <div className="pointer-events-auto absolute bottom-24 left-1/2 z-[460] hidden w-[330px] -translate-x-1/2 rounded-lg border border-[#CDD8E7] bg-white p-4 shadow-2xl sm:block">
-          <div className="flex items-start justify-between gap-3">
-            <div><p className="text-xs font-bold text-slate-500">#{activeIncident.id.slice(0, 8)}</p><h2 className="mt-1 font-black">{activeIncident.description || 'Solicitação de acessibilidade'}</h2></div>
-            <button type="button" onClick={closeIncident} aria-label="Fechar detalhes da ocorrência" title="Fechar" className="flex size-8 shrink-0 items-center justify-center rounded-lg hover:bg-slate-100"><X size={17} /></button>
-          </div>
-          <p className="mt-2 text-sm text-slate-600">{activeIncident.address}</p>
-          <button type="button" onClick={() => navigate(`/protocolo/${activeIncident.id}`)} className="mt-4 min-h-10 w-full rounded-lg bg-blue-600 text-sm font-bold text-white hover:bg-blue-700">Ver detalhes</button>
-        </div>
-      )}
-
       {loading && (
         <div className="absolute inset-0 z-[600] flex items-center justify-center bg-white/70 backdrop-blur-sm">
           <div className="flex items-center gap-3 rounded-lg border border-[#CDD8E7] bg-white px-5 py-4 text-sm font-bold shadow-xl"><Loader2 size={22} className="animate-spin text-[#0758BD]" />Carregando solicitações...</div>
@@ -421,18 +473,14 @@ function FilterGroup({ title, values, selected, onToggle, status = false }: { ti
   );
 }
 
-function ProtocolMarker({ protocol, selected, onClick }: { protocol: Protocol; selected: boolean; onClick: () => void }) {
+function ProtocolMarker({ protocol, position, selected, overlapCount, overlapIndex, onClick }: { protocol: Protocol; position: [number, number]; selected: boolean; overlapCount: number; overlapIndex: number; onClick: () => void }) {
   const status = canonicalStatus(protocol.status);
-  // Sem coordenada confirmada o protocolo nao e plotado (ver mapUtils).
-  const position = getMarkerPosition(protocol);
-
-  if (!position) return null;
-
   const categoryIconMarkup = CATEGORY_MARKER_ICONS[protocol.category] || '&hellip;';
+  const overlapBadge = overlapCount > 1 ? `<small class="protocol-marker-count">${overlapIndex + 1}</small>` : '';
 
   const icon = L.divIcon({
     className: 'protocol-marker-icon',
-    html: `<span class="protocol-marker-pin ${selected ? 'is-selected' : ''}" style="--marker-color:${STATUS_COLORS[status]}"><span>${categoryIconMarkup}</span></span>`,
+    html: `<span class="protocol-marker-pin ${selected ? 'is-selected' : ''}" style="--marker-color:${STATUS_COLORS[status]}"><span>${categoryIconMarkup}</span>${overlapBadge}</span>`,
     iconSize: [38, 38],
     iconAnchor: [19, 38],
     popupAnchor: [0, -38],
@@ -441,11 +489,19 @@ function ProtocolMarker({ protocol, selected, onClick }: { protocol: Protocol; s
   return (
     <Marker position={position} icon={icon} eventHandlers={{ click: onClick }}>
       <Popup>
-        <div className="min-w-[210px] p-1">
+        <div className="min-w-[260px] p-1">
           <p className="text-xs font-bold text-slate-500">#{protocol.id.slice(0, 8)}</p>
           <h3 className="mt-1 font-bold text-slate-900">{protocol.description || protocol.category}</h3>
           <p className="mt-2 text-sm text-slate-600">{protocol.address}</p>
           <p className="mt-2 text-xs font-bold" style={{ color: STATUS_COLORS[status] }}>{status}</p>
+          {overlapCount > 1 && (
+            <p className="mt-2 rounded-md bg-blue-50 px-2 py-1 text-xs font-bold text-[#0758BD]">
+              {overlapCount} protocolos neste mesmo local
+            </p>
+          )}
+          <Link to={`/protocolo/${protocol.id}`} className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-blue-600 px-4 text-sm font-bold text-white hover:bg-blue-700">
+            Ver detalhes
+          </Link>
         </div>
       </Popup>
     </Marker>

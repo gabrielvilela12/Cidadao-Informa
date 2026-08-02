@@ -1,0 +1,220 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" role="img">
+  <defs>
+    <linearGradient id="adminBg" x1="0" y1="0" x2="1138" y2="850" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff7db"/>
+      <stop offset=".55" stop-color="#fffdf4"/>
+      <stop offset="1" stop-color="#fff2c2"/>
+    </linearGradient>
+    <linearGradient id="adminBlue" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#1967d2"/>
+      <stop offset="1" stop-color="#0c326f"/>
+    </linearGradient>
+    <filter id="adminShadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#5c4613" flood-opacity=".13"/>
+    </filter>
+    <filter id="adminCardShadow" x="-35%" y="-35%" width="170%" height="180%">
+      <feDropShadow dx="0" dy="14" stdDeviation="12" flood-color="#5b4612" flood-opacity=".16"/>
+    </filter>
+    <style>
+      .ui { font-family: "Public Sans", "Segoe UI", Arial, sans-serif; }
+      .title { font-size: 56px; font-weight: 900; letter-spacing: 0; fill: #071a3a; }
+      .title-gold { fill: #8a6100; }
+      .body { font-size: 16px; font-weight: 600; fill: #5d6370; }
+      .badge { font-size: 14px; font-weight: 900; letter-spacing: .35px; fill: #071a3a; }
+      .small { font-size: 14px; font-weight: 900; fill: #1d2633; }
+      .tiny { font-size: 11px; font-weight: 900; fill: #5b6472; }
+      .footer { font-size: 15px; font-weight: 900; fill: #202b3a; }
+      .inverse { fill: #fff; }
+      .float-soft { animation: floatSoft 6.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+      .float-alt { animation: floatSoft 7.2s ease-in-out infinite reverse; transform-box: fill-box; transform-origin: center; }
+      .pin-pulse { animation: pinPulse 3.1s ease-in-out infinite; transform-box: fill-box; transform-origin: center bottom; }
+      .flow-line { animation: dashFlow 12s linear infinite; }
+      .flow-dot { animation: dotPulse 2.6s ease-in-out infinite; }
+      .draw-check { stroke-dasharray: 54; stroke-dashoffset: 54; animation: drawCheck 3.5s ease-in-out infinite; }
+      .progress-fill { transform-box: fill-box; transform-origin: left center; animation: progressGrow 4.5s ease-in-out infinite; }
+      @keyframes floatSoft { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+      @keyframes pinPulse { 0%, 100% { transform: scale(1); } 45% { transform: scale(1.055); } }
+      @keyframes dashFlow { to { stroke-dashoffset: -120; } }
+      @keyframes dotPulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+      @keyframes drawCheck { 0%, 35% { stroke-dashoffset: 54; } 55%, 100% { stroke-dashoffset: 0; } }
+      @keyframes progressGrow { 0%, 100% { transform: scaleX(.68); } 45%, 70% { transform: scaleX(1); } }
+      @media (prefers-reduced-motion: reduce) {
+        .float-soft, .float-alt, .pin-pulse, .flow-line, .flow-dot, .draw-check, .progress-fill { animation: none; }
+        .draw-check { stroke-dashoffset: 0; }
+      }
+    </style>
+  </defs>
+
+  <rect width="1200" height="900" fill="url(#adminBg)"/>
+  <path d="M472-110C594 54 737 60 913 16c142-35 266-12 375 78v806H-64V134c166-75 345-56 536-244Z" fill="#fff" opacity=".5"/>
+  <g opacity=".25" fill="none" stroke="#e3be50" stroke-width="2">
+    <path d="M1005 88h118M1005 119h118M1005 150h118" stroke-dasharray="2 14" stroke-linecap="round"/>
+    <path d="M72 626c105-55 215-56 331 0 121 58 230 61 326 9" stroke-dasharray="2 12" stroke-linecap="round"/>
+    <path d="M56 660c126-62 247-55 361 19 107 69 215 57 322 0" stroke-dasharray="2 12" stroke-linecap="round"/>
+  </g>
+
+  <g class="ui">
+    <rect x="60" y="86" width="187" height="39" rx="12" fill="#ffcd07"/>
+    <text x="153" y="111" text-anchor="middle" class="badge">GEST&#195;O MUNICIPAL</text>
+
+    <text x="60" y="210" class="title">Transforme</text>
+    <text x="60" y="270" class="title">solicita&#231;&#245;es</text>
+    <text x="60" y="330" class="title title-gold">em solu&#231;&#245;es.</text>
+    <text x="60" y="382" class="body">Organize demandas, distribua equipes e</text>
+    <text x="60" y="408" class="body">acompanhe cada atendimento com clareza e agilidade.</text>
+  </g>
+
+  <g filter="url(#adminShadow)">
+    <path d="M488 622 757 467l338 195-270 156z" fill="#2f3847"/>
+    <path d="M488 586 757 431l338 195-270 156z" fill="#eef3f8"/>
+    <path d="M488 586v36l337 196v-36z" fill="#d9e1ea"/>
+    <path d="M825 782v36l270-156v-36z" fill="#bdc8d5"/>
+  </g>
+
+  <g>
+    <path d="M535 577 764 445l285 165-229 132z" fill="#3d4654"/>
+    <path d="M608 620 836 488" stroke="#fff" stroke-width="15"/>
+    <path d="M624 628 852 496" stroke="#dce4ef" stroke-width="2"/>
+    <path d="M744 472 972 604" stroke="#fff" stroke-width="15"/>
+    <path d="M760 463 988 596" stroke="#dce4ef" stroke-width="2"/>
+    <g stroke="#fff" stroke-width="8">
+      <path d="M587 568 633 595"/>
+      <path d="M606 557 652 584"/>
+      <path d="M625 546 671 573"/>
+      <path d="M644 535 690 562"/>
+      <path d="M814 685 863 657"/>
+      <path d="M833 696 882 668"/>
+      <path d="M852 707 901 679"/>
+    </g>
+  </g>
+
+  <g filter="url(#adminShadow)">
+    <path d="M612 330h167v170H612z" fill="#f8fbff"/>
+    <path d="M779 330l92 53v170l-92-53z" fill="#c8d7e8"/>
+    <path d="M612 330l84-49 175 49-92 53z" fill="#e9eff7"/>
+    <path d="M643 387h108v113H643z" fill="#fff"/>
+    <path d="M657 409h81v91h-81z" fill="#2f70cf"/>
+    <path d="M763 397l84 48v87l-84-48z" fill="#8cadcf"/>
+    <path d="M641 354h129v33H641z" fill="#1351b4"/>
+    <path d="M770 354l86 49v33l-86-49z" fill="#0c326f"/>
+    <text x="705" y="376" text-anchor="middle" class="tiny inverse">PREFEITURA</text>
+    <g stroke="#d7e1ed" stroke-width="4">
+      <path d="M679 423v71M708 423v71"/>
+      <path d="M657 445h81M657 469h81"/>
+      <path d="M791 421v72M819 437v72"/>
+    </g>
+    <path d="M690 280h12v47h-12z" fill="#415066"/>
+    <path d="M702 286 738 298l-36 13z" fill="#ffcd07"/>
+  </g>
+
+  <g filter="url(#adminShadow)">
+    <path d="M870 501h120v84H870z" fill="#f8fbff"/>
+    <path d="M990 501l61 35v84l-61-35z" fill="#c8d7e8"/>
+    <path d="M870 501l61-35 120 35-61 35z" fill="#e9eff7"/>
+    <rect x="888" y="523" width="84" height="28" fill="#1351b4"/>
+    <text x="930" y="543" text-anchor="middle" class="tiny inverse">UBS</text>
+    <g stroke="#d7e1ed" stroke-width="4">
+      <path d="M898 563h64M1005 541v45"/>
+    </g>
+  </g>
+
+  <g filter="url(#adminShadow)">
+    <path d="M759 606h103v72H759z" fill="#f8fbff"/>
+    <path d="M862 606l54 31v72l-54-31z" fill="#c8d7e8"/>
+    <path d="M759 606l54-31 103 31-54 31z" fill="#e9eff7"/>
+    <rect x="776" y="626" width="68" height="25" fill="#1351b4"/>
+    <text x="810" y="644" text-anchor="middle" class="tiny inverse">ESCOLA</text>
+  </g>
+
+  <g>
+    <g transform="translate(507 437)">
+      <ellipse cx="0" cy="50" rx="45" ry="25" fill="#e1e8d2"/>
+      <circle cx="-15" cy="14" r="23" fill="#77b642"/>
+      <circle cx="10" cy="7" r="27" fill="#85c448"/>
+      <circle cx="27" cy="25" r="21" fill="#5d9f35"/>
+      <rect x="-4" y="25" width="9" height="44" rx="4" fill="#92643a"/>
+    </g>
+    <g transform="translate(934 411)">
+      <ellipse cx="0" cy="46" rx="42" ry="23" fill="#e1e8d2"/>
+      <circle cx="-17" cy="13" r="22" fill="#77b642"/>
+      <circle cx="7" cy="7" r="25" fill="#85c448"/>
+      <circle cx="24" cy="24" r="20" fill="#5d9f35"/>
+      <rect x="-4" y="24" width="9" height="40" rx="4" fill="#92643a"/>
+    </g>
+    <g transform="translate(1062 571)">
+      <ellipse cx="0" cy="46" rx="42" ry="23" fill="#e1e8d2"/>
+      <circle cx="-17" cy="13" r="22" fill="#77b642"/>
+      <circle cx="7" cy="7" r="25" fill="#85c448"/>
+      <circle cx="24" cy="24" r="20" fill="#5d9f35"/>
+      <rect x="-4" y="24" width="9" height="40" rx="4" fill="#92643a"/>
+    </g>
+  </g>
+
+  <g filter="url(#adminCardShadow)" class="ui float-alt">
+    <path d="M805 132h211c17 0 31 14 31 31v76c0 17-14 31-31 31H805c-17 0-31-14-31-31v-76c0-17 14-31 31-31Z" fill="#fff"/>
+    <circle cx="829" cy="176" r="21" fill="#ecf8ef" stroke="#b7e0bd" stroke-width="3"/>
+    <path class="draw-check" d="m819 176 8 8 18-20" fill="none" stroke="#168821" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="872" y="172" class="small">SLA cumprido</text>
+    <text x="872" y="218" font-family="Public Sans, Segoe UI, Arial, sans-serif" font-size="42" font-weight="900" fill="#071a3a">92%</text>
+    <rect x="872" y="236" width="123" height="12" rx="6" fill="#dbe6ef"/>
+    <rect class="progress-fill" x="872" y="236" width="94" height="12" rx="6" fill="#168821"/>
+
+    <path d="M508 235c0-25 20-45 45-45s45 20 45 45c0 36-45 76-45 76s-45-40-45-76Z" fill="#1351b4"/>
+    <circle cx="553" cy="235" r="22" fill="#fff"/>
+    <path d="M543 222h18l10 10v19h-28z" fill="#1351b4"/>
+    <path d="M559 222v11h12M548 244h17M548 251h13" fill="none" stroke="#fff" stroke-width="3"/>
+
+    <path d="M932 365c0-25 20-45 45-45s45 20 45 45c0 36-45 76-45 76s-45-40-45-76Z" fill="#ffcd07"/>
+    <circle cx="977" cy="365" r="22" fill="#fff"/>
+    <circle cx="977" cy="358" r="8" fill="none" stroke="#8a6100" stroke-width="5"/>
+    <path d="M961 378c4-13 28-13 32 0M977 346v-8m-12 4 24 0" fill="none" stroke="#8a6100" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <path d="M705 561c0-27 22-49 49-49s49 22 49 49c0 39-49 83-49 83s-49-44-49-83Z" fill="#168821"/>
+    <circle cx="754" cy="561" r="24" fill="#fff"/>
+    <path class="draw-check" d="m741 561 9 10 19-22" fill="none" stroke="#168821" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <g class="ui" filter="url(#adminCardShadow)">
+    <path d="M76 430h202c18 0 32 14 32 32v68c0 18-14 32-32 32H76c-18 0-32-14-32-32v-68c0-18 14-32 32-32Z" fill="#fff"/>
+    <rect x="92" y="461" width="50" height="50" rx="10" fill="#1351b4"/>
+    <path d="M109 471h18l9 9v20h-27z" fill="none" stroke="#fff" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M127 471v10h9" fill="none" stroke="#fff" stroke-width="4"/>
+    <text x="160" y="491" class="small">Nova solicita&#231;&#227;o</text>
+    <line x1="160" y1="514" x2="256" y2="514" stroke="#dbe3ee" stroke-width="5" stroke-linecap="round"/>
+
+    <path d="M76 556h202c18 0 32 14 32 32v68c0 18-14 32-32 32H76c-18 0-32-14-32-32v-68c0-18 14-32 32-32Z" fill="#fff"/>
+    <rect x="92" y="587" width="50" height="50" rx="10" fill="#ffcd07"/>
+    <path d="M105 625c4-16 28-16 32 0m-16-33a12 12 0 1 0 0 24 12 12 0 0 0 0-24Z" fill="none" stroke="#8a6100" stroke-width="4" stroke-linecap="round"/>
+    <text x="160" y="617" class="small">Equipe atribu&#237;da</text>
+    <line x1="160" y1="640" x2="250" y2="640" stroke="#dbe3ee" stroke-width="5" stroke-linecap="round"/>
+
+    <path d="M230 682h224c18 0 32 14 32 32v68c0 18-14 32-32 32H230c-18 0-32-14-32-32v-68c0-18 14-32 32-32Z" fill="#fff"/>
+    <rect x="248" y="713" width="50" height="50" rx="10" fill="#168821"/>
+    <path class="draw-check" d="m261 738 10 10 21-25" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="316" y="738" class="small">Atendimento</text>
+    <text x="316" y="759" class="small">conclu&#237;do</text>
+    <line x1="316" y1="778" x2="424" y2="778" stroke="#dbe3ee" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <path class="flow-line" d="M44 494c-29 0-29 67 0 67" fill="none" stroke="#1351b4" stroke-width="5" stroke-dasharray="8 12" stroke-linecap="round"/>
+  <path class="flow-line" d="M310 604c-34 0-44 26-44 78" fill="none" stroke="#1351b4" stroke-width="5" stroke-dasharray="8 12" stroke-linecap="round"/>
+  <path class="flow-line" d="M44 624c-29 0-29 91 154 91" fill="none" stroke="#1351b4" stroke-width="5" stroke-dasharray="8 12" stroke-linecap="round"/>
+  <circle class="flow-dot" cx="44" cy="494" r="5" fill="#1351b4"/>
+  <circle class="flow-dot" cx="44" cy="624" r="5" fill="#1351b4"/>
+  <circle class="flow-dot" cx="198" cy="715" r="5" fill="#1351b4"/>
+
+  <g class="ui" filter="url(#adminCardShadow)">
+    <rect x="52" y="814" width="1096" height="74" rx="14" fill="#fff" opacity=".92"/>
+    <line x1="358" y1="832" x2="358" y2="870" stroke="#d5dee9" stroke-width="2"/>
+    <line x1="704" y1="832" x2="704" y2="870" stroke="#d5dee9" stroke-width="2"/>
+    <circle cx="112" cy="851" r="28" fill="#eef5ff"/>
+    <path d="M94 852a18 18 0 1 0 18-18v18h18" fill="none" stroke="#1351b4" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M112 826v-14m0 14 10-10m-10 10-10-10" fill="none" stroke="#1351b4" stroke-width="5" stroke-linecap="round"/>
+    <text x="165" y="857" class="footer">Priorize demandas</text>
+    <circle cx="420" cy="851" r="28" fill="#fff8df"/>
+    <path d="M420 831a20 20 0 1 0 0 40 20 20 0 0 0 0-40Zm0 10v12l10 8" fill="none" stroke="#d6a600" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="474" y="857" class="footer">Acompanhe o SLA</text>
+    <circle cx="766" cy="851" r="28" fill="#eff9f0"/>
+    <path d="M773 822 748 854h23l-12 28 31-38h-22z" fill="none" stroke="#168821" stroke-width="7" stroke-linejoin="round"/>
+    <text x="820" y="857" class="footer">Resolva com agilidade</text>
+  </g>
+</svg>

@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, Briefcase, User, LogOut, BarChart3, List, Accessibility as A11yIcon, X, Database, PanelLeftClose } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, Briefcase, User, LogOut, BarChart3, List, X, Database, PanelLeftClose } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { AccessibilitySymbol } from './AccessibilitySymbol';
 import { CidadaoBrand } from './CidadaoBrand';
 
 export function Sidebar() {
@@ -18,7 +19,7 @@ export function Sidebar() {
     { to: '/meus-protocolos', icon: FileText, label: 'Meus Protocolos' },
     { to: '/mapa', icon: MapIcon, label: 'Mapa' },
     { to: '/servicos', icon: Briefcase, label: 'Serviços' },
-    { to: '/acessibilidade', icon: A11yIcon, label: 'Acessibilidade' },
+    { to: '/acessibilidade', icon: AccessibilitySymbol, label: 'Acessibilidade' },
   ];
 
   const adminLinks = [
@@ -27,7 +28,7 @@ export function Sidebar() {
     { to: '/admin/mapa', icon: MapIcon, label: 'Mapa Estratégico' },
     { to: '/admin/relatorios', icon: FileText, label: 'Relatórios' },
     { to: '/admin/ai-logs', icon: Database, label: 'Logs IA' },
-    { to: '/acessibilidade', icon: A11yIcon, label: 'Acessibilidade' },
+    { to: '/acessibilidade', icon: AccessibilitySymbol, label: 'Acessibilidade' },
   ];
 
   const links = role === 'citizen' ? citizenLinks : adminLinks;
@@ -51,16 +52,18 @@ export function Sidebar() {
           <CidadaoBrand compact />
           <button
             onClick={toggleSidebarCollapsed}
-            className="hidden rounded-lg p-2 text-slate-500 transition-colors hover:bg-[#EAF2FF] hover:text-[#1351B4] md:flex"
+            className="hidden size-10 items-center justify-center rounded-lg border border-[#CDD8E7] bg-white text-[#0758BD] shadow-sm transition-colors hover:bg-[#EAF2FF] hover:text-[#1351B4] md:flex"
             title="Recolher sidebar"
+            aria-label="Recolher sidebar"
           >
-            <PanelLeftClose size={18} />
+            <PanelLeftClose size={20} />
           </button>
           <button
             onClick={toggleMobileMenu}
-            className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-[#EAF2FF] hover:text-[#1351B4] md:hidden"
+            className="flex size-10 items-center justify-center rounded-lg border border-[#CDD8E7] bg-white text-[#0758BD] shadow-sm transition-colors hover:bg-[#EAF2FF] hover:text-[#1351B4] md:hidden"
+            aria-label="Fechar menu"
           >
-            <X size={18} />
+            <X size={20} />
           </button>
         </div>
 

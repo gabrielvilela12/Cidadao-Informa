@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-    Accessibility as AccessibilityIcon,
     Activity,
     AlignJustify,
     ArrowLeft,
@@ -24,6 +23,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { AccessibilitySymbol } from '../components/AccessibilitySymbol';
 import { CidadaoBrand } from '../components/CidadaoBrand';
 import { useA11y, type Theme } from '../context/A11yContext';
 import { useApp } from '../context/AppContext';
@@ -189,8 +189,8 @@ export function Accessibility() {
                                 <Menu size={21} aria-hidden="true" />
                             </button>
                         )}
-                        <div className="hidden size-12 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white shadow-[0_8px_18px_rgba(7,88,189,0.2)] sm:flex sm:size-14">
-                            <AccessibilityIcon size={30} aria-hidden="true" />
+                        <div className="hidden size-12 shrink-0 items-center justify-center rounded-full border border-[#CDD8E7] bg-white shadow-[0_8px_18px_rgba(7,88,189,0.12)] sm:flex sm:size-14">
+                            <AccessibilitySymbol size={34} aria-hidden="true" />
                         </div>
                         <div className="min-w-0">
                             <h1 className="break-words text-2xl font-black leading-tight sm:text-[34px]">Acessibilidade</h1>

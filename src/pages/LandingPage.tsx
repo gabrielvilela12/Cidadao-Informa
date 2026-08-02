@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import {
     MapPin, ArrowRight, Shield, Zap, Users, BarChart3,
-    CheckCircle, ChevronRight, ChevronLeft, Star, Eye, UserRound, Camera, Monitor, Accessibility,
+    CheckCircle, ChevronRight, ChevronLeft, Star, Eye, UserRound, Camera, Monitor,
     ClipboardList, Smile, Quote, Contrast
 } from 'lucide-react';
+import { AccessibilitySymbol } from '../components/AccessibilitySymbol';
 import { CidadaoBrand } from '../components/CidadaoBrand';
 import { useA11y } from '../context/A11yContext';
 import { api } from '../services/api';
@@ -94,8 +95,8 @@ function ProcessVisual({ type }: ProcessVisualProps) {
                         <span key={stripe} className="mt-8 h-14 w-4 skew-x-[-12deg] bg-white" />
                     ))}
                 </div>
-                <span className="absolute bottom-2 right-5 flex size-14 items-center justify-center rounded-lg bg-blue-600">
-                    <Accessibility size={34} className="landing-inverse-icon" />
+                <span className="absolute bottom-2 right-5 flex size-14 items-center justify-center rounded-lg border border-slate-200 bg-white shadow-sm">
+                    <AccessibilitySymbol size={36} aria-hidden="true" />
                 </span>
             </div>
             <div className="absolute right-[12%] top-2 flex flex-col items-center">
@@ -752,7 +753,7 @@ export function LandingPage() {
                                 title="Opções de acessibilidade"
                                 aria-label="Abrir opções de acessibilidade"
                             >
-                                <Accessibility size={23} aria-hidden="true" />
+                                <AccessibilitySymbol size={25} aria-hidden="true" />
                             </Link>
                             <button
                                 type="button"

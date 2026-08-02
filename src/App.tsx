@@ -57,6 +57,7 @@ function AppContent() {
   const location = useLocation();
   const hashPath = useHashRoutePath();
   const routeLocation = hashPath ? { ...location, pathname: hashPath, search: '', hash: '' } : location;
+  const isMapRoute = routeLocation.pathname === '/mapa' || routeLocation.pathname === '/admin/mapa';
 
   useKeyboardShortcuts(role);
 
@@ -82,10 +83,10 @@ function AppContent() {
         <button
           type="button"
           onClick={toggleSidebarCollapsed}
-          className="hidden md:flex fixed left-4 top-4 z-40 size-10 items-center justify-center rounded-xl bg-[#0d1520]/90 border border-white/10 text-slate-300 shadow-xl backdrop-blur hover:text-white hover:bg-[#111c29] transition-colors"
+          className={`fixed left-4 ${isMapRoute ? 'top-20' : 'top-4'} z-[700] hidden size-11 items-center justify-center rounded-lg border border-[#CDD8E7] bg-white text-[#0758BD] shadow-xl transition-colors hover:bg-[#EAF2FF] md:flex`}
           title="Abrir sidebar"
         >
-          <PanelLeftOpen size={18} />
+          <PanelLeftOpen size={20} />
         </button>
       )}
       <main className={`ml-0 flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'md:ml-0' : 'md:ml-72'}`}>

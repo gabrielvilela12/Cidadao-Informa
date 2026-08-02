@@ -941,6 +941,7 @@ a {
   font-size: 18px;
   font-weight: 900;
   transform: rotate(-45deg);
+  position: relative;
   transition: transform 160ms ease;
 }
 
@@ -955,6 +956,27 @@ a {
   transform: rotate(45deg);
 }
 
+
+
+.protocol-marker-count {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  display: flex;
+  width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  background: #071a3a;
+  color: #ffffff;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  transform: rotate(45deg);
+}
 
 .protocol-marker-pin.is-selected {
   outline: 4px solid rgba(255, 255, 255, 0.75);
