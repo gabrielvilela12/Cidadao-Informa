@@ -30,6 +30,7 @@ import { type Protocol } from '../constants';
 import { useProtocols } from '../hooks/useProtocols';
 import { exportProtocolsToExcel } from '../utils/exportUtils';
 import { countWithoutLocation, DEFAULT_MAP_CENTER, getMarkerPosition } from '../utils/mapUtils';
+import { canonicalStatus, CANONICAL_STATUSES, type CanonicalStatus } from '../utils/protocolStatus';
 import {
   buildHeatPoints,
   HEAT_CONTROLS,
@@ -49,8 +50,6 @@ import { HeatGradientLayer } from '../components/admin/HeatGradientLayer';
 import { HeatStateLayer } from '../components/admin/HeatStateLayer';
 import { HeatCityLayer } from '../components/admin/HeatCityLayer';
 import { HeatLegend, type HeatMode, type HeatSettings } from '../components/admin/HeatLegend';
-
-type CanonicalStatus = 'Aberto' | 'Em análise' | 'Concluído' | 'Atrasado';
 
 /** Pins = um marcador por protocolo. Calor = densidade agregada por área. */
 type MapLayer = 'pins' | 'heat';
@@ -95,7 +94,7 @@ const EMPTY_STATES: StateAggregation = { tallies: [], maxCount: 0, outside: 0 };
 const EMPTY_CITIES: CityAggregation = { clusters: [], maxCount: 0 };
 
 const ALL_CATEGORIES = ['Física', 'Visual', 'Auditiva', 'Outros'];
-const ALL_STATUSES: CanonicalStatus[] = ['Aberto', 'Em análise', 'Concluído', 'Atrasado'];
+const ALL_STATUSES = CANONICAL_STATUSES;
 
 const STATUS_COLORS: Record<CanonicalStatus, string> = {
   Aberto: '#0758BD',
@@ -124,13 +123,6 @@ const CATEGORY_MARKER_ICONS: Record<string, string> = {
   [ALL_CATEGORIES[2]]: '&#128066;&#xfe0e;',
   [ALL_CATEGORIES[3]]: '&hellip;',
 };
-
-function canonicalStatus(status: Protocol['status']): CanonicalStatus {
-  if (['Em Análise', 'InProgress'].includes(status)) return 'Em análise';
-  if (['Concluído', 'Resolved', 'Closed'].includes(status)) return 'Concluído';
-  if (status === 'Atrasado') return 'Atrasado';
-  return 'Aberto';
-}
 
 function MapController({ center }: { center: [number, number] }) {
   const map = useMap();
@@ -200,7 +192,7 @@ export function AdminMap() {
   }, [showStates, states]);
 
   const filteredProtocols = useMemo(() => protocols.filter((protocol) => {
-    const status = canonicalStatus(protocol.status);
+    const status = canonicalStatus(protocol);
     return activeCategories.includes(protocol.category || 'Outros')
       && activeStatuses.includes(status);
   }), [activeCategories, activeStatuses, protocols]);
@@ -264,7 +256,7 @@ export function AdminMap() {
 
   const stats = useMemo(() => ALL_STATUSES.map((status) => ({
     status,
-    count: protocols.filter((protocol) => canonicalStatus(protocol.status) === status).length,
+    count: protocols.filter((protocol) => canonicalStatus(protocol) === status).length,
   })), [protocols]);
 
   const filterCount = (ALL_CATEGORIES.length - activeCategories.length) + (ALL_STATUSES.length - activeStatuses.length);
@@ -638,7 +630,7 @@ function FilterGroup({ title, values, selected, onToggle, status = false }: { ti
 }
 
 function ProtocolMarker({ protocol, position, selected, overlapCount, overlapIndex, onClick }: { protocol: Protocol; position: [number, number]; selected: boolean; overlapCount: number; overlapIndex: number; onClick: () => void }) {
-  const status = canonicalStatus(protocol.status);
+  const status = canonicalStatus(protocol);
   const categoryIconMarkup = CATEGORY_MARKER_ICONS[protocol.category] || '&hellip;';
   const overlapBadge = overlapCount > 1 ? `<small class="protocol-marker-count">${overlapIndex + 1}</small>` : '';
 

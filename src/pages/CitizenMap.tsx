@@ -22,9 +22,10 @@ import { Protocol } from '../constants';
 import { useApp } from '../context/AppContext';
 import { useProtocols } from '../hooks/useProtocols';
 import { DEFAULT_MAP_CENTER, getMarkerPosition } from '../utils/mapUtils';
+import { canonicalStatus, CANONICAL_STATUSES, type CanonicalStatus } from '../utils/protocolStatus';
 import { StatusBadge } from './CitizenDashboard';
 
-type CanonicalStatus = 'Aberto' | 'Em Análise' | 'Concluído' | 'Atrasado';
+
 
 type AddressSuggestion = {
   lat: string;
@@ -33,14 +34,7 @@ type AddressSuggestion = {
 };
 
 const allCategories = ['Física', 'Visual', 'Auditiva', 'Outros'];
-const allStatuses: CanonicalStatus[] = ['Aberto', 'Em Análise', 'Concluído', 'Atrasado'];
-
-function canonicalStatus(status: string): CanonicalStatus {
-  if (status === 'Open' || status === 'Aberto') return 'Aberto';
-  if (status === 'InProgress' || status === 'Em Análise') return 'Em Análise';
-  if (status === 'Resolved' || status === 'Concluído') return 'Concluído';
-  return 'Atrasado';
-}
+const allStatuses = CANONICAL_STATUSES;
 
 function categorySymbol(category?: string) {
   const normalized = (category || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
@@ -50,10 +44,9 @@ function categorySymbol(category?: string) {
   return '•••';
 }
 
-function markerConfig(status: string, category?: string) {
-  const normalized = canonicalStatus(status);
+function markerConfig(normalized: CanonicalStatus, category?: string) {
   const symbol = categorySymbol(category);
-  if (normalized === 'Em Análise') return { color: '#D97706', symbol };
+  if (normalized === 'Em análise') return { color: '#D97706', symbol };
   if (normalized === 'Concluído') return { color: '#168821', symbol };
   if (normalized === 'Atrasado') return { color: '#E52207', symbol };
   return { color: '#0758BD', symbol };
@@ -98,7 +91,7 @@ export function CitizenMap() {
   const filteredProtocols = useMemo(() => {
     return protocols.filter((protocol) => {
       const category = protocol.category || 'Outros';
-      return activeCategories.includes(category) && activeStatuses.includes(canonicalStatus(protocol.status));
+      return activeCategories.includes(category) && activeStatuses.includes(canonicalStatus(protocol));
     });
   }, [protocols, activeCategories, activeStatuses]);
 
@@ -397,7 +390,7 @@ function NearbyPanel({ protocols, loading, selected, selectedIndex, onSelect, on
           return (
             <article key={protocol.id} className={`rounded-lg border bg-white p-4 transition ${isSelected ? 'border-[#F9B900] shadow-[0_6px_18px_rgba(177,126,0,0.10)]' : 'border-[#CDD8E7]'}`}>
               <button type="button" onClick={() => onSelect(protocol, index)} className="flex w-full items-start gap-3 text-left">
-                <MarkerBadge status={protocol.status} category={protocol.category || protocol.service} />
+                <MarkerBadge protocol={protocol} />
                 <span className="min-w-0 flex-1">
                   <strong className="block truncate text-base text-[#0b1b33]">{protocol.description || protocol.service}</strong>
                   <span className="mt-1 block truncate text-sm text-slate-600">{protocol.address}</span>
@@ -423,8 +416,8 @@ function NearbyPanel({ protocols, loading, selected, selectedIndex, onSelect, on
   );
 }
 
-function MarkerBadge({ status, category }: { status: string; category?: string }) {
-  const config = markerConfig(status, category);
+function MarkerBadge({ protocol }: { protocol: Protocol }) {
+  const config = markerConfig(canonicalStatus(protocol), protocol.category || protocol.service);
   return (
     <span className="flex size-11 shrink-0 items-center justify-center rounded-full text-lg font-black" style={{ backgroundColor: `${config.color}1A`, color: config.color }}>
       {config.symbol}
@@ -438,7 +431,7 @@ function ProtocolMarker({ protocol, selected, onClick }: { protocol: Protocol; s
 
   if (!position) return null;
 
-  const config = markerConfig(protocol.status, protocol.category || protocol.service);
+  const config = markerConfig(canonicalStatus(protocol), protocol.category || protocol.service);
   const icon = L.divIcon({
     className: 'protocol-marker-icon',
     html: `<span class="protocol-marker-pin${selected ? ' is-selected' : ''}" style="--marker-color:${config.color}"><span>${config.symbol}</span></span>`,
