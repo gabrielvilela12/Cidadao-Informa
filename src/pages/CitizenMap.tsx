@@ -492,10 +492,13 @@ function FilterGroup({ title, items, selectedItems, onChange }: {
                 onChange={() => onChange(item.value)}
                 className="sr-only"
               />
+              {/* dashboard-inverse-text em vez de text-white: o overlay
+                  institucional repinta .text-white para texto escuro e
+                  deixaria o check preto sobre a cor da categoria. */}
               <span
                 className={`flex size-5 shrink-0 items-center justify-center rounded transition-all ${
                   checked
-                    ? 'text-white shadow-sm'
+                    ? 'dashboard-inverse-text shadow-sm'
                     : 'border border-slate-300 bg-white'
                 }`}
                 style={checked ? { backgroundColor: item.color, borderColor: item.color } : {}}

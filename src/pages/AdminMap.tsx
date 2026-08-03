@@ -464,9 +464,13 @@ function FilterGroup({ title, values, selected, onToggle, status = false }: { ti
                 <span className="truncate">{value}</span>
               </div>
               <input type="checkbox" checked={checked} onChange={() => onToggle(value)} className="sr-only" />
+              {/* O check usa dashboard-inverse-text, nao text-white: o overlay
+                  institucional repinta .text-white para texto escuro, e a cor
+                  deste quadrado vem de style inline, que perde para o
+                  !important da folha. Sem isso o check sai preto. */}
               <span
                 className={`flex size-4 shrink-0 items-center justify-center rounded transition-all ${
-                  checked ? 'text-white shadow-sm' : 'border border-slate-300 bg-white'
+                  checked ? 'dashboard-inverse-text shadow-sm' : 'border border-slate-300 bg-white'
                 }`}
                 style={checked ? { backgroundColor: itemColor, borderColor: itemColor } : {}}
               >
