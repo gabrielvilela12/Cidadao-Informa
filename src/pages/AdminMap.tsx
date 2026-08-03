@@ -31,19 +31,25 @@ import { useProtocols } from '../hooks/useProtocols';
 import { exportProtocolsToExcel } from '../utils/exportUtils';
 import { countWithoutLocation, DEFAULT_MAP_CENTER, getMarkerPosition } from '../utils/mapUtils';
 import {
-  buildHeatGrid,
   buildHeatPoints,
   HEAT_CONTROLS,
-  heatCellMeters,
   heatDensityAnchor,
   heatRedThreshold,
   heatUnitAlpha,
-  type HeatGridResult,
   type HeatPointsResult,
-  type HeatResolutionId,
 } from '../utils/heatmap';
+import {
+  aggregateByState,
+  cityScope as resolveCityScope,
+  clusterCities,
+  type CityAggregation,
+  type CityScopeId,
+  type StateAggregation,
+  type StateShape,
+} from '../utils/regions';
 import { HeatGradientLayer } from '../components/admin/HeatGradientLayer';
-import { HeatGridLayer } from '../components/admin/HeatGridLayer';
+import { HeatStateLayer } from '../components/admin/HeatStateLayer';
+import { HeatCityLayer } from '../components/admin/HeatCityLayer';
 import { HeatLegend, type HeatMode, type HeatSettings } from '../components/admin/HeatLegend';
 
 type CanonicalStatus = 'Aberto' | 'Em análise' | 'Concluído' | 'Atrasado';
@@ -87,7 +93,8 @@ function spreadOverlappingMarker(position: [number, number], overlapIndex: numbe
 }
 
 const EMPTY_HEAT_POINTS: HeatPointsResult = { points: [], plotted: 0 };
-const EMPTY_HEAT_GRID: HeatGridResult = { cells: [], maxCount: 0, plotted: 0 };
+const EMPTY_STATES: StateAggregation = { tallies: [], maxCount: 0, outside: 0 };
+const EMPTY_CITIES: CityAggregation = { clusters: [], maxCount: 0 };
 
 const ALL_CATEGORIES = ['Física', 'Visual', 'Auditiva', 'Outros'];
 const ALL_STATUSES: CanonicalStatus[] = ['Aberto', 'Em análise', 'Concluído', 'Atrasado'];
@@ -163,37 +170,37 @@ export function AdminMap() {
   const [showOperationalPanel, setShowOperationalPanel] = useState(false);
   const [activeLayer, setActiveLayer] = useState<MapLayer>('pins');
   const [heatMode, setHeatMode] = useState<HeatMode>('gradient');
-  const [heatResolutionId, setHeatResolutionId] = useState<HeatResolutionId>('medium');
+  const [cityScopeId, setCityScopeId] = useState<CityScopeId>('medium');
   const [heatSettings, setHeatSettings] = useState<HeatSettings>({
     radiusMeters: HEAT_CONTROLS.radius.default,
     softness: HEAT_CONTROLS.softness.default,
     opacity: HEAT_CONTROLS.opacity.default,
   });
 
-  const [gridZoom, setGridZoom] = useState(13);
+  const [states, setStates] = useState<StateShape[] | null>(null);
 
   const showHeat = activeLayer === 'heat';
-  const showGrid = showHeat && heatMode === 'grid';
+  const showStates = showHeat && heatMode === 'state';
+  const showCities = showHeat && heatMode === 'city';
 
-  // O lado da celula sai do zoom: em metros fixos ela vira sub-pixel e some
-  // fora do zoom de rua (500 m = 0,05 px no zoom de pais). A latitude do centro
-  // entra so na escala de metros por pixel, onde a variacao dentro do Brasil
-  // muda o resultado em menos de 15% - nao o bastante para trocar o passo.
-  const cellMeters = heatCellMeters(gridZoom, mapCenter[0], heatResolutionId);
-
-  // Assinatura so no modo Grade: em Pins e no gradiente o zoom nao muda nada
-  // aqui, e re-renderizar a tela a cada zoom seria desperdicio.
+  // O contorno das 27 UFs sao ~160 KB, carregados so quando o modo estado e
+  // acionado - nenhuma outra tela precisa deles. Vite separa em chunk proprio.
   useEffect(() => {
-    if (!map || !showGrid) return;
+    if (!showStates || states) return;
 
-    const sync = () => setGridZoom(map.getZoom());
-    sync();
-    map.on('zoomend', sync);
+    let active = true;
+    import('../data/estados-brasil')
+      .then((module) => {
+        if (active) setStates(module.ESTADOS_BRASIL);
+      })
+      .catch(() => {
+        if (active) setStates([]);
+      });
 
     return () => {
-      map.off('zoomend', sync);
+      active = false;
     };
-  }, [map, showGrid]);
+  }, [showStates, states]);
 
   const filteredProtocols = useMemo(() => protocols.filter((protocol) => {
     const status = canonicalStatus(protocol.status);
@@ -241,9 +248,13 @@ export function AdminMap() {
     () => (showHeat && heatMode === 'gradient' ? buildHeatPoints(filteredProtocols) : EMPTY_HEAT_POINTS),
     [filteredProtocols, heatMode, showHeat],
   );
-  const heatGrid = useMemo(
-    () => (showGrid ? buildHeatGrid(filteredProtocols, cellMeters) : EMPTY_HEAT_GRID),
-    [cellMeters, filteredProtocols, showGrid],
+  const stateAggregation = useMemo(
+    () => (showStates && states?.length ? aggregateByState(filteredProtocols, states) : EMPTY_STATES),
+    [filteredProtocols, showStates, states],
+  );
+  const cityAggregation = useMemo(
+    () => (showCities ? clusterCities(filteredProtocols, resolveCityScope(cityScopeId).joinMeters) : EMPTY_CITIES),
+    [cityScopeId, filteredProtocols, showCities],
   );
   // Densidade do decil mais quente da base filtrada: e o que normaliza a escala
   // do gradiente. O numero que a legenda anuncia sai da opacidade resultante, e
@@ -395,8 +406,19 @@ export function AdminMap() {
             opacity={heatSettings.opacity / 100}
           />
         )}
-        {!loading && showGrid && (
-          <HeatGridLayer cells={heatGrid.cells} maxCount={heatGrid.maxCount} opacity={heatSettings.opacity / 100} />
+        {!loading && showStates && (
+          <HeatStateLayer
+            tallies={stateAggregation.tallies}
+            maxCount={stateAggregation.maxCount}
+            opacity={heatSettings.opacity / 100}
+          />
+        )}
+        {!loading && showCities && (
+          <HeatCityLayer
+            clusters={cityAggregation.clusters}
+            maxCount={cityAggregation.maxCount}
+            opacity={heatSettings.opacity / 100}
+          />
         )}
       </MapContainer>
 
@@ -530,10 +552,12 @@ export function AdminMap() {
           onModeChange={setHeatMode}
           settings={heatSettings}
           onSettingsChange={setHeatSettings}
-          resolution={heatResolutionId}
-          onResolutionChange={setHeatResolutionId}
-          maxCount={heatGrid.maxCount}
-          cellMeters={cellMeters}
+          cityScope={cityScopeId}
+          onCityScopeChange={setCityScopeId}
+          maxCount={showStates ? stateAggregation.maxCount : cityAggregation.maxCount}
+          regionCount={showStates ? stateAggregation.tallies.length : cityAggregation.clusters.length}
+          outsideStates={stateAggregation.outside}
+          loadingStates={showStates && states === null}
           redThreshold={heatRedThreshold(heatUnit)}
           plotted={filteredProtocols.length - withoutLocation}
           withoutLocation={withoutLocation}

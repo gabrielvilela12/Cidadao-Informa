@@ -1,19 +1,13 @@
-import { Flame, Grid3x3 } from 'lucide-react';
-import {
-    formatCellSize,
-    HEAT_CONTROLS,
-    HEAT_RESOLUTIONS,
-    heatScaleCss,
-    type HeatResolutionId,
-} from '../../utils/heatmap';
+import { Building2, Flame, Map as MapIcon } from 'lucide-react';
+import { HEAT_CONTROLS, heatScaleCss } from '../../utils/heatmap';
+import { CITY_SCOPES, type CityScopeId } from '../../utils/regions';
 
-export type HeatMode = 'gradient' | 'grid';
-
-function formatMeters(meters: number): string {
-    return meters >= 1000
-        ? `${(meters / 1000).toFixed(1).replace('.', ',')} km`
-        : `${meters} m`;
-}
+/**
+ * gradiente: mancha continua de densidade.
+ * estado: perimetro da UF, com a contagem dentro.
+ * cidade: circulo em volta de onde os chamados estao.
+ */
+export type HeatMode = 'gradient' | 'state' | 'city';
 
 export interface HeatSettings {
     radiusMeters: number;
@@ -28,16 +22,25 @@ interface HeatLegendProps {
     onModeChange: (mode: HeatMode) => void;
     settings: HeatSettings;
     onSettingsChange: (settings: HeatSettings) => void;
-    resolution: HeatResolutionId;
-    onResolutionChange: (resolution: HeatResolutionId) => void;
-    /** Maior contagem numa unica celula da grade. */
+    cityScope: CityScopeId;
+    onCityScopeChange: (scope: CityScopeId) => void;
+    /** Maior contagem numa unica regiao (estado ou cidade). */
     maxCount: number;
-    /** Lado da celula em metros, derivado do zoom. */
-    cellMeters: number;
-    /** Chamados no raio que pintam vermelho, de heatRedThreshold. */
+    /** Quantas regioes tem chamado. */
+    regionCount: number;
+    /** Chamados no raio que pintam vermelho no gradiente, de heatRedThreshold. */
     redThreshold: number;
     plotted: number;
     withoutLocation: number;
+    /** Com coordenada, mas fora de qualquer UF (so no modo estado). */
+    outsideStates: number;
+    loadingStates: boolean;
+}
+
+function formatMeters(meters: number): string {
+    return meters >= 1000
+        ? `${(meters / 1000).toFixed(1).replace('.', ',')} km`
+        : `${meters} m`;
 }
 
 /**
@@ -52,13 +55,15 @@ export function HeatLegend({
     onModeChange,
     settings,
     onSettingsChange,
-    resolution,
-    onResolutionChange,
+    cityScope,
+    onCityScopeChange,
     maxCount,
-    cellMeters,
+    regionCount,
     redThreshold,
     plotted,
     withoutLocation,
+    outsideStates,
+    loadingStates,
 }: HeatLegendProps) {
     const update = (patch: Partial<HeatSettings>) => onSettingsChange({ ...settings, ...patch });
 
@@ -69,30 +74,43 @@ export function HeatLegend({
                 <h2 className="font-black">Mapa de calor</h2>
             </div>
 
-            <div className="mt-3 grid grid-cols-2 gap-1 rounded-lg bg-[#EEF3F9] p-1">
-                <ModeButton active={mode === 'gradient'} onClick={() => onModeChange('gradient')} icon={<Flame size={14} />} label="Gradiente" />
-                <ModeButton active={mode === 'grid'} onClick={() => onModeChange('grid')} icon={<Grid3x3 size={14} />} label="Grade" />
+            <div className="mt-3 grid grid-cols-3 gap-1 rounded-lg bg-[#EEF3F9] p-1">
+                <ModeButton active={mode === 'gradient'} onClick={() => onModeChange('gradient')} icon={<Flame size={14} />} label="Calor" />
+                <ModeButton active={mode === 'state'} onClick={() => onModeChange('state')} icon={<MapIcon size={14} />} label="Estado" />
+                <ModeButton active={mode === 'city'} onClick={() => onModeChange('city')} icon={<Building2 size={14} />} label="Cidade" />
             </div>
 
             <div className="mt-3.5">
                 <h3 className="text-[10px] font-black uppercase tracking-wider text-slate-500">Escala de cor</h3>
-                <div className="mt-1.5 h-3 w-full rounded-full border border-[#CDD8E7]" style={{ background: heatScaleCss(mode) }} />
+                <div
+                    className="mt-1.5 h-3 w-full rounded-full border border-[#CDD8E7]"
+                    style={{ background: heatScaleCss(mode === 'gradient' ? 'gradient' : 'region') }}
+                />
                 <div className="mt-1.5 flex items-center justify-between text-[11px] font-bold text-slate-600">
                     <span>Menos chamados</span>
                     <span>Mais chamados</span>
                 </div>
-                {mode === 'grid' && maxCount > 0 && (
-                    <p className="mt-1 text-[11px] text-slate-600">
-                        <strong className="text-slate-900">1</strong> a <strong className="text-slate-900">{maxCount}</strong> {maxCount === 1 ? 'chamado' : 'chamados'} por célula de <strong className="text-slate-900">{formatCellSize(cellMeters)}</strong>. Clique para aproximar.
-                    </p>
-                )}
-                {/* A escala do gradiente e relativa a base filtrada, entao o topo
-                    tem de vir escrito: sem isso, "vermelho" mudaria de
-                    significado a cada filtro sem avisar. */}
+
+                {/* A escala e relativa a base filtrada, entao o topo tem de vir
+                    escrito: sem isso, "vermelho" mudaria de significado a cada
+                    filtro sem avisar. */}
                 {mode === 'gradient' && redThreshold > 0 && (
                     <p className="mt-1 text-[11px] text-slate-600">
                         Vermelho = <strong className="text-slate-900">{redThreshold}+</strong> {redThreshold === 1 ? 'chamado' : 'chamados'} dentro do raio de {formatMeters(settings.radiusMeters)}.
                     </p>
+                )}
+                {mode === 'state' && maxCount > 0 && (
+                    <p className="mt-1 text-[11px] text-slate-600">
+                        <strong className="text-slate-900">1</strong> a <strong className="text-slate-900">{maxCount}</strong> {maxCount === 1 ? 'chamado' : 'chamados'} por estado, em <strong className="text-slate-900">{regionCount}</strong> {regionCount === 1 ? 'UF' : 'UFs'}. Estado sem chamado não é pintado.
+                    </p>
+                )}
+                {mode === 'city' && maxCount > 0 && (
+                    <p className="mt-1 text-[11px] text-slate-600">
+                        <strong className="text-slate-900">1</strong> a <strong className="text-slate-900">{maxCount}</strong> {maxCount === 1 ? 'chamado' : 'chamados'} por cidade, em <strong className="text-slate-900">{regionCount}</strong> {regionCount === 1 ? 'círculo' : 'círculos'}. Clique para aproximar.
+                    </p>
+                )}
+                {mode === 'state' && loadingStates && (
+                    <p className="mt-1 text-[11px] text-slate-600">Carregando o contorno dos estados…</p>
                 )}
             </div>
 
@@ -105,7 +123,7 @@ export function HeatLegend({
                     onChange={(opacity) => update({ opacity })}
                 />
 
-                {mode === 'gradient' ? (
+                {mode === 'gradient' && (
                     <>
                         <Slider
                             label="Raio"
@@ -124,22 +142,21 @@ export function HeatLegend({
                             onChange={(softness) => update({ softness })}
                         />
                     </>
-                ) : (
+                )}
+
+                {mode === 'city' && (
                     <fieldset>
-                        {/* Relativo, nao absoluto: o lado da celula segue o zoom,
-                            senao ela vira sub-pixel e a grade desaparece ao
-                            afastar. Aqui se escolhe mais ou menos refinamento. */}
                         <legend className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-                            Grade — células de {formatCellSize(cellMeters)}
+                            O que conta como uma cidade
                         </legend>
                         <div className="mt-1.5 grid grid-cols-3 gap-1">
-                            {HEAT_RESOLUTIONS.map((option) => {
-                                const active = option.id === resolution;
+                            {CITY_SCOPES.map((option) => {
+                                const active = option.id === cityScope;
                                 return (
                                     <button
                                         key={option.id}
                                         type="button"
-                                        onClick={() => onResolutionChange(option.id)}
+                                        onClick={() => onCityScopeChange(option.id)}
                                         aria-pressed={active}
                                         title={option.description}
                                         className={`min-h-9 rounded-lg border px-1 text-xs font-bold transition-colors ${
@@ -163,6 +180,12 @@ export function HeatLegend({
                     <>
                         {' · '}
                         <strong className="text-[#B8460E]">{withoutLocation}</strong> sem localização confirmada, fora do mapa
+                    </>
+                )}
+                {mode === 'state' && outsideStates > 0 && (
+                    <>
+                        {' · '}
+                        <strong className="text-[#B8460E]">{outsideStates}</strong> com coordenada fora do território brasileiro
                     </>
                 )}
             </p>
@@ -203,7 +226,7 @@ function ModeButton({ active, onClick, icon, label }: { active: boolean; onClick
             type="button"
             onClick={onClick}
             aria-pressed={active}
-            className={`flex min-h-9 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-bold transition-colors ${
+            className={`flex min-h-9 items-center justify-center gap-1 rounded-md px-1 text-xs font-bold transition-colors ${
                 active ? 'bg-white text-[#0758BD] shadow-sm' : 'text-slate-600 hover:bg-white/70'
             }`}
         >

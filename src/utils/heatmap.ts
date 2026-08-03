@@ -4,8 +4,8 @@
  * Duas leituras da mesma base, escolhidas pelo admin:
  *  - gradiente: acumulo continuo de intensidade em volta de cada coordenada,
  *    que responde "onde esta quente" antes de qualquer numero ser lido;
- *  - grade: celulas de tamanho fixo em metros com a contagem exata dentro,
- *    para quando a pergunta e "quantos chamados nesta area".
+ *  - regiao: contagem exata por recorte administrativo (estado ou cidade), em
+ *    utils/regions.ts, para quando a pergunta e "quantos chamados nesta area".
  *
  * A posicao vem sempre de getMarkerPosition, ou seja, da coordenada que o
  * solicitante confirmou. Protocolo sem coordenada fica fora da conta e e
@@ -36,7 +36,7 @@ const HEAT_HUES: [number, number, number][] = [
     [229, 34, 7],    // #E52207 vermelho institucional
 ];
 
-export type HeatScale = 'gradient' | 'grid';
+export type HeatScale = 'gradient' | 'region';
 
 /**
  * Onde cada cor entra, por visualizacao.
@@ -48,13 +48,13 @@ export type HeatScale = 'gradient' | 'grid';
  * distribuicao e torta: a maioria das areas tem poucos chamados, e um platao
  * largo pintaria quase o mapa inteiro de azul chapado.
  *
- * grade: as cores se distribuem por igual, porque cada celula e um valor
- * discreto - um platao no azul desperdicaria 40% da escala e achataria a
- * diferenca entre celulas de pouca demanda.
+ * regiao: as cores se distribuem por igual, porque cada estado ou cidade e um
+ * valor discreto - um platao no azul desperdicaria 40% da escala e achataria a
+ * diferenca entre as regioes de pouca demanda.
  */
 const HEAT_STOPS: Record<HeatScale, number[]> = {
     gradient: [0.22, 0.42, 0.58, 0.74, 0.88, 1],
-    grid: [0, 0.2, 0.4, 0.6, 0.8, 1],
+    region: [0, 0.2, 0.4, 0.6, 0.8, 1],
 };
 
 /**
@@ -62,9 +62,9 @@ const HEAT_STOPS: Record<HeatScale, number[]> = {
  * fronteiras que nao existem nos dados (o salto para o amarelo chama mais
  * atencao que a diferenca real de contagem). Foi mantida por ser a convencao
  * que o servidor le sem legenda - "vermelho e onde doi" - e o risco esta
- * coberto de outro jeito: a grade escreve a contagem dentro de cada celula e a
- * legenda mostra os extremos numericos, entao a cor nunca e o unico portador do
- * dado.
+ * coberto de outro jeito: os recortes por estado e por cidade escrevem a
+ * contagem dentro da area e a legenda mostra os extremos numericos, entao a cor
+ * nunca e o unico portador do dado.
  */
 function interpolate(ratio: number, scale: HeatScale): [number, number, number] {
     const stops = HEAT_STOPS[scale];
@@ -87,7 +87,7 @@ function interpolate(ratio: number, scale: HeatScale): [number, number, number] 
 }
 
 /** Cor da escala para uma intensidade relativa (0 = frio, 1 = quente). */
-export function heatColorAt(ratio: number, scale: HeatScale = 'grid'): string {
+export function heatColorAt(ratio: number, scale: HeatScale = 'region'): string {
     const [red, green, blue] = interpolate(ratio, scale);
     return `rgb(${red}, ${green}, ${blue})`;
 }
@@ -331,132 +331,6 @@ export function heatRedThreshold(unitAlpha: number): number {
     return Math.max(1, Math.ceil(exact - 1e-9));
 }
 
-export interface HeatGridCell {
-    key: string;
-    count: number;
-    south: number;
-    west: number;
-    north: number;
-    east: number;
-}
-
-export interface HeatGridResult {
-    cells: HeatGridCell[];
-    maxCount: number;
-    plotted: number;
-}
-
-/**
- * Distribui os protocolos em celulas de `cellMeters` de lado.
- *
- * A largura da celula em graus e calculada num unico paralelo de referencia (a
- * latitude media dos pontos). Recalcular por linha faria celulas de linhas
- * diferentes terem areas diferentes, e comparar contagem entre elas deixaria de
- * ser valido.
- */
-export function buildHeatGrid(protocols: GeoLocatableProtocol[], cellMeters: number): HeatGridResult {
-    const positioned = protocols.flatMap((protocol) => {
-        const position = getMarkerPosition(protocol);
-        return position ? [position] : [];
-    });
-
-    if (!positioned.length) return { cells: [], maxCount: 0, plotted: 0 };
-
-    const referenceLatitude = positioned.reduce((total, [latitude]) => total + latitude, 0) / positioned.length;
-    const latitudeStep = cellMeters / METERS_PER_DEGREE_LATITUDE;
-    const longitudeScale = Math.max(Math.cos((referenceLatitude * Math.PI) / 180), 0.2);
-    const longitudeStep = cellMeters / (METERS_PER_DEGREE_LATITUDE * longitudeScale);
-
-    const cells = new Map<string, HeatGridCell>();
-
-    positioned.forEach(([latitude, longitude]) => {
-        const row = Math.floor(latitude / latitudeStep);
-        const column = Math.floor(longitude / longitudeStep);
-        const key = `${row}:${column}`;
-        const cell = cells.get(key);
-
-        if (cell) {
-            cell.count += 1;
-            return;
-        }
-
-        cells.set(key, {
-            key,
-            count: 1,
-            south: row * latitudeStep,
-            north: (row + 1) * latitudeStep,
-            west: column * longitudeStep,
-            east: (column + 1) * longitudeStep,
-        });
-    });
-
-    // Crescente: as celulas quentes sao desenhadas por ultimo e ficam por cima
-    // das vizinhas frias nas bordas compartilhadas.
-    const list = [...cells.values()].sort((first, second) => first.count - second.count);
-
-    return {
-        cells: list,
-        maxCount: list.reduce((max, cell) => Math.max(max, cell.count), 0),
-        plotted: positioned.length,
-    };
-}
-
-export type HeatResolutionId = 'fine' | 'medium' | 'broad';
-
-/**
- * Refinamento da grade, em tamanho alvo da celula na tela.
- *
- * O controle e relativo, e nao um lado fixo em metros, porque o lado sai do zoom
- * (heatCellMeters). Celula com lado fixo em metros e invisivel fora do zoom de
- * rua: 500 m viram 0,05 px no zoom de pais, e a grade simplesmente desaparece
- * justamente quando se quer ver o pais inteiro.
- */
-export const HEAT_RESOLUTIONS: {
-    id: HeatResolutionId;
-    label: string;
-    description: string;
-    /** Lado desejado da celula na tela, em pixels. */
-    targetPixels: number;
-}[] = [
-    { id: 'fine', label: 'Fina', description: 'Mais células, menos chamados em cada', targetPixels: 28 },
-    { id: 'medium', label: 'Média', description: 'Equilíbrio entre detalhe e contagem', targetPixels: 46 },
-    { id: 'broad', label: 'Ampla', description: 'Menos células, mais chamados em cada', targetPixels: 76 },
-];
-
-export function heatResolution(id: HeatResolutionId) {
-    return HEAT_RESOLUTIONS.find((resolution) => resolution.id === id) || HEAT_RESOLUTIONS[1];
-}
-
-/**
- * Lados de celula disponiveis, em metros.
- *
- * A escada existe para o rotulo ser legivel: "células de 2 km" se entende, "de
- * 1.847 m" nao. Vai de quadra a pedaco de estado, porque a grade tem de
- * funcionar do zoom de rua ao de pais.
- */
-const CELL_LADDER = [
-    50, 100, 250, 500, 1000, 2000, 5000, 10_000, 25_000, 50_000, 100_000, 250_000, 500_000,
-];
-
-/**
- * Lado da celula para o zoom atual: o passo da escada que chega mais perto do
- * tamanho alvo na tela. A comparacao e feita em escala logaritmica, senao os
- * passos grandes ganhariam sempre - a distancia absoluta de 250 km at 400 km e
- * maior que de 100 m a 400 m, mas em proporcao e muito menor.
- */
-export function heatCellMeters(zoom: number, latitude: number, resolution: HeatResolutionId): number {
-    const target = heatResolution(resolution).targetPixels * metersPerPixel(latitude, zoom);
-    return CELL_LADDER.reduce((best, step) => (
-        Math.abs(Math.log(step / target)) < Math.abs(Math.log(best / target)) ? step : best
-    ));
-}
-
-/** Lado da celula em texto curto, para a legenda. */
-export function formatCellSize(meters: number): string {
-    return meters >= 1000
-        ? `${(meters / 1000).toString().replace('.', ',')} km`
-        : `${meters} m`;
-}
 
 /**
  * Limites dos controles do gradiente.

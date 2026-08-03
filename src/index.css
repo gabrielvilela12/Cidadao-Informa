@@ -1012,16 +1012,18 @@ a {
 }
 
 /*
-  Contagem dentro da celula da grade. Vai numa pilula clara com texto escuro
-  porque a celula pode ter qualquer cor da escala: texto branco sumiria sobre o
-  amarelo e texto escuro sumiria sobre o azul.
+  Contagem dentro da area (estado ou cidade). Vai numa pilula clara com texto
+  escuro porque a area pode ter qualquer cor da escala: texto branco sumiria
+  sobre o amarelo e texto escuro sumiria sobre o azul.
 */
-.heat-cell-label.leaflet-tooltip {
-  border: 1px solid rgba(7, 22, 47, 0.16) !important;
-  border-radius: 999px !important;
-  background-color: rgba(255, 255, 255, 0.94) !important;
-  box-shadow: 0 2px 6px rgba(7, 22, 47, 0.18) !important;
-  padding: 1px 8px !important;
+.heat-count-label.leaflet-tooltip,
+.heat-count-pill {
+  display: inline-block;
+  border: 1px solid rgba(7, 22, 47, 0.16);
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 6px rgba(7, 22, 47, 0.18);
+  padding: 1px 8px;
   color: #071a3a !important;
   font-family: Inter, system-ui, sans-serif;
   font-size: 12px;
@@ -1030,8 +1032,29 @@ a {
   white-space: nowrap;
 }
 
-.heat-cell-label.leaflet-tooltip::before {
+.heat-count-label.leaflet-tooltip::before {
   display: none !important;
+}
+
+/* Rotulo do estado: divIcon, para a posicao ser a escolhida pela camada. */
+.heat-count-icon {
+  background: transparent !important;
+  border: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Nome e contagem da regiao, no hover. */
+.heat-region-tooltip.leaflet-tooltip {
+  border: 1px solid rgba(7, 22, 47, 0.16) !important;
+  border-radius: 8px !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(7, 22, 47, 0.2) !important;
+  color: #071a3a !important;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 /* Sliders do painel de calor */
