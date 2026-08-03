@@ -40,10 +40,8 @@ import {
 } from '../utils/heatmap';
 import {
   aggregateByState,
-  cityScope as resolveCityScope,
   clusterCities,
   type CityAggregation,
-  type CityScopeId,
   type StateAggregation,
   type StateShape,
 } from '../utils/regions';
@@ -170,7 +168,6 @@ export function AdminMap() {
   const [showOperationalPanel, setShowOperationalPanel] = useState(false);
   const [activeLayer, setActiveLayer] = useState<MapLayer>('pins');
   const [heatMode, setHeatMode] = useState<HeatMode>('gradient');
-  const [cityScopeId, setCityScopeId] = useState<CityScopeId>('medium');
   const [heatSettings, setHeatSettings] = useState<HeatSettings>({
     radiusMeters: HEAT_CONTROLS.radius.default,
     softness: HEAT_CONTROLS.softness.default,
@@ -253,8 +250,8 @@ export function AdminMap() {
     [filteredProtocols, showStates, states],
   );
   const cityAggregation = useMemo(
-    () => (showCities ? clusterCities(filteredProtocols, resolveCityScope(cityScopeId).joinMeters) : EMPTY_CITIES),
-    [cityScopeId, filteredProtocols, showCities],
+    () => (showCities ? clusterCities(filteredProtocols) : EMPTY_CITIES),
+    [filteredProtocols, showCities],
   );
   // Densidade do decil mais quente da base filtrada: e o que normaliza a escala
   // do gradiente. O numero que a legenda anuncia sai da opacidade resultante, e
@@ -552,8 +549,6 @@ export function AdminMap() {
           onModeChange={setHeatMode}
           settings={heatSettings}
           onSettingsChange={setHeatSettings}
-          cityScope={cityScopeId}
-          onCityScopeChange={setCityScopeId}
           maxCount={showStates ? stateAggregation.maxCount : cityAggregation.maxCount}
           regionCount={showStates ? stateAggregation.tallies.length : cityAggregation.clusters.length}
           outsideStates={stateAggregation.outside}

@@ -1,6 +1,5 @@
 import { Building2, Flame, Map as MapIcon } from 'lucide-react';
 import { HEAT_CONTROLS, heatScaleCss } from '../../utils/heatmap';
-import { CITY_SCOPES, type CityScopeId } from '../../utils/regions';
 
 /**
  * gradiente: mancha continua de densidade.
@@ -22,8 +21,6 @@ interface HeatLegendProps {
     onModeChange: (mode: HeatMode) => void;
     settings: HeatSettings;
     onSettingsChange: (settings: HeatSettings) => void;
-    cityScope: CityScopeId;
-    onCityScopeChange: (scope: CityScopeId) => void;
     /** Maior contagem numa unica regiao (estado ou cidade). */
     maxCount: number;
     /** Quantas regioes tem chamado. */
@@ -55,8 +52,6 @@ export function HeatLegend({
     onModeChange,
     settings,
     onSettingsChange,
-    cityScope,
-    onCityScopeChange,
     maxCount,
     regionCount,
     redThreshold,
@@ -142,35 +137,6 @@ export function HeatLegend({
                             onChange={(softness) => update({ softness })}
                         />
                     </>
-                )}
-
-                {mode === 'city' && (
-                    <fieldset>
-                        <legend className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-                            O que conta como uma cidade
-                        </legend>
-                        <div className="mt-1.5 grid grid-cols-3 gap-1">
-                            {CITY_SCOPES.map((option) => {
-                                const active = option.id === cityScope;
-                                return (
-                                    <button
-                                        key={option.id}
-                                        type="button"
-                                        onClick={() => onCityScopeChange(option.id)}
-                                        aria-pressed={active}
-                                        title={option.description}
-                                        className={`min-h-9 rounded-lg border px-1 text-xs font-bold transition-colors ${
-                                            active
-                                                ? 'border-[#0758BD] bg-[#EAF2FF] text-[#0758BD]'
-                                                : 'border-[#CDD8E7] bg-white text-slate-600 hover:bg-slate-50'
-                                        }`}
-                                    >
-                                        {option.label}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </fieldset>
                 )}
             </div>
 

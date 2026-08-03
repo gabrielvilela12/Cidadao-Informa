@@ -242,6 +242,20 @@ function distanceMeters(latitudeA: number, longitudeA: number, latitudeB: number
     return Math.hypot(northing, easting);
 }
 
+/**
+ * Distancia de juncao dos grupos: e o que define o que conta como "uma cidade".
+ *
+ * 12 km mantem uma capital num circulo so e ainda separa municipio vizinho da
+ * regiao metropolitana. Medido na base de demonstracao: 39 circulos, com Sao
+ * Paulo em um de 13 km de raio.
+ *
+ * Era um controle de tres niveis (4, 12 e 30 km) na legenda. Saiu porque a
+ * pergunta da tela e "em que cidade esta concentrado", e para ela existe uma
+ * resposta certa - as outras duas escalas produziam recortes que ninguem pediu e
+ * so davam o que errar na hora de ler o mapa.
+ */
+export const CITY_JOIN_METERS = 12_000;
+
 /** Raio minimo do circulo, para cidade com um chamado so nao virar um ponto. */
 const MIN_CITY_RADIUS_METERS = 1200;
 
@@ -253,7 +267,10 @@ const MIN_CITY_RADIUS_METERS = 1200;
  * pesa - o que muda entre duas ordens e qual ponto virou semente, nao onde a
  * concentracao esta.
  */
-export function clusterCities(protocols: GeoLocatableProtocol[], joinMeters: number): CityAggregation {
+export function clusterCities(
+    protocols: GeoLocatableProtocol[],
+    joinMeters: number = CITY_JOIN_METERS,
+): CityAggregation {
     const clusters: { latitude: number; longitude: number; count: number; members: [number, number][] }[] = [];
 
     protocols.forEach((protocol) => {
@@ -303,20 +320,4 @@ export function clusterCities(protocols: GeoLocatableProtocol[], joinMeters: num
         clusters: result,
         maxCount: result.reduce((max, cluster) => Math.max(max, cluster.count), 0),
     };
-}
-
-export type CityScopeId = 'fine' | 'medium' | 'broad';
-
-/**
- * Distancia de juncao dos grupos. Define o que conta como "uma cidade": com 6 km
- * uma regiao metropolitana se separa em varios circulos, com 25 km ela vira um.
- */
-export const CITY_SCOPES: { id: CityScopeId; label: string; description: string; joinMeters: number }[] = [
-    { id: 'fine', label: 'Bairro', description: 'Agrupa o que está a até 4 km', joinMeters: 4000 },
-    { id: 'medium', label: 'Cidade', description: 'Agrupa o que está a até 12 km', joinMeters: 12_000 },
-    { id: 'broad', label: 'Região', description: 'Agrupa o que está a até 30 km', joinMeters: 30_000 },
-];
-
-export function cityScope(id: CityScopeId) {
-    return CITY_SCOPES.find((scope) => scope.id === id) || CITY_SCOPES[1];
 }
