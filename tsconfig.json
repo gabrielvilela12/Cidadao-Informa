@@ -24,7 +24,6 @@
     "noEmit": true
   },
   "exclude": [
-    "supabase/functions/**",
-    "src/__tests__/**"
+    "supabase/functions/**"
   ]
 }
