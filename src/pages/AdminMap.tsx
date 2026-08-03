@@ -9,6 +9,7 @@ import {
   Ellipsis,
   Eye,
   EyeOff,
+  Flame,
   Layers3,
   Loader2,
   MapPin,
@@ -28,9 +29,27 @@ import { useApp } from '../context/AppContext';
 import { type Protocol } from '../constants';
 import { useProtocols } from '../hooks/useProtocols';
 import { exportProtocolsToExcel } from '../utils/exportUtils';
-import { DEFAULT_MAP_CENTER, getMarkerPosition } from '../utils/mapUtils';
+import { countWithoutLocation, DEFAULT_MAP_CENTER, getMarkerPosition } from '../utils/mapUtils';
+import {
+  buildHeatGrid,
+  buildHeatPoints,
+  HEAT_CONTROLS,
+  heatDensityAnchor,
+  heatRedThreshold,
+  heatResolution,
+  heatUnitAlpha,
+  type HeatGridResult,
+  type HeatPointsResult,
+  type HeatResolutionId,
+} from '../utils/heatmap';
+import { HeatGradientLayer } from '../components/admin/HeatGradientLayer';
+import { HeatGridLayer } from '../components/admin/HeatGridLayer';
+import { HeatLegend, type HeatMode, type HeatSettings } from '../components/admin/HeatLegend';
 
 type CanonicalStatus = 'Aberto' | 'Em análise' | 'Concluído' | 'Atrasado';
+
+/** Pins = um marcador por protocolo. Calor = densidade agregada por área. */
+type MapLayer = 'pins' | 'heat';
 
 interface AddressSuggestion {
   display_name: string;
@@ -66,6 +85,9 @@ function spreadOverlappingMarker(position: [number, number], overlapIndex: numbe
 
   return [position[0] + latitudeOffset, position[1] + longitudeOffset];
 }
+
+const EMPTY_HEAT_POINTS: HeatPointsResult = { points: [], plotted: 0 };
+const EMPTY_HEAT_GRID: HeatGridResult = { cells: [], maxCount: 0, plotted: 0 };
 
 const ALL_CATEGORIES = ['Física', 'Visual', 'Auditiva', 'Outros'];
 const ALL_STATUSES: CanonicalStatus[] = ['Aberto', 'Em análise', 'Concluído', 'Atrasado'];
@@ -139,6 +161,17 @@ export function AdminMap() {
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [mapOnlyMode, setMapOnlyMode] = useState(false);
   const [showOperationalPanel, setShowOperationalPanel] = useState(false);
+  const [activeLayer, setActiveLayer] = useState<MapLayer>('pins');
+  const [heatMode, setHeatMode] = useState<HeatMode>('gradient');
+  const [heatResolutionId, setHeatResolutionId] = useState<HeatResolutionId>('medium');
+  const [heatSettings, setHeatSettings] = useState<HeatSettings>({
+    radiusMeters: HEAT_CONTROLS.radius.default,
+    softness: HEAT_CONTROLS.softness.default,
+    opacity: HEAT_CONTROLS.opacity.default,
+  });
+
+  const showHeat = activeLayer === 'heat';
+  const { cellMeters } = heatResolution(heatResolutionId);
 
   const filteredProtocols = useMemo(() => protocols.filter((protocol) => {
     const status = canonicalStatus(protocol.status);
@@ -178,6 +211,27 @@ export function AdminMap() {
       };
     });
   }, [filteredProtocols]);
+
+  // O calor le a mesma lista filtrada dos pins: mexer em tipo ou status na
+  // barra de filtros muda as duas camadas junto. Cada modo agrega so quando
+  // esta na tela - sao passadas O(n) sobre a base inteira.
+  const heatPoints = useMemo(
+    () => (showHeat && heatMode === 'gradient' ? buildHeatPoints(filteredProtocols) : EMPTY_HEAT_POINTS),
+    [filteredProtocols, heatMode, showHeat],
+  );
+  const heatGrid = useMemo(
+    () => (showHeat && heatMode === 'grid' ? buildHeatGrid(filteredProtocols, cellMeters) : EMPTY_HEAT_GRID),
+    [cellMeters, filteredProtocols, heatMode, showHeat],
+  );
+  // Densidade do decil mais quente da base filtrada: e o que normaliza a escala
+  // do gradiente. O numero que a legenda anuncia sai da opacidade resultante, e
+  // nao da ancora - heatRedThreshold explica por que.
+  const heatUnit = useMemo(
+    () => heatUnitAlpha(heatDensityAnchor(heatPoints.points, heatSettings.radiusMeters)),
+    [heatPoints.points, heatSettings.radiusMeters],
+  );
+  const withoutLocation = useMemo(() => countWithoutLocation(filteredProtocols), [filteredProtocols]);
+
   const stats = useMemo(() => ALL_STATUSES.map((status) => ({
     status,
     count: protocols.filter((protocol) => canonicalStatus(protocol.status) === status).length,
@@ -282,6 +336,14 @@ export function AdminMap() {
     setMapOnlyMode(true);
   };
 
+  // Ir para o calor fecha a ocorrencia selecionada: sem pins na tela, um popup
+  // de protocolo aberto fica sem ancora visivel.
+  const selectLayer = (layer: MapLayer) => {
+    if (layer === activeLayer) return;
+    if (layer === 'heat') closeIncident();
+    setActiveLayer(layer);
+  };
+
   return (
     <div className="relative h-full flex-1 overflow-hidden bg-[#DDEAF3]">
       <MapContainer center={mapCenter} zoom={13} zoomControl={false} style={{ width: '100%', height: '100%' }}>
@@ -291,7 +353,7 @@ export function AdminMap() {
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
         />
-        {!loading && visibleProtocolMarkers.map(({ protocol, protocolIndex, position, overlapCount, overlapIndex }) => (
+        {!loading && !showHeat && visibleProtocolMarkers.map(({ protocol, protocolIndex, position, overlapCount, overlapIndex }) => (
           <ProtocolMarker
             key={protocol.id}
             protocol={protocol}
@@ -302,6 +364,18 @@ export function AdminMap() {
             onClick={() => handleMarkerClick(protocol, protocolIndex)}
           />
         ))}
+        {!loading && showHeat && heatMode === 'gradient' && (
+          <HeatGradientLayer
+            points={heatPoints.points}
+            unitAlpha={heatUnit}
+            radiusMeters={heatSettings.radiusMeters}
+            softness={heatSettings.softness / 100}
+            opacity={heatSettings.opacity / 100}
+          />
+        )}
+        {!loading && showHeat && heatMode === 'grid' && (
+          <HeatGridLayer cells={heatGrid.cells} maxCount={heatGrid.maxCount} opacity={heatSettings.opacity / 100} />
+        )}
       </MapContainer>
 
       {!mapOnlyMode ? <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] p-3 sm:p-5">
@@ -348,6 +422,11 @@ export function AdminMap() {
                 <FilterGroup title="Status" values={ALL_STATUSES} selected={activeStatuses} onToggle={(value) => toggleStatus(value as CanonicalStatus)} status />
               </div>
             )}
+          </div>
+
+          <div role="group" aria-label="Camada do mapa" className="inline-flex h-12 items-center gap-1 rounded-lg border border-[#CDD8E7] bg-white p-1 shadow-lg">
+            <LayerButton active={!showHeat} onClick={() => selectLayer('pins')} icon={MapPin} label="Pins" title="Um marcador por solicitação" />
+            <LayerButton active={showHeat} onClick={() => selectLayer('heat')} icon={Flame} label="Calor" title="Densidade de chamados por área" />
           </div>
 
           <button
@@ -423,7 +502,22 @@ export function AdminMap() {
         </section>
       </div>}
 
-      {!mapOnlyMode && <div className="pointer-events-none absolute inset-x-3 bottom-5 z-[450] flex items-end gap-3 lg:inset-x-5">
+      {!mapOnlyMode && showHeat && (
+        <HeatLegend
+          mode={heatMode}
+          onModeChange={setHeatMode}
+          settings={heatSettings}
+          onSettingsChange={setHeatSettings}
+          resolution={heatResolutionId}
+          onResolutionChange={setHeatResolutionId}
+          maxCount={heatGrid.maxCount}
+          redThreshold={heatRedThreshold(heatUnit)}
+          plotted={filteredProtocols.length - withoutLocation}
+          withoutLocation={withoutLocation}
+        />
+      )}
+
+      {!mapOnlyMode && !showHeat && <div className="pointer-events-none absolute inset-x-3 bottom-5 z-[450] flex items-end gap-3 lg:inset-x-5">
         <div className="pointer-events-auto flex items-center gap-3 rounded-lg border border-[#CDD8E7] bg-white p-2 shadow-xl">
           <button type="button" onClick={() => navigateIncident('previous')} aria-label="Ocorrência anterior" className="flex size-9 items-center justify-center rounded-lg hover:bg-slate-100"><ChevronLeft size={19} /></button>
           <strong className="text-sm">{selectedIndex >= 0 ? selectedIndex + 1 : 0} de {filteredProtocols.length}</strong>
@@ -441,6 +535,23 @@ export function AdminMap() {
         </div>
       )}
     </div>
+  );
+}
+
+function LayerButton({ active, onClick, icon: Icon, label, title }: { active: boolean; onClick: () => void; icon: LucideIcon; label: string; title: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      title={title}
+      className={`inline-flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-bold transition-colors ${
+        active ? 'bg-[#EAF2FF] text-[#0758BD]' : 'text-slate-600 hover:bg-slate-100'
+      }`}
+    >
+      <Icon size={17} />
+      {label}
+    </button>
   );
 }
 

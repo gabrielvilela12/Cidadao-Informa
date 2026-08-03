@@ -989,3 +989,53 @@ a {
   outline: 4px solid rgba(255, 255, 255, 0.75);
   transform: rotate(-45deg) scale(1.16);
 }
+
+/* Mapa de calor */
+
+/*
+  O canvas do gradiente e filho do container do Leaflet, e nao de um pane, para
+  desenhar em coordenadas de tela. z-index 450 o coloca acima do .leaflet-pane
+  (400, que carrega tiles e marcadores) e abaixo dos controles (800), entao a
+  atribuicao e o zoom continuam clicaveis.
+*/
+.heat-gradient-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 450;
+  pointer-events: none;
+}
+
+/*
+  Contagem dentro da celula da grade. Vai numa pilula clara com texto escuro
+  porque a celula pode ter qualquer cor da escala: texto branco sumiria sobre o
+  amarelo e texto escuro sumiria sobre o azul.
+*/
+.heat-cell-label.leaflet-tooltip {
+  border: 1px solid rgba(7, 22, 47, 0.16) !important;
+  border-radius: 999px !important;
+  background-color: rgba(255, 255, 255, 0.94) !important;
+  box-shadow: 0 2px 6px rgba(7, 22, 47, 0.18) !important;
+  padding: 1px 8px !important;
+  color: #071a3a !important;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.heat-cell-label.leaflet-tooltip::before {
+  display: none !important;
+}
+
+/* Sliders do painel de calor */
+.heat-slider {
+  height: 18px;
+  accent-color: #0758bd;
+  cursor: pointer;
+}
+
+.heat-slider:focus-visible {
+  outline: 2px solid #0758bd;
+  outline-offset: 3px;
+}
