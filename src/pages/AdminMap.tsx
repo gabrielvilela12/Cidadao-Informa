@@ -27,7 +27,7 @@ import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { type Protocol } from '../constants';
 import { useProtocols } from '../hooks/useProtocols';
-import { exportToExcel } from '../utils/exportUtils';
+import { exportProtocolsToExcel } from '../utils/exportUtils';
 import { DEFAULT_MAP_CENTER, getMarkerPosition } from '../utils/mapUtils';
 
 type CanonicalStatus = 'Aberto' | 'Em análise' | 'Concluído' | 'Atrasado';
@@ -350,7 +350,14 @@ export function AdminMap() {
             )}
           </div>
 
-          <button type="button" onClick={() => exportToExcel(filteredProtocols, 'mapa_estrategico.xlsx')} aria-label="Exportar Excel" title="Exportar Excel" className="inline-flex h-12 items-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-4 text-sm font-bold text-slate-700 shadow-lg">
+          <button
+            type="button"
+            onClick={() => exportProtocolsToExcel(filteredProtocols, 'mapa_estrategico.xlsx', 'Mapa estratégico')}
+            disabled={filteredProtocols.length === 0}
+            aria-label="Exportar Excel"
+            title={filteredProtocols.length === 0 ? 'Nenhuma solicitação visível nos filtros atuais' : 'Exportar Excel'}
+            className="inline-flex h-12 items-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-4 text-sm font-bold text-slate-700 shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
+          >
             <Download size={18} /> <span className="hidden 2xl:inline">Exportar Excel</span>
           </button>
           <button type="button" onClick={enableMapOnlyMode} className="inline-flex h-12 items-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-4 text-sm font-bold text-slate-700 shadow-lg" title="Ocultar painéis e deixar somente o mapa">

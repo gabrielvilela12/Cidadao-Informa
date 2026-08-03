@@ -28,7 +28,7 @@ import {
 import { Header } from '../components/Header';
 import { type Protocol } from '../constants';
 import { useProtocols } from '../hooks/useProtocols';
-import { exportToExcel } from '../utils/exportUtils';
+import { exportToExcel, protocolExportRows, type ExportRow } from '../utils/exportUtils';
 import { summarizeSlaCompliance } from '../utils/sla';
 import { extractNeighborhood, listNeighborhoods } from '../utils/address';
 
@@ -42,6 +42,18 @@ function protocolDate(protocol: Protocol) {
 }
 
 const isResolved = (status: Protocol['status']) => ['Concluído', 'Resolved', 'Closed'].includes(status);
+
+interface ReportCardConfig {
+  title: string;
+  description: string;
+  icon: React.ComponentType<{ size?: number }>;
+  tone: 'purple' | 'green' | 'yellow' | 'blue';
+  /** Linhas ja mapeadas para a planilha, com cabecalhos em portugues. */
+  rows: ExportRow[];
+  file: string;
+  sheet: string;
+  highlight?: boolean;
+}
 
 export function AdminReports() {
   const { protocols, loading } = useProtocols('admin');
@@ -124,16 +136,6 @@ export function AdminReports() {
       { name: 'Vencido', value: 100 - slaRate, color: '#E52207' },
     ];
 
-  const exportRows = () => filteredProtocols.map((protocol) => ({
-    Protocolo: protocol.id,
-    Solicitante: protocol.requester,
-    Categoria: protocol.category,
-    Endereço: protocol.address,
-    Status: protocol.status,
-    Data: protocol.date,
-    Prioridade: protocol.ai_priority || 'Processando',
-  }));
-
   const tooltipStyle = {
     background: '#FFFFFF',
     border: '1px solid #CDD8E7',
@@ -142,12 +144,45 @@ export function AdminReports() {
     boxShadow: '0 10px 28px rgba(15,45,85,0.12)',
   };
 
-  const reportCards = [
-    { title: 'Ocorrências por Bairro', description: 'Volume absoluto de aberturas por localização.', icon: PieChartIcon, tone: 'purple', data: neighborhoodData, file: 'ocorrencias_bairro.xlsx' },
-    { title: 'SLA de Atendimento', description: 'Tempo médio e conformidade de resposta.', icon: BarChart3, tone: 'green', data: slaData, file: 'sla_atendimento.xlsx' },
-    { title: 'Taxa de Resolução Mensal', description: 'Evolução de protocolos concluídos no ano.', icon: TrendingUp, tone: 'yellow', data: resolutionData, file: 'resolucao_mensal.xlsx' },
-    { title: 'Extrato Analítico', description: 'Exportação bruta e detalhada de toda a base.', icon: FileText, tone: 'blue', data: exportRows(), file: 'extrato_analitico.xlsx', highlight: true },
-  ] as const;
+  // Cada cartao passou a exportar o conteudo do relatorio, nao a estrutura do
+  // grafico: o de SLA gerava colunas name/value/color - com o hex da cor dentro
+  // da planilha - e os outros dois saiam com cabecalhos `name`/`value`.
+  const protocolRows = useMemo(() => protocolExportRows(filteredProtocols), [filteredProtocols]);
+
+  const neighborhoodRows: ExportRow[] = neighborhoodData.map((item) => ({
+    Bairro: item.name,
+    Ocorrências: item.value,
+    'Participação (%)': filteredProtocols.length
+      ? Math.round((item.value / filteredProtocols.length) * 1000) / 10
+      : 0,
+  }));
+
+  // Uma linha com os numeros que sustentam o percentual do painel. Vazio quando
+  // nao ha base de calculo, o mesmo critério do estado "Sem dados suficientes".
+  const slaRows: ExportRow[] = slaSummary.evaluated === 0 ? [] : [{
+    'Solicitações em aberto avaliadas': slaSummary.evaluated,
+    'No prazo': slaSummary.onTime,
+    Vencidas: slaSummary.late,
+    'Conformidade (%)': slaSummary.rate ?? 0,
+    'Concluídas fora do cálculo (sem data de conclusão)': slaSummary.resolvedWithoutData,
+  }];
+
+  const resolutionRows: ExportRow[] = resolutionData.map((item) => ({
+    Mês: item.name,
+    Ano: applied.year,
+    Abertas: item.abertas,
+    Resolvidas: item.resolvidas,
+    'Taxa de resolução (%)': item.abertas
+      ? Math.round((item.resolvidas / item.abertas) * 100)
+      : 0,
+  }));
+
+  const reportCards: ReportCardConfig[] = [
+    { title: 'Ocorrências por Bairro', description: 'Volume absoluto de aberturas por localização.', icon: PieChartIcon, tone: 'purple', rows: neighborhoodRows, file: 'ocorrencias_bairro.xlsx', sheet: 'Ocorrências por bairro' },
+    { title: 'SLA de Atendimento', description: 'Tempo médio e conformidade de resposta.', icon: BarChart3, tone: 'green', rows: slaRows, file: 'sla_atendimento.xlsx', sheet: 'SLA de atendimento' },
+    { title: 'Taxa de Resolução Mensal', description: 'Evolução de protocolos concluídos no ano.', icon: TrendingUp, tone: 'yellow', rows: resolutionRows, file: 'resolucao_mensal.xlsx', sheet: 'Resolução mensal' },
+    { title: 'Extrato Analítico', description: 'Exportação detalhada de toda a base filtrada.', icon: FileText, tone: 'blue', rows: protocolRows, file: 'extrato_analitico.xlsx', sheet: 'Extrato analítico', highlight: true },
+  ];
 
   return (
     <div className="h-full flex-1 overflow-y-auto bg-[#F4F8FC] text-[#0B1B33]">
@@ -157,9 +192,9 @@ export function AdminReports() {
         action={(
           <button
             type="button"
-            onClick={() => exportToExcel(exportRows(), 'relatorio_geral.xlsx')}
-            disabled={loading || filteredProtocols.length === 0}
-            className="inline-flex h-11 items-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50"
+            onClick={() => exportToExcel(protocolRows, 'relatorio_geral.xlsx', 'Relatório geral')}
+            disabled={loading || protocolRows.length === 0}
+            className="inline-flex h-11 items-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <CalendarDays size={17} />
             Exportar relatório geral
@@ -207,8 +242,11 @@ export function AdminReports() {
               description={card.description}
               icon={card.icon}
               tone={card.tone}
-              highlight={'highlight' in card && card.highlight}
-              onClick={() => exportToExcel(card.data, card.file)}
+              highlight={card.highlight ?? false}
+              // Cartao sem linhas nao gera arquivo: desabilitado em vez de
+              // aceitar o clique e nao produzir nada.
+              disabled={loading || card.rows.length === 0}
+              onClick={() => exportToExcel(card.rows, card.file, card.sheet)}
             />
           ))}
         </section>
@@ -322,7 +360,7 @@ function ReportSelect({ icon, value, onChange, options }: { icon: React.ReactNod
   );
 }
 
-function ReportCard({ title, description, icon: Icon, tone, highlight, onClick }: { title: string; description: string; icon: React.ComponentType<{ size?: number }>; tone: 'purple' | 'green' | 'yellow' | 'blue'; highlight: boolean; onClick: () => void }) {
+function ReportCard({ title, description, icon: Icon, tone, highlight, disabled, onClick }: { title: string; description: string; icon: React.ComponentType<{ size?: number }>; tone: 'purple' | 'green' | 'yellow' | 'blue'; highlight: boolean; disabled: boolean; onClick: () => void }) {
   const tones = {
     purple: 'bg-purple-50 text-purple-600',
     green: 'bg-emerald-50 text-emerald-600',
@@ -330,12 +368,20 @@ function ReportCard({ title, description, icon: Icon, tone, highlight, onClick }
     blue: 'bg-blue-100 text-[#0758BD]',
   };
   return (
-    <button type="button" onClick={onClick} className={`flex min-h-[138px] items-center gap-4 rounded-lg border p-4 text-left transition-colors hover:border-[#7EAAE2] ${highlight ? 'border-blue-400 bg-[#F2F7FF]' : 'border-[#CDD8E7] bg-white'}`}>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={disabled ? 'Sem dados para exportar nos filtros atuais' : undefined}
+      className={`flex min-h-[138px] items-center gap-4 rounded-lg border p-4 text-left transition-colors hover:border-[#7EAAE2] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:border-[#CDD8E7] ${highlight ? 'border-blue-400 bg-[#F2F7FF]' : 'border-[#CDD8E7] bg-white'}`}
+    >
       <span className={`flex size-14 shrink-0 items-center justify-center rounded-full ${tones[tone]}`}><Icon size={27} /></span>
       <span className="min-w-0">
         <span className={`block font-black ${highlight ? 'text-[#0758BD]' : ''}`}>{title}</span>
         <span className="mt-1 block text-sm leading-5 text-slate-600">{description}</span>
-        <span className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-[#0758BD]">Abrir relatório <Download size={15} /></span>
+        <span className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-[#0758BD]">
+          {disabled ? 'Sem dados' : 'Abrir relatório'} <Download size={15} />
+        </span>
       </span>
     </button>
   );

@@ -19,7 +19,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { type Protocol } from '../constants';
 import { useProtocols } from '../hooks/useProtocols';
-import { exportToExcel } from '../utils/exportUtils';
+import { exportProtocolsToExcel } from '../utils/exportUtils';
 import { countSlaLate, getSlaInfo, getSlaLabel, isSlaLate } from '../utils/sla';
 
 const statusMatches = (status: Protocol['status'], value: string) => {
@@ -170,8 +170,10 @@ export function AdminRequestsQueue() {
             <div className="flex gap-2 sm:justify-end">
               <button
                 type="button"
-                onClick={() => exportToExcel(filteredProtocols, 'fila_solicitacoes.xlsx')}
-                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white hover:bg-blue-700 sm:flex-none"
+                onClick={() => exportProtocolsToExcel(filteredProtocols, 'fila_solicitacoes.xlsx', 'Fila de solicitações')}
+                disabled={filteredProtocols.length === 0}
+                title={filteredProtocols.length === 0 ? 'Nenhuma solicitação nos filtros atuais' : undefined}
+                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
               >
                 <Download size={17} /> Exportar
               </button>

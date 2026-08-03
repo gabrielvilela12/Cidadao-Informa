@@ -28,7 +28,7 @@ import {
 import { useApp } from '../context/AppContext';
 import { useProtocols } from '../hooks/useProtocols';
 import { type Protocol } from '../constants';
-import { exportToExcel } from '../utils/exportUtils';
+import { exportProtocolsToExcel } from '../utils/exportUtils';
 import { countSlaLate } from '../utils/sla';
 import { extractNeighborhood, listNeighborhoods } from '../utils/address';
 
@@ -193,8 +193,10 @@ export function AdminDashboard() {
                 type="button"
                 // Exporta o que esta na tela: com bairro filtrado, exportar a
                 // base inteira entregaria um arquivo diferente do painel.
-                onClick={() => exportToExcel(scopedProtocols, 'dashboard_executivo.xlsx')}
-                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white shadow-[0_8px_18px_rgba(19,81,180,0.18)] hover:bg-blue-700 sm:flex-none"
+                onClick={() => exportProtocolsToExcel(scopedProtocols, 'dashboard_executivo.xlsx', 'Dashboard executivo')}
+                disabled={scopedProtocols.length === 0}
+                title={scopedProtocols.length === 0 ? 'Nenhuma solicitação no escopo selecionado' : undefined}
+                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 text-sm font-bold text-white shadow-[0_8px_18px_rgba(19,81,180,0.18)] hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
               >
                 <Download size={17} />
                 Exportar dados
