@@ -866,6 +866,13 @@ a {
   color: #9aa6b2 !important;
 }
 
+/* O Edge desenha o proprio botao de revelar senha dentro do input. Sem isto o
+   campo aparece com dois olhos, o nativo e o do formulario. */
+.auth-input::-ms-reveal,
+.auth-input::-ms-clear {
+  display: none;
+}
+
 .auth-mode-choice:not(.is-active)::before {
   background: linear-gradient(
     115deg,

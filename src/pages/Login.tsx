@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Shield, Key, FileText, Loader2, ArrowRight } from 'lucide-react';
+import { User, Shield, Key, FileText, Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../services/api';
@@ -8,6 +8,13 @@ import { CidadaoBrand } from '../components/CidadaoBrand';
 
 // ─── InputField — must be at module level to avoid remounting on each render ──
 function InputField({ label, icon: Icon, type = 'text', value, onChange, placeholder, autoComplete }: any) {
+    // Campo de senha ganha o botao de exibir/ocultar. O estado vive aqui para
+    // atender os dois formularios (cidadao e servidor) sem duplicacao, e comeca
+    // sempre oculto: o card remonta ao alternar entrar/cadastrar, então a senha
+    // nunca fica exposta de um preenchimento anterior.
+    const isPassword = type === 'password';
+    const [revealed, setRevealed] = useState(false);
+
     return (
         <div className="flex flex-col gap-1">
             <label className="text-xs font-bold text-slate-700">{label}</label>
@@ -16,14 +23,28 @@ function InputField({ label, icon: Icon, type = 'text', value, onChange, placeho
                     <Icon size={16} />
                 </div>
                 <input
-                    type={type}
+                    type={isPassword && revealed ? 'text' : type}
                     required
                     value={value}
                     onChange={onChange}
                     autoComplete={autoComplete}
-                    className="auth-input w-full py-2.5 pl-7 pr-2 text-base sm:text-sm font-semibold text-slate-900 placeholder:text-slate-400"
+                    className={`auth-input w-full py-2.5 pl-7 text-base sm:text-sm font-semibold text-slate-900 placeholder:text-slate-400 ${isPassword ? 'pr-10' : 'pr-2'}`}
                     placeholder={placeholder}
                 />
+                {isPassword && (
+                    <button
+                        type="button"
+                        onClick={() => setRevealed((current) => !current)}
+                        // Rotulo descreve a acao e muda com o estado; sem
+                        // aria-pressed junto, para o leitor de tela nao anunciar
+                        // a mesma informacao duas vezes.
+                        aria-label={revealed ? 'Ocultar senha' : 'Mostrar senha'}
+                        title={revealed ? 'Ocultar senha' : 'Mostrar senha'}
+                        className="absolute inset-y-0 right-0 flex w-9 items-center justify-center rounded text-slate-500 transition-colors hover:text-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                    >
+                        {revealed ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+                    </button>
+                )}
             </div>
         </div>
     );
