@@ -43,7 +43,8 @@ Três decisões que valem saber, porque afetam o que você vai ver na tela:
 - **Nenhum chamado tem status `Atrasado`.** Não é esquecimento: nenhum fluxo do
   sistema grava esse valor. O atraso é derivado de `created_at` contra o prazo da
   prioridade, em `src/utils/sla.ts`. É por isso que a base tem chamado velho e
-  aberto — é ele que faz o "Em atraso" do painel sair de zero.
+  aberto — é ele que faz o "Em atraso" do painel sair de zero, e o filtro
+  "Atrasado" dos mapas encher (`src/utils/protocolStatus.ts` faz a derivação).
 - **Chamado antigo em geral está concluído.** Sem essa correlação, metade da base
   ficava vencida e o painel abria com 50% de atraso, o que se lê como sistema
   quebrado em vez de fila real.

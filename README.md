@@ -101,6 +101,69 @@ npm run dev
 - API: `http://localhost:5206`
 - Swagger: `http://localhost:5206/swagger`
 
+## Testes
+
+```bash
+npm test          # roda a suíte uma vez
+npm run test:watch
+npm run lint      # tsc --noEmit
+```
+
+Vitest, sobre a mesma configuração do Vite — sem arquivo de configuração próprio.
+Os testes cobrem a lógica pura das telas de mapa: escala do calor, agregação por
+estado e cidade, e o status canônico do protocolo. Ficam em `src/__tests__/` e
+entram no `tsconfig`, então `npm run lint` também verifica os tipos deles.
+
+Um deles usa a base de demonstração como fixture: quando
+`supabase/seed/demo-dados.sql` existe, o teste confere a UF que a geometria deduz
+de cada coordenada contra a UF escrita no endereço, nos mais de 500 chamados. Sem
+o arquivo, esse bloco é pulado em vez de falhar.
+
+`src/__tests__/integration/aiPriority.checklist.md` é um roteiro de verificação
+manual do fluxo de triagem por IA, que depende de backend e Edge Function no ar.
+
+## Mapa de calor
+
+O Mapa Estratégico (`/admin/mapa`) tem duas camadas, alternadas na barra
+superior: **Pins**, um marcador por chamado, e **Calor**, densidade agregada. A
+camada de calor tem três leituras da mesma base filtrada:
+
+| Modo | O que mostra | Onde vive |
+|---|---|---|
+| Calor | Mancha contínua de densidade, azul → vermelho | `components/admin/HeatGradientLayer.tsx` |
+| Estado | Perímetro da UF pintado pela contagem | `components/admin/HeatStateLayer.tsx` |
+| Cidade | Círculo em volta de onde os chamados estão | `components/admin/HeatCityLayer.tsx` |
+
+Os filtros de tipo e status valem para as duas camadas: dá para ver a
+concentração só de "Auditiva + Atrasado".
+
+Três pontos que a leitura do código não entrega de imediato:
+
+- **A escala é relativa à base filtrada.** O gradiente normaliza pela densidade
+  do decil mais quente, então a legenda escreve quantos chamados o vermelho
+  representa — sem isso, "vermelho" mudaria de significado a cada filtro.
+- **Raio em metros, não em pixels.** A mancha cobre a mesma área do chão em
+  qualquer zoom. O mesmo vale para o círculo de cidade, que só não encolhe abaixo
+  de um piso em pixels para não desaparecer na visão de país.
+- **Chamado sem coordenada confirmada fica fora do mapa** e é contado à parte na
+  legenda. Um mapa que descarta parte da base em silêncio faz parecer que a
+  demanda está onde ela apenas foi geolocalizada.
+
+O contorno das 27 UFs (`src/data/estados-brasil.ts`) é gerado por
+`tools/gerar-estados.ts` e carregado por import dinâmico, só quando o modo Estado
+é acionado:
+
+```bash
+npx tsx tools/gerar-estados.ts
+```
+
+## Base de demonstração
+
+Para apresentar o sistema com as telas cheias, `supabase/seed/` tem 554 chamados
+fictícios espalhados pelo país, com datas de hoje a mais de um ano atrás e as
+quatro prioridades da triagem. Nada ali roda em deploy — veja
+`supabase/seed/README.md`.
+
 ## Produção
 
 O frontend Vite e a API Spring Boot são publicados no mesmo projeto da Vercel.
@@ -135,8 +198,12 @@ ser executadas de forma controlada antes de um deploy que alterar o banco.
 
 ```text
 src/                 frontend React
+src/__tests__/       testes (Vitest) e checklist manual
+src/data/            dados embarcados, gerados (contorno das UFs)
+tools/               geradores de dados embarcados
 backend-java/        API Spring Boot
 supabase/functions/  classificação de prioridade
 supabase/migrations/ estrutura complementar do banco
+supabase/seed/       base de demonstração, aplicada à mão
 public/              arquivos públicos
 ```
