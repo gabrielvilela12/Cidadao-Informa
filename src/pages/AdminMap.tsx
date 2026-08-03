@@ -34,9 +34,9 @@ import {
   buildHeatGrid,
   buildHeatPoints,
   HEAT_CONTROLS,
+  heatCellMeters,
   heatDensityAnchor,
   heatRedThreshold,
-  heatResolution,
   heatUnitAlpha,
   type HeatGridResult,
   type HeatPointsResult,
@@ -170,8 +170,30 @@ export function AdminMap() {
     opacity: HEAT_CONTROLS.opacity.default,
   });
 
+  const [gridZoom, setGridZoom] = useState(13);
+
   const showHeat = activeLayer === 'heat';
-  const { cellMeters } = heatResolution(heatResolutionId);
+  const showGrid = showHeat && heatMode === 'grid';
+
+  // O lado da celula sai do zoom: em metros fixos ela vira sub-pixel e some
+  // fora do zoom de rua (500 m = 0,05 px no zoom de pais). A latitude do centro
+  // entra so na escala de metros por pixel, onde a variacao dentro do Brasil
+  // muda o resultado em menos de 15% - nao o bastante para trocar o passo.
+  const cellMeters = heatCellMeters(gridZoom, mapCenter[0], heatResolutionId);
+
+  // Assinatura so no modo Grade: em Pins e no gradiente o zoom nao muda nada
+  // aqui, e re-renderizar a tela a cada zoom seria desperdicio.
+  useEffect(() => {
+    if (!map || !showGrid) return;
+
+    const sync = () => setGridZoom(map.getZoom());
+    sync();
+    map.on('zoomend', sync);
+
+    return () => {
+      map.off('zoomend', sync);
+    };
+  }, [map, showGrid]);
 
   const filteredProtocols = useMemo(() => protocols.filter((protocol) => {
     const status = canonicalStatus(protocol.status);
@@ -220,8 +242,8 @@ export function AdminMap() {
     [filteredProtocols, heatMode, showHeat],
   );
   const heatGrid = useMemo(
-    () => (showHeat && heatMode === 'grid' ? buildHeatGrid(filteredProtocols, cellMeters) : EMPTY_HEAT_GRID),
-    [cellMeters, filteredProtocols, heatMode, showHeat],
+    () => (showGrid ? buildHeatGrid(filteredProtocols, cellMeters) : EMPTY_HEAT_GRID),
+    [cellMeters, filteredProtocols, showGrid],
   );
   // Densidade do decil mais quente da base filtrada: e o que normaliza a escala
   // do gradiente. O numero que a legenda anuncia sai da opacidade resultante, e
@@ -373,7 +395,7 @@ export function AdminMap() {
             opacity={heatSettings.opacity / 100}
           />
         )}
-        {!loading && showHeat && heatMode === 'grid' && (
+        {!loading && showGrid && (
           <HeatGridLayer cells={heatGrid.cells} maxCount={heatGrid.maxCount} opacity={heatSettings.opacity / 100} />
         )}
       </MapContainer>
@@ -511,6 +533,7 @@ export function AdminMap() {
           resolution={heatResolutionId}
           onResolutionChange={setHeatResolutionId}
           maxCount={heatGrid.maxCount}
+          cellMeters={cellMeters}
           redThreshold={heatRedThreshold(heatUnit)}
           plotted={filteredProtocols.length - withoutLocation}
           withoutLocation={withoutLocation}

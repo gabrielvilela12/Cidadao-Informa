@@ -403,20 +403,59 @@ export function buildHeatGrid(protocols: GeoLocatableProtocol[], cellMeters: num
 
 export type HeatResolutionId = 'fine' | 'medium' | 'broad';
 
-/** Lado da celula da grade. */
+/**
+ * Refinamento da grade, em tamanho alvo da celula na tela.
+ *
+ * O controle e relativo, e nao um lado fixo em metros, porque o lado sai do zoom
+ * (heatCellMeters). Celula com lado fixo em metros e invisivel fora do zoom de
+ * rua: 500 m viram 0,05 px no zoom de pais, e a grade simplesmente desaparece
+ * justamente quando se quer ver o pais inteiro.
+ */
 export const HEAT_RESOLUTIONS: {
     id: HeatResolutionId;
     label: string;
     description: string;
-    cellMeters: number;
+    /** Lado desejado da celula na tela, em pixels. */
+    targetPixels: number;
 }[] = [
-    { id: 'fine', label: 'Quadra', description: 'Células de 250 m', cellMeters: 250 },
-    { id: 'medium', label: 'Bairro', description: 'Células de 500 m', cellMeters: 500 },
-    { id: 'broad', label: 'Região', description: 'Células de 1 km', cellMeters: 1000 },
+    { id: 'fine', label: 'Fina', description: 'Mais células, menos chamados em cada', targetPixels: 28 },
+    { id: 'medium', label: 'Média', description: 'Equilíbrio entre detalhe e contagem', targetPixels: 46 },
+    { id: 'broad', label: 'Ampla', description: 'Menos células, mais chamados em cada', targetPixels: 76 },
 ];
 
 export function heatResolution(id: HeatResolutionId) {
     return HEAT_RESOLUTIONS.find((resolution) => resolution.id === id) || HEAT_RESOLUTIONS[1];
+}
+
+/**
+ * Lados de celula disponiveis, em metros.
+ *
+ * A escada existe para o rotulo ser legivel: "células de 2 km" se entende, "de
+ * 1.847 m" nao. Vai de quadra a pedaco de estado, porque a grade tem de
+ * funcionar do zoom de rua ao de pais.
+ */
+const CELL_LADDER = [
+    50, 100, 250, 500, 1000, 2000, 5000, 10_000, 25_000, 50_000, 100_000, 250_000, 500_000,
+];
+
+/**
+ * Lado da celula para o zoom atual: o passo da escada que chega mais perto do
+ * tamanho alvo na tela. A comparacao e feita em escala logaritmica, senao os
+ * passos grandes ganhariam sempre - a distancia absoluta de 250 km at 400 km e
+ * maior que de 100 m a 400 m, mas em proporcao e muito menor.
+ */
+export function heatCellMeters(zoom: number, latitude: number, resolution: HeatResolutionId): number {
+    const target = heatResolution(resolution).targetPixels * metersPerPixel(latitude, zoom);
+    return CELL_LADDER.reduce((best, step) => (
+        Math.abs(Math.log(step / target)) < Math.abs(Math.log(best / target)) ? step : best
+    ));
+}
+
+/** Lado da celula em texto curto, para a legenda. */
+export function formatCellSize(meters: number): string {
+    return meters >= 1000
+        ? `${(meters / 1000).toString().replace('.', ',')} km`
+        : `${meters} m`;
 }
 
 /**

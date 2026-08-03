@@ -1,5 +1,6 @@
 import { Flame, Grid3x3 } from 'lucide-react';
 import {
+    formatCellSize,
     HEAT_CONTROLS,
     HEAT_RESOLUTIONS,
     heatScaleCss,
@@ -31,6 +32,8 @@ interface HeatLegendProps {
     onResolutionChange: (resolution: HeatResolutionId) => void;
     /** Maior contagem numa unica celula da grade. */
     maxCount: number;
+    /** Lado da celula em metros, derivado do zoom. */
+    cellMeters: number;
     /** Chamados no raio que pintam vermelho, de heatRedThreshold. */
     redThreshold: number;
     plotted: number;
@@ -52,6 +55,7 @@ export function HeatLegend({
     resolution,
     onResolutionChange,
     maxCount,
+    cellMeters,
     redThreshold,
     plotted,
     withoutLocation,
@@ -79,7 +83,7 @@ export function HeatLegend({
                 </div>
                 {mode === 'grid' && maxCount > 0 && (
                     <p className="mt-1 text-[11px] text-slate-600">
-                        <strong className="text-slate-900">1</strong> a <strong className="text-slate-900">{maxCount}</strong> {maxCount === 1 ? 'chamado' : 'chamados'} por área. Clique numa célula para aproximar.
+                        <strong className="text-slate-900">1</strong> a <strong className="text-slate-900">{maxCount}</strong> {maxCount === 1 ? 'chamado' : 'chamados'} por célula de <strong className="text-slate-900">{formatCellSize(cellMeters)}</strong>. Clique para aproximar.
                     </p>
                 )}
                 {/* A escala do gradiente e relativa a base filtrada, entao o topo
@@ -122,7 +126,12 @@ export function HeatLegend({
                     </>
                 ) : (
                     <fieldset>
-                        <legend className="text-[10px] font-black uppercase tracking-wider text-slate-500">Tamanho da área</legend>
+                        {/* Relativo, nao absoluto: o lado da celula segue o zoom,
+                            senao ela vira sub-pixel e a grade desaparece ao
+                            afastar. Aqui se escolhe mais ou menos refinamento. */}
+                        <legend className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                            Grade — células de {formatCellSize(cellMeters)}
+                        </legend>
                         <div className="mt-1.5 grid grid-cols-3 gap-1">
                             {HEAT_RESOLUTIONS.map((option) => {
                                 const active = option.id === resolution;
