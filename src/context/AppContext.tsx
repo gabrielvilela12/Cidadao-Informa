@@ -40,6 +40,60 @@ function normalizeRole(role: unknown): UserRole {
 }
 
 /**
+ * Sessão otimista lida do localStorage.
+ *
+ * `loginSuccess` já gravava o usuário em `cidadaoinforma_user`, mas nada lia
+ * esse cache: a aplicação inteira ficava atrás do spinner até `getMe()`
+ * responder e só então as páginas montavam e buscavam os protocolos - duas
+ * viagens ao servidor em série. Com o backend frio na Vercel isso custava mais
+ * de 20 segundos de tela branca.
+ *
+ * Agora o cache renderiza a tela na hora e `getMe()` valida em segundo plano.
+ * Se o token não valer mais, a sessão é derrubada no retorno da validação.
+ *
+ * O papel vindo do cache serve só para escolher o que desenhar. Ele nunca foi
+ * fronteira de segurança: o escopo dos dados é decidido no servidor a partir do
+ * token, então um `role` adulterado no localStorage muda a interface e não o
+ * que a API entrega.
+ */
+function readCachedSession(): { user: AppUser; role: UserRole } | null {
+  try {
+    if (!localStorage.getItem('cidadaoinforma_token')) return null;
+
+    const raw = localStorage.getItem('cidadaoinforma_user');
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as Partial<AppUser> | null;
+    if (!parsed?.id || !parsed.email) return null;
+
+    return {
+      user: {
+        id: parsed.id,
+        cpf: parsed.cpf ?? '',
+        full_name: parsed.full_name ?? '',
+        email: parsed.email,
+        phone: parsed.phone,
+        created_at: parsed.created_at,
+      },
+      role: normalizeRole(localStorage.getItem('cidadaoinforma_role')),
+    };
+  } catch {
+    // JSON corrompido no cache não deve impedir o login.
+    return null;
+  }
+}
+
+function isSameUser(a: AppUser | null, b: AppUser): boolean {
+  return a !== null
+    && a.id === b.id
+    && a.cpf === b.cpf
+    && a.full_name === b.full_name
+    && a.email === b.email
+    && a.phone === b.phone
+    && a.created_at === b.created_at;
+}
+
+/**
  * Provedor de Contexto Global da Aplicação (AppProvider).
  * Deve ser instanciado no nível mais alto da árvore de componentes.
  * 
@@ -49,10 +103,17 @@ function normalizeRole(role: unknown): UserRole {
  * @param children Elementos React filhos que terão acesso a este contexto.
  */
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [role, setRoleState] = useState<UserRole>('citizen');
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [user, setUser] = useState<AppUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Lido uma única vez, antes do primeiro render.
+  const [cachedSession] = useState(readCachedSession);
+  const [role, setRoleState] = useState<UserRole>(cachedSession?.role ?? 'citizen');
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(Boolean(cachedSession));
+  const [user, setUser] = useState<AppUser | null>(cachedSession?.user ?? null);
+  // Só bloqueia a árvore quando há token sem usuário em cache: aí não há o que
+  // desenhar antes da resposta. Visitante anônimo e sessão em cache renderizam
+  // no primeiro frame.
+  const [loading, setLoading] = useState(
+    () => !cachedSession && Boolean(localStorage.getItem('cidadaoinforma_token')),
+  );
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
@@ -60,41 +121,61 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const toggleSidebarCollapsed = () => setIsSidebarCollapsed(prev => !prev);
 
   useEffect(() => {
-    const validateSession = async () => {
-      const token = localStorage.getItem('cidadaoinforma_token');
+    const token = localStorage.getItem('cidadaoinforma_token');
 
-      if (token) {
-        try {
-          // Valida a sessão pela API Java.
-          const { api } = await import('../services/api');
-          const userData = await api.getMe();
-
-          setUser({
-            id: userData.userId,
-            cpf: userData.cpf,
-            full_name: userData.name,
-            email: userData.email,
-            phone: userData.phone,
-            created_at: userData.createdAt
-          });
-          const validatedRole = normalizeRole(userData.role);
-          localStorage.setItem('cidadaoinforma_role', validatedRole);
-          setRoleState(validatedRole);
-          setIsAuthenticated(true);
-        } catch (error) {
-          // Sessão inválida: limpa o cache local
-          console.warn("Sessão inválida, limpando cache...", error);
-          localStorage.removeItem('cidadaoinforma_token');
-          localStorage.removeItem('cidadaoinforma_user');
-          localStorage.removeItem('cidadaoinforma_role');
-          setIsAuthenticated(false);
-          setUser(null);
-        }
-      }
+    if (!token) {
       setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const validateSession = async () => {
+      try {
+        // Valida a sessão pela API Java. Quando há sessão em cache isto roda em
+        // segundo plano, em paralelo com o fetch de protocolos das páginas.
+        const { api } = await import('../services/api');
+        const userData = await api.getMe();
+        if (cancelled) return;
+
+        const validatedUser: AppUser = {
+          id: userData.userId,
+          cpf: userData.cpf,
+          full_name: userData.name,
+          email: userData.email,
+          phone: userData.phone,
+          created_at: userData.createdAt,
+        };
+        const validatedRole = normalizeRole(userData.role);
+
+        localStorage.setItem('cidadaoinforma_user', JSON.stringify(validatedUser));
+        localStorage.setItem('cidadaoinforma_role', validatedRole);
+
+        // Mantém a referência quando nada mudou: useProtocols observa a
+        // identidade de `user`, e um objeto novo dispararia um segundo fetch
+        // dos protocolos a cada carregamento.
+        setUser((current) => (isSameUser(current, validatedUser) ? current : validatedUser));
+        setRoleState(validatedRole);
+        setIsAuthenticated(true);
+      } catch (error) {
+        if (cancelled) return;
+        // Sessão inválida: limpa o cache local e derruba a sessão otimista.
+        console.warn('Sessão inválida, limpando cache...', error);
+        localStorage.removeItem('cidadaoinforma_token');
+        localStorage.removeItem('cidadaoinforma_user');
+        localStorage.removeItem('cidadaoinforma_role');
+        setIsAuthenticated(false);
+        setUser(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
 
-    validateSession();
+    void validateSession();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const loginSuccess = (token: string, user: AppUser, role: UserRole) => {

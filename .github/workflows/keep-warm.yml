@@ -1,0 +1,66 @@
+# Mantem o backend Java aquecido.
+#
+# O backend roda como container service na Vercel (ver vercel.json) e escala
+# para zero quando ninguem usa o site. A primeira visita depois do periodo
+# ocioso paga o boot inteiro: JVM, contexto Spring, Flyway, Hibernate e a
+# primeira conexao no pooler do Supabase. Medido em producao: 23s na primeira
+# requisicao contra ~200ms nas seguintes, com apenas 6 protocolos na base.
+#
+# O cron da propria Vercel nao serve para isso no plano Hobby, onde roda uma
+# vez por dia. Este workflow faz o mesmo de graca: o repositorio e publico,
+# então os minutos de Actions nao sao cobrados.
+#
+# /api/health executa `SELECT 1`, entao o ping aquece tambem a conexao do
+# Hikari - nao so o processo Java.
+name: keep-warm
+
+on:
+  schedule:
+    # A cada 5 minutos. O GitHub pode atrasar ou agrupar execucoes agendadas
+    # em periodos de pico, então o intervalo real varia um pouco.
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+# Um ping atrasado nao deve empilhar com o proximo.
+concurrency:
+  group: keep-warm
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping /api/health
+        env:
+          # Sobrescreva com a variavel de repositorio APP_BASE_URL se o dominio mudar.
+          BASE_URL: ${{ vars.APP_BASE_URL || 'https://cidadao-informa.vercel.app' }}
+        run: |
+          set -u
+          url="${BASE_URL%/}/api/health"
+
+          # Ate 3 tentativas: se o container estiver frio, a primeira pode
+          # levar mais de 20s, e um timeout curto derrubaria o ping justamente
+          # na hora em que ele e mais necessario.
+          for attempt in 1 2 3; do
+            start=$(date +%s%3N)
+            # A atribuicao herda o status do curl: em falha de rede o proprio
+            # %{http_code} ja imprime 000, então normalizamos para um valor so.
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 90 "$url") || code=000
+            elapsed=$(( $(date +%s%3N) - start ))
+
+            echo "tentativa $attempt: http=$code em ${elapsed}ms"
+
+            if [ "$code" = "200" ]; then
+              echo "backend respondendo (${elapsed}ms)"
+              exit 0
+            fi
+
+            [ "$attempt" -lt 3 ] && sleep 10
+          done
+
+          echo "::error::backend nao respondeu 200 em 3 tentativas ($url)"
+          exit 1

@@ -12,7 +12,14 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD}
     hikari:
       maximum-pool-size: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:3}
-      minimum-idle: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:0}
+      # Uma conexao viva no pool. Com minimum-idle 0 o Hikari fechava tudo no
+      # periodo ocioso e a proxima requisicao pagava handshake TLS + auth no
+      # pooler do Supabase de novo: medido em producao, /api/health custava
+      # 516ms na primeira chamada e 192ms na seguinte.
+      minimum-idle: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:1}
+      # Recicla a conexao antes de o pooler do Supabase derrubar por idle.
+      max-lifetime: ${SPRING_DATASOURCE_HIKARI_MAX_LIFETIME:600000}
+      keepalive-time: ${SPRING_DATASOURCE_HIKARI_KEEPALIVE_TIME:150000}
   data:
     jpa:
       repositories:
