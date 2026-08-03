@@ -993,15 +993,21 @@ a {
 /* Mapa de calor */
 
 /*
-  O canvas do gradiente e filho do container do Leaflet, e nao de um pane, para
-  desenhar em coordenadas de tela. z-index 450 o coloca acima do .leaflet-pane
-  (400, que carrega tiles e marcadores) e abaixo dos controles (800), entao a
-  atribuicao e o zoom continuam clicaveis.
+  Pane proprio do gradiente, criado por HeatGradientLayer. Fica dentro do
+  mapPane, entao herda a translacao do arraste e a transicao do zoom animado.
+  z-index 450: acima do overlayPane (400) e abaixo de marcadores (600) e popups
+  (700), que nunca devem ficar cobertos por uma camada decorativa.
 */
+.leaflet-heatgradient-pane {
+  z-index: 450;
+  pointer-events: none;
+}
+
+/* Posicao e escala vem do transform que a camada aplica. */
 .heat-gradient-canvas {
   position: absolute;
-  inset: 0;
-  z-index: 450;
+  left: 0;
+  top: 0;
   pointer-events: none;
 }
 
