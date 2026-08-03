@@ -13,6 +13,7 @@ import { Header } from '../components/Header';
 import { ImageLightbox } from '../components/ImageLightbox';
 import { PrioritySection } from '../components/admin/PrioritySection';
 import { useApp } from '../context/AppContext';
+import { useProtocolsCache } from '../context/ProtocolsContext';
 import type { Protocol } from '../constants';
 import { api, type ProtocolAuditTrail } from '../services/api';
 import { getMarkerPosition } from '../utils/mapUtils';
@@ -68,6 +69,7 @@ export function ProtocolDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { role } = useApp();
+  const { invalidate: invalidateProtocols } = useProtocolsCache();
   const [protocol, setProtocol] = useState<DetailedProtocol | null>(null);
   const [loading, setLoading] = useState(true);
   const [auditTrail, setAuditTrail] = useState<ProtocolAuditTrail | null>(null);
@@ -140,6 +142,9 @@ export function ProtocolDetails() {
         'Atualização de status pelo painel administrativo',
       );
       setProtocol(updatedProtocol as DetailedProtocol);
+      // O status aparece em todas as listagens e no mapa: marca o cache como
+      // velho para elas refletirem a mudança na próxima montagem.
+      invalidateProtocols();
       await loadAuditTrail();
     } catch (error) {
       setStatusError(error instanceof Error ? error.message : 'Não foi possível alterar o status.');

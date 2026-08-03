@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useProtocolsCache } from '../context/ProtocolsContext';
 import { api } from '../services/api';
 import { buildFullAddress, validateAddress } from '../utils/address';
 import { DEFAULT_MAP_CENTER } from '../utils/mapUtils';
@@ -140,6 +141,7 @@ function MapController({ center }: { center: [number, number] }) {
 
 export function NewRequest() {
   const { user } = useApp();
+  const { refetch: refetchProtocols } = useProtocolsCache();
   const navigate = useNavigate();
   const location = useLocation();
   const requestPreset = location.state as { category?: string; serviceDesc?: string } | null;
@@ -403,6 +405,12 @@ export function NewRequest() {
         longitude: position?.lng ?? null,
         imageUrls,
       });
+      // Recarrega já, sem aguardar: sem isto a lista, buscada segundos atrás,
+      // ainda estaria na janela de validade e o cidadão chegaria em
+      // /meus-protocolos sem ver a solicitação que acabou de abrir. Disparar
+      // aqui aproveita os 900ms do aviso de sucesso, então a lista em geral já
+      // está pronta quando a tela troca.
+      void refetchProtocols();
       setLoading(false);
       setSubmitStatus('success');
       setSubmitMessage('Solicitação enviada com sucesso. Redirecionando para seus protocolos...');

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { AppProvider, useApp } from './context/AppContext';
+import { ProtocolsProvider } from './context/ProtocolsContext';
 import { CitizenDashboard } from './pages/CitizenDashboard';
 import { NewRequest } from './pages/NewRequest';
 import { CitizenMap } from './pages/CitizenMap';
@@ -133,9 +134,13 @@ export default function App() {
   return (
     <A11yProvider>
       <AppProvider>
-        <Router>
-          <AppContent />
-        </Router>
+        {/* Dentro do AppProvider: o cache depende do usuário da sessão para
+            saber quando buscar, reiniciar e limpar. */}
+        <ProtocolsProvider>
+          <Router>
+            <AppContent />
+          </Router>
+        </ProtocolsProvider>
       </AppProvider>
     </A11yProvider>
   );

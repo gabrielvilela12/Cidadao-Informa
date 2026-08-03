@@ -1,44 +1,29 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Protocol } from '../constants';
-import { useApp } from '../context/AppContext';
+import { useProtocolsCache } from '../context/ProtocolsContext';
 import { api } from '../services/api';
 
-// O parametro `role` nao vai mais para a API: o backend decide o escopo pelo
-// token. Ele permanece na assinatura porque as paginas o informam e ele mantem
-// o cache de fetch separado por contexto de uso.
-export function useProtocols(role: 'citizen' | 'admin' | 'all' = 'all') {
-    const { user } = useApp();
-    const [protocols, setProtocols] = useState<Protocol[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-
-    const fetchProtocols = useCallback(async () => {
-        setLoading(true);
-        setError('');
-        try {
-            // O filtro por usuario acontece no servidor, a partir do token:
-            // cidadao recebe so os proprios protocolos, admin recebe todos.
-            const data = await api.getProtocols();
-            setProtocols(data);
-        } catch (error) {
-            console.error('Error fetching protocols:', error);
-            setError(error instanceof Error ? error.message : 'Erro ao carregar protocolos.');
-            setProtocols([]);
-        }
-        setLoading(false);
-    }, [role]);
+/**
+ * Lista de protocolos das telas.
+ *
+ * A busca em si vive no ProtocolsProvider, que mantem um cache compartilhado:
+ * a primeira tela paga a requisicao e as seguintes leem o mesmo dado. Este hook
+ * so pede revalidacao em segundo plano quando a tela monta, para dados velhos
+ * nao ficarem presos na sessao.
+ *
+ * O parametro `role` continua na assinatura porque as sete telas o informam,
+ * mas nao tem efeito: o escopo e decidido no servidor a partir do token -
+ * cidadao recebe so os proprios protocolos, admin recebe todos.
+ */
+export function useProtocols(_role: 'citizen' | 'admin' | 'all' = 'all') {
+    const { protocols, loading, error, ensureFresh, refetch } = useProtocolsCache();
 
     useEffect(() => {
-        if (user) {
-            void fetchProtocols();
-        } else {
-            setProtocols([]);
-            setError('');
-            setLoading(false);
-        }
-    }, [fetchProtocols, user]);
+        ensureFresh();
+    }, [ensureFresh]);
 
-    // Specific single fetcher for details page
+    // Busca pontual da tela de detalhe, que precisa dos campos completos
+    // (imagens e relatorio da IA nao vem na listagem).
     const fetchProtocolById = useCallback(async (id: string): Promise<Protocol | null> => {
         try {
             return await api.getProtocolById(id);
@@ -47,5 +32,5 @@ export function useProtocols(role: 'citizen' | 'admin' | 'all' = 'all') {
         }
     }, []);
 
-    return { protocols, loading, error, fetchProtocolById, refetch: fetchProtocols };
+    return { protocols, loading, error, fetchProtocolById, refetch };
 }
