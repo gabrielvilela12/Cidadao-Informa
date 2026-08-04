@@ -2,6 +2,7 @@
 
 **Projeto:** Cidadão Informa  
 **Data da análise:** 28 de julho de 2026  
+**Revisado em:** 4 de agosto de 2026  
 **Produção:** https://cidadao-informa.vercel.app
 
 ## 1. Resumo executivo
@@ -94,9 +95,18 @@ A Vercel exige que o container aceite conexões rapidamente. O script
 `backend-java/start-vercel.sh` abre a porta pública imediatamente e encaminha o
 tráfego para a porta interna `8081`, onde o Spring Boot termina de iniciar.
 
-O primeiro acesso depois de um período sem uso pode demorar mais por causa do
-**cold start** do Java e da abertura da conexão com o banco. Depois que a
-instância está ativa, as chamadas são mais rápidas.
+O primeiro acesso depois de um período sem uso paga o **cold start** do Java e a
+abertura da conexão com o banco. Medido em produção: **16.832 ms** na primeira
+requisição depois do ocioso contra **193 ms** nas seguintes. O container escala
+para zero e o schema do `vercel.json` não expõe `minInstances`, `scaling` nem
+`alwaysOn` — não há como desligar isso na plataforma.
+
+A saída documentada é mover o backend para o Fly.io, onde
+`min_machines_running = 1` e `auto_stop_machines = 'off'` mantêm o processo de
+pé. `backend-java/fly.toml` e `backend-java/Dockerfile.fly` já estão no
+repositório; o passo a passo está em `backend-java/DEPLOY-FLY.md`. **A migração
+não está ativa:** enquanto as reescritas do `vercel.json` apontarem para
+`service: backend`, o tráfego continua no container da Vercel.
 
 ## 4. Conexão Java → Supabase
 
@@ -105,7 +115,12 @@ O Java usa Spring Data JPA, driver PostgreSQL e HikariCP. A configuração atual
 - usa a conexão **Session Pooler** do Supabase na porta `5432`;
 - exige SSL na URL JDBC;
 - mantém no máximo 3 conexões por instância Java;
-- pode ficar com 0 conexões ociosas;
+- mantém **1 conexão ociosa viva** (`minimum-idle: 1`). Com 0, o Hikari fechava
+  tudo no período ocioso e a requisição seguinte pagava handshake TLS mais
+  autenticação no pooler outra vez: `/api/health` custava 516 ms na primeira
+  chamada contra 192 ms na seguinte;
+- recicla a conexão antes do idle timeout do pooler (`max-lifetime` de 10 min,
+  `keepalive-time` de 2,5 min);
 - executa as consultas usando os repositórios JPA;
 - não utiliza `supabase-js` no frontend.
 
@@ -129,6 +144,7 @@ Rotas públicas:
 - `POST /api/auth/login`
 - `POST /api/auth/register`
 - `GET /api/health`
+- `GET /api/protocols/stats`
 - `GET /api/protocols/public/{id}`
 - Swagger e documentação OpenAPI
 
@@ -138,6 +154,26 @@ no navegador.
 
 Cadastro, login, emissão do token e validação de sessão são realizados pelo
 Java. O frontend valida uma sessão existente chamando `GET /api/auth/me`.
+
+### Limite de tentativas de login
+
+`LoginRateLimiter` conta falhas em janela deslizante, por IP e por CPF em
+separado. Estourado qualquer um dos dois, `POST /api/auth/login` responde `429`
+com o cabeçalho `Retry-After` — exposto no CORS para o frontend poder ler.
+Padrões: 30 falhas por IP, 10 por CPF, janela de 15 minutos, configuráveis por
+`LOGIN_RATE_LIMIT_MAX_FAILURES_PER_IP`, `LOGIN_RATE_LIMIT_MAX_FAILURES_PER_CPF` e
+`LOGIN_RATE_LIMIT_WINDOW_MINUTES`.
+
+A contagem vive em memória do processo. Reiniciar a API zera, e cada instância
+conta em separado — é uma barreira contra força bruta, não um controle
+distribuído de cota.
+
+### Auditoria dos protocolos
+
+Cada evento relevante grava um bloco encadeado por hash ao anterior
+(`ProtocolAuditService`). `GET /api/protocols/{id}/audit` devolve a trilha do
+protocolo ao dono ou a um admin, e `GET /api/protocols/audit/verify` recalcula a
+cadeia inteira — só para admin.
 
 ## 6. O que o frontend precisa
 
@@ -158,6 +194,18 @@ O frontend não precisa de:
 
 Sem o backend, a landing page ainda pode abrir, mas login, cadastro, protocolos,
 perfil, auditoria e prioridade não funcionarão.
+
+### Dependências que saíram do bundle
+
+| Pacote | Situação | O que ficou no lugar |
+|---|---|---|
+| `supabase-js` | Removido | Todo acesso a dados passa pela API Java |
+| `react-router-dom` | Removido | `src/lib/router.tsx`, aliasado com esse nome em `vite.config.ts` e no `paths` do `tsconfig.json` |
+| `xlsx` | Removido | CSV com BOM UTF-8 e separador `;` em `src/utils/exportUtils.ts`; a dependência não tem correção publicada para vulnerabilidades conhecidas |
+
+As telas continuam escrevendo `import ... from 'react-router-dom'`. O nome é
+resolvido pelo alias para o arquivo do repositório, que implementa apenas o
+subconjunto usado pelo projeto.
 
 ### Para executar em produção
 
@@ -187,15 +235,35 @@ Variáveis obrigatórias:
 A chave `SUPABASE_ANON_KEY` é usada pelo Java em uma chamada server-to-server.
 Ela não aparece no bundle atual do frontend.
 
-### Ajustes específicos da Vercel
+Variáveis opcionais:
 
-| Variável | Valor de produção | Motivo |
+| Variável | Finalidade | Se ficar vazia |
 |---|---|---|
-| `SPRING_MAIN_LAZY_INITIALIZATION` | `true` | Reduzir o tempo de inicialização |
-| `SPRING_DATA_JPA_REPOSITORIES_BOOTSTRAP_MODE` | `lazy` | Adiar a abertura dos repositórios |
-| `SPRING_FLYWAY_ENABLED` | `false` | Evitar migrações concorrentes em cold starts |
-| `SPRING_JPA_HIBERNATE_DDL_AUTO` | `none` | Não alterar o schema automaticamente |
-| `APP_SCHEDULING_ENABLED` | `false` | Evitar tarefas duplicadas em instâncias escaláveis |
+| `SUPABASE_CORRECTED_IMAGE_FUNCTION_URL` | Correção de imagem por IA | A API deriva o endereço trocando `classify-priority` por `generate-corrected-image` |
+| `AI_IMAGE_FUNCTION_SECRET` | Autenticar a chamada à função de imagem | A API usa `SUPABASE_ANON_KEY` |
+| `LOGIN_RATE_LIMIT_MAX_FAILURES_PER_IP` | Limite de falhas por IP | 30 |
+| `LOGIN_RATE_LIMIT_MAX_FAILURES_PER_CPF` | Limite de falhas por CPF | 10 |
+| `LOGIN_RATE_LIMIT_WINDOW_MINUTES` | Janela do limite | 15 |
+
+### Variáveis operacionais de inicialização
+
+Os valores abaixo são os padrões do `application.yml`, e são também o que
+`.env.example` documenta. A configuração anterior — inicialização preguiçosa,
+Flyway desligado, `ddl-auto: none` — existia para disfarçar o cold start da
+Vercel; ela foi revertida junto com a decisão de tratar o cold start na
+infraestrutura, e não no boot da aplicação.
+
+| Variável | Valor atual | Motivo |
+|---|---|---|
+| `SPRING_MAIN_LAZY_INITIALIZATION` | `false` | Falhar no boot, não na primeira requisição |
+| `SPRING_DATA_JPA_REPOSITORIES_BOOTSTRAP_MODE` | `default` | Repositórios prontos quando a porta abre |
+| `SPRING_FLYWAY_ENABLED` | `true` | Schema migrado junto com o deploy |
+| `SPRING_JPA_HIBERNATE_DDL_AUTO` | `validate` | O Hibernate confere o schema e nunca o altera |
+| `APP_SCHEDULING_ENABLED` | `true` | Reprocessa jobs de IA que falharam, a cada 5 minutos |
+
+Com mais de uma instância subindo ao mesmo tempo, aplique a migration de forma
+controlada antes do deploy e suba com `SPRING_FLYWAY_ENABLED=false` — o mesmo
+vale para `APP_SCHEDULING_ENABLED=false`, para não duplicar a tarefa agendada.
 
 Na Vercel, essas variáveis estão associadas a **Production e Preview**. Alterar
 uma variável não modifica um deploy já construído; é necessário fazer um novo
@@ -299,6 +367,7 @@ Antes de publicar:
 
 ```powershell
 npm run lint
+npm test
 npm run build
 
 Set-Location backend-java
@@ -306,8 +375,10 @@ mvn test
 mvn package
 ```
 
-Se houver alteração de schema, a migração Flyway deve ser aplicada de forma
-controlada antes do deploy, pois o Flyway fica desabilitado em produção.
+O Flyway roda na inicialização da API. Se o deploy puder subir mais de uma
+instância ao mesmo tempo, aplique a migration de forma controlada antes e publique
+com `SPRING_FLYWAY_ENABLED=false`, para não haver duas instâncias migrando o mesmo
+banco.
 
 ## 10. Segurança: o que está protegido
 
@@ -319,6 +390,15 @@ controlada antes do deploy, pois o Flyway fica desabilitado em produção.
 - O backend é stateless e valida o token em cada requisição.
 - O acesso ao PostgreSQL usa SSL.
 - As consultas de banco passam pelo Java.
+- O login tem limite de falhas por IP e por CPF, respondendo `429` com
+  `Retry-After` (`LoginRateLimiter`).
+- A identidade dos usuários tem unicidade garantida no banco, e não só na
+  aplicação (migration `V8__harden_users_unique_identity.sql`).
+- As permissões e o RLS do schema `public` foram fechados como defesa em
+  profundidade (migration `V9__harden_public_rls_grants.sql`), mesmo o sistema não
+  usando a Data API pelo navegador.
+- Eventos dos protocolos entram em uma cadeia de auditoria encadeada por hash,
+  verificável por `GET /api/protocols/audit/verify`.
 
 ### Validação realizada em produção
 
@@ -332,6 +412,15 @@ Na publicação analisada:
 - os logs das rotas verificadas não apresentaram erro de execução.
 
 ## 11. Pontos de atenção e melhorias recomendadas
+
+### Endereçado desde a análise de 28/07
+
+- **Força bruta no login.** `LoginRateLimiter` limita falhas por IP e por CPF.
+- **Unicidade de identidade e RLS.** Migrations V8 e V9.
+- **Dependência `xlsx`.** Removida; a exportação virou CSV com BOM UTF-8.
+- **Cold start.** Deixou de ser mascarado por ping externo — o workflow de
+  keep-warm foi removido. O tratamento passa a ser de infraestrutura, com o
+  caminho para o Fly.io documentado em `backend-java/DEPLOY-FLY.md`.
 
 ### Alta prioridade
 
@@ -371,7 +460,8 @@ Na publicação analisada:
 | Senha do banco inválida | Atualizar `SPRING_DATASOURCE_PASSWORD` |
 | Conexão recusada pelo banco | Conferir Session Pooler, porta 5432, usuário e rede |
 | Produção continua usando valor antigo | Fazer redeploy depois de alterar variável |
-| Primeira chamada demora | Verificar cold start e logs do container |
+| Login responde `429` | Limite de falhas atingido; aguardar o `Retry-After` ou revisar `LOGIN_RATE_LIMIT_*` |
+| Primeira chamada demora | Cold start do container; ver seção 3 e `backend-java/DEPLOY-FLY.md` |
 | Health retorna erro | Conferir logs Java e conexão JDBC |
 | Mudança de banco não apareceu | Confirmar execução da migração Flyway |
 
@@ -383,12 +473,17 @@ Na publicação analisada:
 | `src/services/http.ts` | Montagem da URL e envio do JWT |
 | `src/services/api.ts` | Contrato usado pelo frontend |
 | `src/context/AppContext.tsx` | Sessão no navegador |
+| `src/lib/router.tsx` | Roteador do projeto, resolvido pelo alias `react-router-dom` |
+| `vite.config.ts` | Aliases de build e porta do dev server |
 | `vercel.json` | Serviços e roteamento de produção |
 | `backend-java/src/main/resources/application.yml` | Portas, banco, JPA e variáveis Java |
 | `backend-java/.../SecurityConfig.java` | Rotas públicas, JWT e CORS |
+| `backend-java/.../LoginRateLimiter.java` | Limite de tentativas de login |
 | `backend-java/Dockerfile.vercel` | Imagem Java de produção |
 | `backend-java/start-vercel.sh` | Inicialização e encaminhamento interno |
+| `backend-java/fly.toml`, `Dockerfile.fly`, `DEPLOY-FLY.md` | Alternativa preparada no Fly.io |
 | `backend-java/src/main/resources/db/migration/` | Evolução do schema |
+| `supabase/migrations/` | Os mesmos SQLs, para aplicar pelo painel do Supabase |
 
 ## 14. Observação sobre mudanças recentes do Supabase
 

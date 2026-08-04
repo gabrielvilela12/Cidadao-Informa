@@ -81,10 +81,11 @@ Se o e-mail não existir, o UPDATE não altera nada e não dá erro.
    mostre os badges da triagem por IA.
 3. **Mapa Estratégico, modo Pins** — 543 marcadores pelo país, agrupados por
    proximidade.
-4. **Mapa Estratégico, modo Calor** — abra no gradiente, dê zoom em São Paulo (três
-   focos vermelhos), mexa no raio e na opacidade, e troque para Grade para mostrar
-   a contagem exata por área. A legenda informa quantos chamados o vermelho
-   representa e quantos ficaram fora por falta de coordenada.
+4. **Mapa Estratégico, camada Calor** — abra no modo Calor, dê zoom em São Paulo
+   (três focos vermelhos) e mexa no raio, na suavização e na opacidade. Depois
+   troque para **Estado**, que pinta as UFs pela contagem, e para **Cidade**, que
+   mostra onde os chamados se concentram. A legenda informa quantos chamados o
+   vermelho representa e quantos ficaram fora por falta de coordenada.
 5. **Relatórios** — conformidade de SLA sobre uma base que de fato tem prazo
    vencido.
 6. **Nova Solicitação** — crie um chamado ao vivo com a sua conta, para mostrar o

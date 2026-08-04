@@ -8,13 +8,19 @@ projeto HackGov/FIAP.
 ```text
 Navegador (React)
         |
-        | HTTPS + JWT da aplicação
+        | HTTPS + JWT da aplicação, sempre no domínio da Vercel
         v
-API Java (Spring Boot)
-        |
-        | conexão PostgreSQL privada
-        v
-Supabase PostgreSQL
+Vercel
+  |-- /api/*, /swagger  -->  serviço backend (container Java 21)
+  `-- demais rotas      -->  frontend Vite compilado
+                                  |
+                        API Java (Spring Boot)
+                                  |
+              +-------------------+-------------------+
+              | conexão PostgreSQL privada            | server-to-server
+              v                                       v
+     Supabase PostgreSQL                    Supabase Edge Functions
+     (Session Pooler)                       (triagem e imagem por IA)
 ```
 
 O frontend não acessa o Supabase diretamente e não recebe URL, chave `anon`,
@@ -24,10 +30,15 @@ navegador é `VITE_API_URL`, que contém o endereço público da API Java.
 A API Java é responsável por:
 
 - cadastro, login e emissão/validação de JWT;
+- limite de tentativas de login por IP e por CPF;
 - consultas e alterações de usuários e protocolos;
 - autorização de cidadãos e administradores;
-- histórico de auditoria;
-- acionamento da Edge Function de classificação de prioridade.
+- cadeia de auditoria encadeada por hash, e sua verificação;
+- acionamento das Edge Functions de prioridade e de correção de imagem.
+
+A única exceção ao caminho pelo Java é a geocodificação: as telas de mapa e de
+nova solicitação chamam o Nominatim (OpenStreetMap) direto do navegador. Não há
+credencial envolvida nessas chamadas.
 
 ## Tecnologias
 
@@ -35,26 +46,40 @@ A API Java é responsável por:
 
 - React 19
 - TypeScript
-- Vite
-- React Router
-- Tailwind CSS
-- Leaflet
+- Vite 6
+- Tailwind CSS 4
+- Leaflet e react-leaflet
 - Recharts
-- XLSX
+- lucide-react e motion
+
+Duas dependências que o projeto **deixou** de usar, e o que ficou no lugar:
+
+- **Roteador próprio, em `src/lib/router.tsx`.** As telas continuam importando
+  `react-router-dom`, mas o pacote não está instalado: `vite.config.ts` e o
+  `paths` do `tsconfig.json` apontam esse nome para o arquivo do repositório. Ele
+  implementa só o que o projeto usa — `BrowserRouter`, `Routes`, `Route`, `Link`,
+  `NavLink`, `Navigate`, `useNavigate`, `useLocation`, `useParams`.
+- **Exportação em CSV, não em XLSX.** A dependência `xlsx` foi removida por não
+  ter correção publicada para vulnerabilidades conhecidas. O arquivo baixado é
+  CSV com BOM UTF-8 e separador `;`, que o Excel em pt-BR abre direto. A função
+  segue chamada `exportToExcel` porque é o nome da ação no produto.
 
 ### Backend e infraestrutura
 
 - Java 21 e Spring Boot
-- Spring Security e JWT
-- Spring Data JPA
-- PostgreSQL no Supabase
+- Spring Security e JWT (validade de 24 horas)
+- Spring Data JPA e HikariCP
+- PostgreSQL no Supabase, pela conexão Session Pooler
 - Flyway
-- Supabase Edge Functions
-- Vercel para o frontend
+- springdoc-openapi (Swagger em `/swagger`)
+- Supabase Edge Functions (Deno)
+- Vercel para frontend e backend
 
 ## Configuração
 
-Copie `.env.example` para `.env.local`. O arquivo local é ignorado pelo Git.
+Copie `.env.example` para `.env.local`. O arquivo local é ignorado pelo Git e é
+lido tanto pela raiz quanto por `backend-java` — um arquivo atende aos dois
+projetos.
 
 ```env
 VITE_API_URL=http://localhost:5206
@@ -71,10 +96,22 @@ SUPABASE_CORRECTED_IMAGE_FUNCTION_URL=https://<project-ref>.supabase.co/function
 AI_IMAGE_FUNCTION_SECRET=<segredo-compartilhado-com-a-edge-function>
 ```
 
+`.env.example` traz ainda as variáveis operacionais, com os mesmos valores que a
+API assume por padrão: `SPRING_MAIN_LAZY_INITIALIZATION=false`,
+`SPRING_DATA_JPA_REPOSITORIES_BOOTSTRAP_MODE=default`, `SPRING_FLYWAY_ENABLED=true`,
+`SPRING_JPA_HIBERNATE_DDL_AUTO=validate`, `APP_SCHEDULING_ENABLED=true` e os três
+limites de login (`LOGIN_RATE_LIMIT_*`).
+
+Se `SUPABASE_CORRECTED_IMAGE_FUNCTION_URL` ficar vazia, a API deriva o endereço
+trocando `classify-priority` por `generate-corrected-image` na URL da outra
+função. `AI_IMAGE_FUNCTION_SECRET` também tem fallback: sem ele, a API usa
+`SUPABASE_ANON_KEY`.
+
 Para habilitar a simulação de correção por IA, publique a função
 `generate-corrected-image` e configure nela os segredos `OPENROUTER_API_KEY` e
-`AI_IMAGE_FUNCTION_SECRET`. O modelo pode ser alterado pelo segredo opcional
-`OPENROUTER_IMAGE_MODEL`; o padrão é `google/gemini-3.1-flash-lite-image`.
+`AI_IMAGE_FUNCTION_SECRET`. Os modelos podem ser trocados pelos segredos
+opcionais `OPENROUTER_IMAGE_MODEL` (padrão `google/gemini-3.1-flash-image`) e
+`OPENROUTER_REPORT_MODEL` (padrão `google/gemini-2.5-flash-lite`).
 
 Use a conexão Session Pooler mostrada no botão `Connect` do projeto para
 funcionar também em hospedagens e redes compatíveis apenas com IPv4. Nunca
@@ -99,6 +136,7 @@ npm run dev
 
 - Frontend: `http://localhost:3000`
 - API: `http://localhost:5206`
+- Health: `http://localhost:5206/api/health`
 - Swagger: `http://localhost:5206/swagger`
 
 ## Testes
@@ -119,8 +157,78 @@ Um deles usa a base de demonstração como fixture: quando
 de cada coordenada contra a UF escrita no endereço, nos mais de 500 chamados. Sem
 o arquivo, esse bloco é pulado em vez de falhar.
 
+No backend, JUnit 5 com Mockito, sem subir contexto do Spring nem tocar o banco:
+
+```bash
+cd backend-java
+mvn test
+```
+
+Cobrem o cadastro (`RegisterUseCase`), as estatísticas públicas
+(`GetPublicStatsUseCase`), a normalização de CPF/identidade (`AuthUtils`) e o
+limitador de tentativas de login (`LoginRateLimiter`).
+
 `src/__tests__/integration/aiPriority.checklist.md` é um roteiro de verificação
 manual do fluxo de triagem por IA, que depende de backend e Edge Function no ar.
+
+## API
+
+Rotas públicas, sem token:
+
+| Rota | O que faz |
+|---|---|
+| `POST /api/auth/login` | Emite o JWT. Estourado o limite de falhas, responde `429` com `Retry-After` |
+| `POST /api/auth/register` | Cria o cidadão e já devolve o JWT |
+| `GET /api/health` | Executa `SELECT 1`; confirma API e banco de uma vez |
+| `GET /api/protocols/stats` | Números agregados da landing page |
+| `GET /api/protocols/public/{id}` | Consulta pública de um protocolo (tela `/p/:id`) |
+| `/swagger`, `/swagger/v3/api-docs` | Documentação OpenAPI |
+
+Rotas autenticadas — o papel é lido do token e reconferido no backend, não na
+interface:
+
+| Rota | Quem acessa |
+|---|---|
+| `GET /api/auth/me` | Qualquer sessão válida |
+| `PATCH /api/auth/me/phone` | O próprio usuário |
+| `POST /api/protocols` | Cidadão; a criação dispara a triagem de prioridade |
+| `GET /api/protocols` | Cidadão vê os próprios; admin vê a base inteira |
+| `GET /api/protocols/{id}` | Dono do protocolo ou admin |
+| `PATCH /api/protocols/{id}/status` | Admin |
+| `POST /api/protocols/{id}/ai-correction` | Admin; simulação de correção por IA |
+| `POST /api/protocols/geocode/backfill` | Admin; preenche coordenada faltante |
+| `GET /api/protocols/{id}/audit` | Dono do protocolo ou admin |
+| `GET /api/protocols/audit/verify` | Admin; revalida a cadeia de hashes |
+| `GET /api/ai-priority/{protocolId}` | Qualquer sessão válida |
+| `POST /api/ai-priority/regenerate/{protocolId}` | Admin |
+| `GET /api/ai-priority/logs` | Admin (tela `/admin/ai-logs`) |
+| `GET /api/ai-priority/jobs/failed` | Admin |
+
+O limite de login conta falhas em janela deslizante, por IP e por CPF em
+separado, com os padrões 30 falhas por IP, 10 por CPF e janela de 15 minutos. É
+memória do processo, não do banco: reiniciar a API zera a contagem.
+
+Jobs de triagem que falharam são reprocessados por uma tarefa agendada a cada 5
+minutos, desligável por `APP_SCHEDULING_ENABLED=false`.
+
+## Rotas do frontend
+
+| Rota | Acesso |
+|---|---|
+| `/` | Landing para visitante; dashboard do cidadão quando autenticado |
+| `/login`, `/cadastro` | Público |
+| `/termos-de-uso`, `/privacidade`, `/acessibilidade` | Público |
+| `/p/:id` | Público — consulta de protocolo por link |
+| `/nova-solicitacao`, `/mapa`, `/meus-protocolos`, `/servicos` | Cidadão |
+| `/perfil`, `/protocolo/:id` | Autenticado |
+| `/admin` | Dashboard executivo (admin) |
+| `/admin/solicitacoes` | Fila de solicitações (admin) |
+| `/admin/mapa` | Mapa estratégico (admin) |
+| `/admin/relatorios` | Relatórios (admin) |
+| `/admin/ai-logs` | Logs da triagem por IA (admin) |
+
+Rota de admin acessada por cidadão redireciona para `/`. A verificação vale como
+navegação; a autorização de verdade é a do backend.
 
 ## Mapa de calor
 
@@ -166,11 +274,12 @@ quatro prioridades da triagem. Nada ali roda em deploy — veja
 
 ## Produção
 
-O frontend Vite fica na Vercel. A API Spring Boot fica no Fly.io, com uma
-máquina sempre ligada para evitar cold start. A Vercel continua sendo a porta de
-entrada do navegador: `vercel.json` encaminha `/api/*` para
-`https://cidadao-informa-api.fly.dev/api/*`, e as demais rotas vão para o
-frontend.
+A Vercel publica os dois lados no mesmo projeto e no mesmo domínio: o frontend
+Vite e o backend Spring Boot como *container service* (`Dockerfile.vercel`, com
+`start-vercel.sh` abrindo a porta pública enquanto a JVM termina de subir). O
+`vercel.json` manda `/api/*` e `/swagger` para o serviço backend, e todo o resto
+para o frontend. Como é o mesmo domínio, o navegador nunca conhece o endereço
+interno do container.
 
 Para o frontend, configure:
 
@@ -178,22 +287,15 @@ Para o frontend, configure:
 VITE_API_URL=/
 ```
 
-No Fly, configure como **secrets** os valores privados:
+No projeto da Vercel, os valores privados vão como variáveis de ambiente
+protegidas (Production e Preview): `SPRING_DATASOURCE_URL`,
+`SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `JWT_SECRET`,
+`SUPABASE_EDGE_FUNCTION_URL` e `SUPABASE_ANON_KEY` — mais
+`SUPABASE_CORRECTED_IMAGE_FUNCTION_URL` e `AI_IMAGE_FUNCTION_SECRET` se a
+correção de imagem estiver em uso. Alterar uma variável não muda um deploy já
+construído; é preciso publicar de novo.
 
-```bash
-fly secrets set \
-  SPRING_DATASOURCE_URL="jdbc:postgresql://..." \
-  SPRING_DATASOURCE_USERNAME="postgres.xxxx" \
-  SPRING_DATASOURCE_PASSWORD="..." \
-  JWT_SECRET="..." \
-  SUPABASE_EDGE_FUNCTION_URL="https://xxxx.supabase.co/functions/v1/classify-priority" \
-  SUPABASE_ANON_KEY="..."
-```
-
-Se usar a função de correção de imagem, inclua também
-`SUPABASE_CORRECTED_IMAGE_FUNCTION_URL` e `AI_IMAGE_FUNCTION_SECRET`.
-
-Valores públicos ou operacionais que podem ficar em `fly.toml`:
+Valores públicos ou operacionais:
 
 ```env
 CORS_ALLOWED_ORIGINS=https://cidadao-informa.vercel.app
@@ -202,24 +304,67 @@ LOGIN_RATE_LIMIT_MAX_FAILURES_PER_CPF=10
 LOGIN_RATE_LIMIT_WINDOW_MINUTES=15
 ```
 
-`CORS_ALLOWED_ORIGINS` deve listar domínios reais, sem `*`. Usando o proxy da
-Vercel, o navegador fala com o mesmo domínio do frontend; ainda assim o CORS do
-Fly fica restrito para chamadas diretas ao `*.fly.dev`.
+`CORS_ALLOWED_ORIGINS` deve listar domínios reais: a API recusa subir com `*`.
+Com frontend e API no mesmo domínio, o CORS quase não entra em cena pelo
+navegador — ele existe para restringir chamada direta de outra origem.
 
-As migrations do banco devem ser aplicadas de forma controlada antes do deploy.
-A API inclui migrations Flyway equivalentes em `backend-java/src/main/resources/db/migration/`,
-e os SQLs manuais ficam em `supabase/migrations/`.
+### Alternativa no Fly.io, para o cold start
+
+O container da Vercel escala para zero e a plataforma não expõe como impedir
+isso: medido em produção, **16.832 ms** na primeira requisição depois do ocioso
+contra **193 ms** nas seguintes. `backend-java/fly.toml` e
+`backend-java/Dockerfile.fly` deixam o backend pronto para o Fly.io com
+`min_machines_running = 1` e `auto_stop_machines = 'off'`, onde o processo não
+hiberna.
+
+Essa rota está preparada, não ativa: hoje o `vercel.json` aponta `/api/*` para o
+serviço backend da própria Vercel. Migrar é trocar esses destinos pela URL
+pública do Fly. O passo a passo, incluindo a escolha de região pelo host do banco
+e a validação antes de virar o tráfego, está em `backend-java/DEPLOY-FLY.md`.
+
+## Banco e migrations
+
+O schema é versionado em dois lugares equivalentes: as migrations Flyway da API,
+em `backend-java/src/main/resources/db/migration/` (V1 a V9), e os SQLs
+correspondentes em `supabase/migrations/`, para aplicar pelo painel do Supabase.
+
+O Flyway roda na inicialização da API (`SPRING_FLYWAY_ENABLED=true`, com
+`ddl-auto: validate` — o Hibernate confere o schema, nunca o altera). Em ambiente
+com mais de uma instância subindo ao mesmo tempo, aplique a migration de forma
+controlada antes do deploy e suba com `SPRING_FLYWAY_ENABLED=false`.
+
+Além do schema base, as migrations cobrem prioridade por IA e seus logs, a cadeia
+de auditoria dos protocolos, coordenadas, imagens, imagens corrigidas por IA,
+unicidade de identidade dos usuários e o fechamento de permissões/RLS do schema
+`public`.
 
 ## Estrutura
 
 ```text
-src/                 frontend React
-src/__tests__/       testes (Vitest) e checklist manual
-src/data/            dados embarcados, gerados (contorno das UFs)
-tools/               geradores de dados embarcados
-backend-java/        API Spring Boot
-supabase/functions/  classificação de prioridade
-supabase/migrations/ estrutura complementar do banco
-supabase/seed/       base de demonstração, aplicada à mão
-public/              arquivos públicos
+src/                    frontend React
+src/lib/router.tsx      roteador do projeto, aliasado como react-router-dom
+src/__tests__/          testes (Vitest) e checklist manual
+src/data/               dados embarcados, gerados (contorno das UFs)
+tools/                  geradores de dados embarcados
+backend-java/           API Spring Boot, Dockerfiles e fly.toml
+supabase/functions/     Edge Functions (Deno)
+supabase/migrations/    mesmas migrations, para aplicar pelo painel
+supabase/seed/          base de demonstração, aplicada à mão
+public/                 arquivos públicos
+entrega-fase-4/         documentos da entrega acadêmica da Fase 4
 ```
+
+Em `supabase/functions/`, `classify-priority` (com `openrouter-client.ts`) e
+`generate-corrected-image` são as funções em uso, chamadas pela API Java.
+`app-auth` e `app-protocols` são legado da fase em que o navegador falava com o
+Supabase direto: nada no código atual as invoca.
+
+## Documentação
+
+| Arquivo | Assunto |
+|---|---|
+| `RELATORIO_ARQUITETURA_AMBIENTES.md` | Arquitetura, ambientes, variáveis e diagnóstico |
+| `backend-java/DEPLOY-FLY.md` | Passo a passo da migração do backend para o Fly.io |
+| `supabase/seed/README.md` | Base de demonstração: aplicar, apresentar e remover |
+| `src/__tests__/integration/aiPriority.checklist.md` | Verificação manual da triagem por IA |
+| `entrega-fase-4/` | Backlog, evolução e reflexão da entrega da Fase 4 |

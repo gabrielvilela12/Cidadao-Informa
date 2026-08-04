@@ -8,6 +8,11 @@ nas seguintes. No Fly, `min_machines_running = 1` mantém o processo de pé.
 
 O frontend continua na Vercel. Só o backend muda de casa.
 
+> **Status: preparado, não aplicado.** `fly.toml` e `Dockerfile.fly` estão no
+> repositório, mas o `vercel.json` publicado hoje aponta `/api/*` para o serviço
+> backend da própria Vercel. Enquanto ele não for alterado (passo 6), a produção
+> segue no container da Vercel, com o cold start medido acima.
+
 ## Antes de começar: confira a região do banco
 
 Isto importa mais que a proximidade dos usuários, porque cada query é uma ida e
@@ -85,11 +90,15 @@ demorar segundos, o `auto_stop_machines = 'off'` não pegou.
 
 ### 6. Apontar o frontend
 
-O `vercel.json` deste repositório já está preparado para proxyar `/api/*` para o
-Fly:
+Este é o passo que efetiva a migração. No `vercel.json`, troque os destinos que
+hoje apontam para `{ "service": "backend" }` pela URL pública do Fly, e remova o
+serviço `backend` do bloco `services` — sem ele a Vercel para de construir a
+imagem Java:
 
 ```json
-{ "source": "/api/(.*)", "destination": "https://cidadao-informa-api.fly.dev/api/$1" }
+{ "source": "/api/(.*)",     "destination": "https://cidadao-informa-api.fly.dev/api/$1" },
+{ "source": "/swagger",      "destination": "https://cidadao-informa-api.fly.dev/swagger" },
+{ "source": "/swagger/(.*)", "destination": "https://cidadao-informa-api.fly.dev/swagger/$1" }
 ```
 
 Antes de publicar a Vercel com essa configuração, valide:
@@ -104,10 +113,11 @@ navegador: ele fala com o domínio da Vercel e não precisa chamar o Fly direto.
 Ainda assim, deixe `CORS_ALLOWED_ORIGINS=https://cidadao-informa.vercel.app` no
 Fly para restringir chamadas diretas.
 
-### 7. Desligar o keep-warm
+### 7. Keep-warm
 
-Com o backend sempre de pé, `.github/workflows/keep-warm.yml` perde a função.
-Remova o workflow depois que a Vercel estiver proxyando para o Fly.
+Nada a fazer: o workflow `.github/workflows/keep-warm.yml` já foi removido do
+repositório. Ele pingava o backend de fora para disfarçar o cold start — frágil, e
+sem efeito quando a plataforma criava uma instância nova.
 
 ## Custo
 
