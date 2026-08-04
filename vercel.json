@@ -10,20 +10,31 @@
           "destination": "/index.html"
         }
       ]
+    },
+    "backend": {
+      "root": "backend-java",
+      "entrypoint": "Dockerfile.vercel",
+      "runtime": "container"
     }
   },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://cidadao-informa-api.fly.dev/api/$1"
+      "destination": {
+        "service": "backend"
+      }
     },
     {
       "source": "/swagger",
-      "destination": "https://cidadao-informa-api.fly.dev/swagger"
+      "destination": {
+        "service": "backend"
+      }
     },
     {
       "source": "/swagger/(.*)",
-      "destination": "https://cidadao-informa-api.fly.dev/swagger/$1"
+      "destination": {
+        "service": "backend"
+      }
     },
     {
       "source": "/(.*)",
