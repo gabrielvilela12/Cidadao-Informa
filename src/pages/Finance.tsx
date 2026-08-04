@@ -27,7 +27,7 @@ import { Header } from '../components/Header';
 type EntryType = 'cost' | 'revenue';
 type EntryStatus = 'pending' | 'paid' | 'planned';
 type FilterType = EntryType | 'all';
-type ConfigTab = 'categories' | 'fixed' | 'people';
+type ConfigTab = 'entry' | 'categories' | 'fixed' | 'people';
 type FinanceTab = 'overview' | 'details';
 
 interface FinanceCategory {
@@ -1023,7 +1023,7 @@ export function Finance() {
                                 </span>
                                 <div className="min-w-0">
                                   <p className="font-black text-slate-950">{entry.title}</p>
-                                  <p className="text-xs text-slate-500">{entry.isFixed ? 'Fixo' : 'Avulso'}{entry.note ? ` · ${entry.note}` : ''}</p>
+                                  <p className="text-xs text-slate-500">{entry.isFixed ? 'Fixo' : 'Avulso'}{entry.note ? ` Â· ${entry.note}` : ''}</p>
                                 </div>
                               </div>
                             </td>
@@ -1126,8 +1126,9 @@ export function Finance() {
               <p className="mt-1 text-xs text-slate-500">Lancamentos, categorias, fixos e pessoas em um unico lugar.</p>
             </div>
 
-            <div className="mb-4 grid grid-cols-3 gap-1 rounded-lg bg-slate-100 p-1">
+            <div className="mb-4 grid grid-cols-4 gap-1 rounded-lg bg-slate-100 p-1">
               {[
+                ['entry', ReceiptText, 'Lanc.'],
                 ['categories', Tag, 'Cat.'],
                 ['fixed', Repeat, 'Fixos'],
                 ['people', Users, 'Pess.'],
@@ -1395,7 +1396,7 @@ export function Finance() {
                         <div>
                           <p className="font-black text-slate-900">{template.title}</p>
                           <p className="text-xs text-slate-500">
-                            Dia {template.dueDay} · {template.person} · {BRL.format(template.amount)}
+                            Dia {template.dueDay} Â· {template.person} Â· {BRL.format(template.amount)}
                           </p>
                         </div>
                         <button

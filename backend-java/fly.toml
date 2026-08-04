@@ -13,7 +13,7 @@
 app = 'cidadao-informa-api'
 
 # ATENCAO: escolha a regiao onde esta o banco, nao onde estao os usuarios.
-# Cada query e uma ida e volta ate o Postgres, então app e banco na mesma
+# Cada query e uma ida e volta ate o Postgres, entÃ£o app e banco na mesma
 # regiao vale mais que app perto do navegador. Leia o host do
 # SPRING_DATASOURCE_URL: `aws-0-sa-east-1.pooler.supabase.com` -> use 'gru'
 # (Sao Paulo); `aws-0-us-east-1...` -> use 'iad' (Virginia).
@@ -24,6 +24,10 @@ primary_region = 'gru'
 
 [env]
   PORT = '8080'
+  CORS_ALLOWED_ORIGINS = 'https://cidadao-informa.vercel.app'
+  LOGIN_RATE_LIMIT_MAX_FAILURES_PER_IP = '30'
+  LOGIN_RATE_LIMIT_MAX_FAILURES_PER_CPF = '10'
+  LOGIN_RATE_LIMIT_WINDOW_MINUTES = '15'
   # Uma conexao viva no pool, para nao repetir handshake TLS + auth no pooler
   # do Supabase a cada periodo ocioso.
   SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE = '1'

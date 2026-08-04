@@ -7,9 +7,11 @@ import br.com.fiap.hackgov.application.dto.auth.RegisterInputDto;
 import br.com.fiap.hackgov.application.usecase.auth.GetMeUseCase;
 import br.com.fiap.hackgov.application.usecase.auth.LoginUseCase;
 import br.com.fiap.hackgov.application.usecase.auth.RegisterUseCase;
-import br.com.fiap.hackgov.infrastructure.security.AuthenticatedUser;
 import br.com.fiap.hackgov.domain.entity.User;
 import br.com.fiap.hackgov.domain.repository.UserRepository;
+import br.com.fiap.hackgov.infrastructure.security.AuthenticatedUser;
+import br.com.fiap.hackgov.infrastructure.security.LoginRateLimiter;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -28,24 +30,40 @@ public class AuthController {
     private final RegisterUseCase registerUseCase;
     private final GetMeUseCase getMeUseCase;
     private final UserRepository userRepository;
+    private final LoginRateLimiter loginRateLimiter;
 
     public AuthController(
             LoginUseCase loginUseCase,
             RegisterUseCase registerUseCase,
             GetMeUseCase getMeUseCase,
-            UserRepository userRepository
+            UserRepository userRepository,
+            LoginRateLimiter loginRateLimiter
     ) {
         this.loginUseCase = loginUseCase;
         this.registerUseCase = registerUseCase;
         this.getMeUseCase = getMeUseCase;
         this.userRepository = userRepository;
+        this.loginRateLimiter = loginRateLimiter;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginInputDto input) {
+    public ResponseEntity<?> login(
+            @RequestBody LoginInputDto input,
+            HttpServletRequest request
+    ) {
+        LoginRateLimiter.RateLimitDecision decision = loginRateLimiter.check(request, input);
+        if (!decision.allowed()) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .header("Retry-After", String.valueOf(decision.retryAfterSeconds()))
+                    .body(new ErrorResponse("Muitas tentativas de login. Aguarde alguns minutos e tente novamente."));
+        }
+
         try {
-            return ResponseEntity.ok(loginUseCase.execute(input));
+            var output = loginUseCase.execute(input);
+            loginRateLimiter.recordSuccess(request, input);
+            return ResponseEntity.ok(output);
         } catch (Exception ex) {
+            loginRateLimiter.recordFailure(request, input);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse(ex.getMessage()));
         }
@@ -66,7 +84,7 @@ public class AuthController {
         try {
             if (authentication == null || !(authentication.getPrincipal() instanceof AuthenticatedUser principal)) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(new ErrorResponse("Token JWT inválido ou sem identificação do usuário."));
+                        .body(new ErrorResponse("Token JWT invalido ou sem identificacao do usuario."));
             }
 
             return ResponseEntity.ok(getMeUseCase.execute(principal.userId()));
@@ -84,17 +102,17 @@ public class AuthController {
         try {
             if (authentication == null || !(authentication.getPrincipal() instanceof AuthenticatedUser principal)) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(new ErrorResponse("Token JWT inválido."));
+                        .body(new ErrorResponse("Token JWT invalido."));
             }
 
             String phone = input.phone() == null ? "" : input.phone().replaceAll("\\D", "");
             if (phone.length() < 10 || phone.length() > 11) {
                 return ResponseEntity.badRequest()
-                        .body(new ErrorResponse("Telefone deve ter 10 ou 11 dígitos."));
+                        .body(new ErrorResponse("Telefone deve ter 10 ou 11 digitos."));
             }
 
             User user = userRepository.getById(principal.userId())
-                    .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado."));
+                    .orElseThrow(() -> new IllegalArgumentException("Usuario nao encontrado."));
             user.setPhone(phone);
             userRepository.update(user);
             return ResponseEntity.ok(getMeUseCase.execute(user.getId()));

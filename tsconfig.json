@@ -18,6 +18,9 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "react-router-dom": [
+        "./src/lib/router.tsx"
       ]
     },
     "allowImportingTsExtensions": true,

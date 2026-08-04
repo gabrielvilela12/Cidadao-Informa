@@ -83,30 +83,31 @@ O teste que interessa: rode o `curl` do health **duas vezes com 20 minutos de
 intervalo**. Os dois devem responder em centenas de milissegundos. Se o segundo
 demorar segundos, o `auto_stop_machines = 'off'` não pegou.
 
-### 6. Só então apontar o frontend
+### 6. Apontar o frontend
 
-Duas formas. A primeira é melhor porque o navegador continua falando com o
-mesmo domínio — sem CORS e sem requisição de preflight:
-
-**Opção A — proxy pela Vercel (recomendada).** No `vercel.json`, troque o
-rewrite de `/api/(.*)` para o Fly e remova o `services.backend`:
+O `vercel.json` deste repositório já está preparado para proxyar `/api/*` para o
+Fly:
 
 ```json
 { "source": "/api/(.*)", "destination": "https://cidadao-informa-api.fly.dev/api/$1" }
 ```
 
-`VITE_API_URL` continua `/`. Peça que eu faça essa alteração quando o Fly
-estiver validado — ela é o ponto de virada e não deve subir antes.
+Antes de publicar a Vercel com essa configuração, valide:
 
-**Opção B — chamar o Fly direto.** `VITE_API_URL=https://cidadao-informa-api.fly.dev`
-nas variáveis da Vercel. Exige que `CORS_ALLOWED_ORIGINS` no Fly liste o domínio
-do frontend, e cada chamada paga um preflight.
+```powershell
+curl https://cidadao-informa-api.fly.dev/api/health
+curl https://cidadao-informa-api.fly.dev/api/protocols/stats
+```
+
+O frontend continua com `VITE_API_URL=/`. Esse arranjo é o mais simples para o
+navegador: ele fala com o domínio da Vercel e não precisa chamar o Fly direto.
+Ainda assim, deixe `CORS_ALLOWED_ORIGINS=https://cidadao-informa.vercel.app` no
+Fly para restringir chamadas diretas.
 
 ### 7. Desligar o keep-warm
 
-Com o backend sempre de pé, `.github/workflows/keep-warm.yml` perde a função e
-pode ser removido. Ele nunca funcionou por agendamento mesmo: o GitHub não
-disparou o cron nenhuma vez, só a execução manual.
+Com o backend sempre de pé, `.github/workflows/keep-warm.yml` perde a função.
+Remova o workflow depois que a Vercel estiver proxyando para o Fly.
 
 ## Custo
 

@@ -50,6 +50,11 @@ springdoc:
 app:
   scheduling:
     enabled: ${APP_SCHEDULING_ENABLED:true}
+  security:
+    login-rate-limit:
+      max-failures-per-ip: ${LOGIN_RATE_LIMIT_MAX_FAILURES_PER_IP:30}
+      max-failures-per-cpf: ${LOGIN_RATE_LIMIT_MAX_FAILURES_PER_CPF:10}
+      window-minutes: ${LOGIN_RATE_LIMIT_WINDOW_MINUTES:15}
   jwt:
     secret: ${JWT_SECRET}
   cors:

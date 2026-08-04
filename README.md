@@ -166,8 +166,11 @@ quatro prioridades da triagem. Nada ali roda em deploy — veja
 
 ## Produção
 
-O frontend Vite e a API Spring Boot são publicados no mesmo projeto da Vercel.
-A rota `/api/*` é encaminhada ao container Java e as demais rotas ao frontend.
+O frontend Vite fica na Vercel. A API Spring Boot fica no Fly.io, com uma
+máquina sempre ligada para evitar cold start. A Vercel continua sendo a porta de
+entrada do navegador: `vercel.json` encaminha `/api/*` para
+`https://cidadao-informa-api.fly.dev/api/*`, e as demais rotas vão para o
+frontend.
 
 Para o frontend, configure:
 
@@ -175,24 +178,37 @@ Para o frontend, configure:
 VITE_API_URL=/
 ```
 
-Configure `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`,
-`SPRING_DATASOURCE_PASSWORD`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`,
-`SUPABASE_EDGE_FUNCTION_URL` e `SUPABASE_ANON_KEY` como variáveis protegidas
-do projeto. Elas são consumidas apenas pela API Java e não são incluídas no
-bundle do Vite porque não possuem o prefixo `VITE_`.
+No Fly, configure como **secrets** os valores privados:
 
-No ambiente autoscalável da Vercel, use também:
-
-```env
-SPRING_MAIN_LAZY_INITIALIZATION=true
-SPRING_DATA_JPA_REPOSITORIES_BOOTSTRAP_MODE=lazy
-SPRING_FLYWAY_ENABLED=false
-SPRING_JPA_HIBERNATE_DDL_AUTO=none
-APP_SCHEDULING_ENABLED=false
+```bash
+fly secrets set \
+  SPRING_DATASOURCE_URL="jdbc:postgresql://..." \
+  SPRING_DATASOURCE_USERNAME="postgres.xxxx" \
+  SPRING_DATASOURCE_PASSWORD="..." \
+  JWT_SECRET="..." \
+  SUPABASE_EDGE_FUNCTION_URL="https://xxxx.supabase.co/functions/v1/classify-priority" \
+  SUPABASE_ANON_KEY="..."
 ```
 
-As migrações Flyway continuam habilitadas por padrão no ambiente local e devem
-ser executadas de forma controlada antes de um deploy que alterar o banco.
+Se usar a função de correção de imagem, inclua também
+`SUPABASE_CORRECTED_IMAGE_FUNCTION_URL` e `AI_IMAGE_FUNCTION_SECRET`.
+
+Valores públicos ou operacionais que podem ficar em `fly.toml`:
+
+```env
+CORS_ALLOWED_ORIGINS=https://cidadao-informa.vercel.app
+LOGIN_RATE_LIMIT_MAX_FAILURES_PER_IP=30
+LOGIN_RATE_LIMIT_MAX_FAILURES_PER_CPF=10
+LOGIN_RATE_LIMIT_WINDOW_MINUTES=15
+```
+
+`CORS_ALLOWED_ORIGINS` deve listar domínios reais, sem `*`. Usando o proxy da
+Vercel, o navegador fala com o mesmo domínio do frontend; ainda assim o CORS do
+Fly fica restrito para chamadas diretas ao `*.fly.dev`.
+
+As migrations do banco devem ser aplicadas de forma controlada antes do deploy.
+A API inclui migrations Flyway equivalentes em `backend-java/src/main/resources/db/migration/`,
+e os SQLs manuais ficam em `supabase/migrations/`.
 
 ## Estrutura
 
