@@ -46,7 +46,7 @@ export function PrivacyPolicy() {
         <div className="min-h-screen h-full overflow-y-auto bg-[#080d12] text-white font-sans">
             <nav className="sticky top-0 z-40 flex items-center justify-between gap-4 px-4 sm:px-6 md:px-12 py-4 bg-white border-b border-slate-200">
                 <Link to="/" className="min-w-0">
-                    <CidadaoBrand compact />
+                    <CidadaoBrand compact iconClassName="size-11" />
                 </Link>
                 <button
                     type="button"

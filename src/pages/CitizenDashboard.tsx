@@ -1,5 +1,4 @@
 import {
-  Accessibility,
   ArrowRight,
   BarChart3,
   Briefcase,
@@ -15,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
+import { AccessibilityIcon } from '../components/AccessibilityIcon';
 import { useApp } from '../context/AppContext';
 import { useProtocols } from '../hooks/useProtocols';
 
@@ -301,7 +301,7 @@ function ProtocolIcon({ category, service }: { category?: string; service?: stri
   const Icon = value.includes('audit')
     ? Ear
     : value.includes('fís') || value.includes('fis') || value.includes('mobil')
-      ? Accessibility
+      ? AccessibilityIcon
       : HelpCircle;
 
   return (

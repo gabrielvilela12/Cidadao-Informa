@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import {
-    Accessibility,
     ArrowRight,
     CircleHelp,
     Construction,
@@ -13,6 +12,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
+import { AccessibilityIcon } from '../components/AccessibilityIcon';
 
 type ServiceTone = 'amber' | 'coral' | 'yellow' | 'green' | 'blue';
 
@@ -41,7 +41,7 @@ const SERVICES: Service[] = [
         category: 'Acessibilidade',
         title: 'Barreira Arquitetônica',
         description: 'Relatar rampas bloqueadas, calçadas intransitáveis ou falta de piso tátil.',
-        icon: Accessibility,
+        icon: AccessibilityIcon,
         tone: 'coral',
         requestCategory: 'Física',
     },

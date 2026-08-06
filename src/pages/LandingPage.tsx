@@ -3,12 +3,11 @@ import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import {
     MapPin, ArrowRight, Shield, Zap, Users, BarChart3,
-    CheckCircle, ChevronRight, ChevronLeft, Star, Eye, UserRound, Camera, Monitor,
-    ClipboardList, Smile, Quote, Contrast
+    CheckCircle, ChevronRight, ChevronLeft, Star, UserRound, Camera, Monitor,
+    ClipboardList, Smile, Quote
 } from 'lucide-react';
-import { AccessibilitySymbol } from '../components/AccessibilitySymbol';
 import { CidadaoBrand } from '../components/CidadaoBrand';
-import { useA11y } from '../context/A11yContext';
+import { AccessibilityIcon } from '../components/AccessibilityIcon';
 import { api } from '../services/api';
 
 interface PublicStats {
@@ -95,15 +94,14 @@ function ProcessVisual({ type }: ProcessVisualProps) {
                         <span key={stripe} className="mt-8 h-14 w-4 skew-x-[-12deg] bg-white" />
                     ))}
                 </div>
-                <span className="absolute bottom-2 right-5 flex size-14 items-center justify-center rounded-lg border border-slate-200 bg-white shadow-sm">
-                    <AccessibilitySymbol size={36} aria-hidden="true" />
+                <span className="absolute bottom-2 right-5 flex size-14 items-center justify-center rounded-lg bg-blue-600">
+                    <AccessibilityIcon size={34} className="landing-inverse-icon" />
                 </span>
             </div>
             <div className="absolute right-[12%] top-2 flex flex-col items-center">
                 <span className="flex size-14 items-center justify-center rounded-lg border-4 border-[#168821] bg-white shadow-md">
                     <CheckCircle size={34} className="text-[#168821]" />
                 </span>
-                <span className="h-20 w-2 bg-slate-500" />
             </div>
             <div className="absolute left-[17%] top-8">
                 <span className="mx-auto block h-12 w-12 rounded-full bg-[#6BAF45]" />
@@ -112,6 +110,13 @@ function ProcessVisual({ type }: ProcessVisualProps) {
         </div>
     );
 }
+// ─────────────────────────────────────────────────────────────────────────
+// 🔧 AJUSTE AQUI: altura (em px) da navbar.
+// Mude o número abaixo, salve e veja o resultado. Quando estiver bom,
+// passe o valor final para aplicarmos direto na classe e remover isso.
+// ─────────────────────────────────────────────────────────────────────────
+const NAVBAR_HEIGHT = 80; // altura da navbar principal (logo, links, "Acessibilidade", "Entrar"/"Criar conta")
+
 export function LandingPage() {
     const [comparisonPosition, setComparisonPosition] = useState(50);
     const [publicStats, setPublicStats] = useState<PublicStats | null>(null);
@@ -125,8 +130,6 @@ export function LandingPage() {
             .catch(() => undefined);
         return () => { active = false; };
     }, []);
-    const { fontSize, setFontSize, theme, setTheme } = useA11y();
-
     const features = [
         {
             icon: MapPin,
@@ -190,13 +193,13 @@ export function LandingPage() {
     const stats = [
         {
             value: publicStats ? formatCount(publicStats.total) : EMPTY_METRIC,
-            label: 'solicitações registradas',
+            label: 'Solicitações Registradas',
             icon: ClipboardList,
             tone: 'bg-blue-600',
         },
         {
             value: publicStats ? formatCount(publicStats.resolved) : EMPTY_METRIC,
-            label: 'já resolvidas',
+            label: 'Já Resolvidas',
             icon: CheckCircle,
             tone: 'bg-green-600',
         },
@@ -204,23 +207,18 @@ export function LandingPage() {
             value: publicStats?.resolutionRate === null || !publicStats
                 ? EMPTY_METRIC
                 : `${publicStats.resolutionRate}%`,
-            label: 'taxa de resolução',
+            label: 'Taxa de Resolução',
             icon: BarChart3,
             tone: 'bg-yellow-500',
         },
         {
             value: publicStats ? formatCount(publicStats.citizens) : EMPTY_METRIC,
-            label: 'cidadãos cadastrados',
+            label: 'Cidadãos Cadastrados',
             icon: UserRound,
             tone: 'bg-blue-600',
         },
     ];
 
-    const journeySteps = [
-        { label: 'Solicitação\nenviada', color: '#E52207', position: 'left-0 top-[10%] sm:left-[2%]' },
-        { label: 'Em análise', color: '#FFB600', position: 'left-1/2 top-[10%] -translate-x-1/2 sm:left-[41%] sm:translate-x-0' },
-        { label: 'Problema\nresolvido', color: '#168821', position: 'right-0 top-[10%] sm:right-[2%]' },
-    ];
     const testimonials = [
         {
             name: 'Ana Lima',
@@ -231,7 +229,7 @@ export function LandingPage() {
         },
         {
             name: 'Carlos Mendes',
-            role: 'Cidadão com deficiência visual',
+            role: 'Morador de Ribeirão Preto',
             text: 'Consigo acompanhar cada atualização com clareza e autonomia.',
             avatar: 'CM',
             color: 'bg-[#071A3A]',
@@ -245,13 +243,23 @@ export function LandingPage() {
         },
     ];
 
+    const heroPaddingTop = NAVBAR_HEIGHT + 16;
+    const heroPaddingTopLg = NAVBAR_HEIGHT + 32;
+
     return (
         <div className="min-h-screen bg-[#F7F9FC] text-slate-900 font-sans overflow-x-hidden">
+            <style>{`
+                .a11y-navbar { height: ${NAVBAR_HEIGHT}px; }
+                .a11y-hero { padding-top: ${heroPaddingTop}px; }
+                @media (min-width: 1024px) {
+                    .a11y-hero { padding-top: ${heroPaddingTopLg}px; }
+                }
+            `}</style>
 
             {/* ── Navbar ── */}
-            <nav className="fixed top-0 left-0 right-0 z-50 h-20 border-b border-slate-200 bg-white/95 backdrop-blur-md">
+            <nav className="a11y-navbar fixed top-0 left-0 right-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-md">
                 <div className="mx-auto flex h-full max-w-[1540px] items-center justify-between px-5 sm:px-8 lg:px-12">
-                    <CidadaoBrand />
+                    <CidadaoBrand iconClassName="size-12" />
 
                     <div className="hidden items-center gap-8 lg:flex">
                         <a href="#como-funciona" className="text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]">
@@ -264,58 +272,72 @@ export function LandingPage() {
                             Resultados
                         </a>
                         <Link
-                            to="/login"
-                            className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-300 bg-white px-6 text-sm font-bold text-slate-800 transition-colors hover:border-[#1351B4] hover:text-[#1351B4]"
+                            to="/acessibilidade"
+                            className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]"
+                            title="Opções de acessibilidade"
                         >
-                            Entrar
+                            <AccessibilityIcon size={17} className="text-[#1351B4]" aria-hidden="true" />
+                            Acessibilidade
                         </Link>
+
                         <Link
                             to="/cadastro"
                             className="inline-flex h-11 items-center justify-center rounded-lg bg-blue-600 px-7 text-sm font-bold text-white shadow-lg shadow-blue-900/15 transition-colors hover:bg-[#0C326F]"
                         >
                             Criar conta
                         </Link>
+                        <Link
+                            to="/login"
+                            className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-300 bg-white px-6 text-sm font-bold text-slate-800 transition-colors hover:border-[#1351B4] hover:text-[#1351B4]"
+                        >
+                            Entrar
+                        </Link>
                     </div>
 
-                    <Link
-                        to="/login"
-                        className="inline-flex h-10 items-center justify-center rounded-lg bg-blue-600 px-4 text-sm font-bold text-white lg:hidden"
-                    >
-                        Entrar
-                    </Link>
+                    <div className="flex items-center gap-2 lg:hidden">
+                        <Link
+                            to="/acessibilidade"
+                            className="flex size-9 items-center justify-center rounded-full text-[#1351B4] transition-colors hover:bg-[#EAF2FF]"
+                            title="Opções de acessibilidade"
+                            aria-label="Abrir opções de acessibilidade"
+                        >
+                            <AccessibilityIcon size={20} aria-hidden="true" />
+                        </Link>
+                        <Link
+                            to="/login"
+                            className="inline-flex h-10 items-center justify-center rounded-lg bg-blue-600 px-4 text-sm font-bold text-white"
+                        >
+                            Entrar
+                        </Link>
+                    </div>
                 </div>
             </nav>
 
             {/* ── Hero ── */}
-            <section className="relative overflow-hidden bg-[linear-gradient(135deg,#F8FBFF_0%,#EAF2FF_58%,#F7F9FC_100%)] px-5 pb-12 pt-28 sm:px-8 lg:px-12 lg:pb-16 lg:pt-32">
+            <section className="a11y-hero relative overflow-hidden bg-[linear-gradient(135deg,#F8FBFF_0%,#EAF2FF_58%,#F7F9FC_100%)] px-5 pb-12 sm:px-8 lg:px-12 lg:pb-16">
                 <div className="pointer-events-none absolute inset-0 opacity-70" aria-hidden="true">
                     <div className="absolute -left-[16%] top-[34%] h-[58%] w-[72%] rounded-[50%] bg-white/55" />
                     <div className="absolute -right-[24%] top-[4%] h-[82%] w-[84%] rounded-[50%] bg-[#DFEAFF]/45" />
                 </div>
 
                 <div className="relative mx-auto max-w-[1540px]">
-                    <div className="grid items-center gap-12 lg:grid-cols-[0.83fr_1.35fr] lg:gap-4">
+                    <div className="relative lg:mx-auto lg:max-w-[1280px]">
                         <motion.div
                             initial={{ opacity: 0, y: 24 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.65, ease: 'easeOut' }}
-                            className="z-10 max-w-2xl lg:pb-8"
+                            className="z-30 max-w-2xl lg:absolute lg:left-[3%] lg:top-[6%] lg:z-20 lg:flex lg:h-[80%] lg:w-[40%] lg:max-w-none lg:flex-col lg:justify-center"
                         >
-                            <span className="inline-flex items-center gap-2 rounded-full border border-[#79A7F4] bg-[#EDF4FF] px-4 py-2 text-xs font-bold uppercase text-[#1351B4] sm:text-sm">
-                                <span className="size-2 rounded-full bg-[#4E8BEF]" />
-                                Portal de acessibilidade urbana
-                            </span>
-
-                            <h1 className="mt-8 text-4xl font-black leading-[1.08] text-[#071A3A] sm:text-5xl lg:text-6xl">
+                            <h1 className="mt-8 text-4xl font-black leading-[1.08] text-[#071A3A] sm:text-5xl lg:mt-0 lg:text-4xl xl:text-5xl">
                                 Sua voz
                                 <span className="mt-2 block text-[#1657C8]">transforma a cidade.</span>
                             </h1>
 
-                            <p className="mt-7 max-w-xl text-base leading-8 text-slate-600 sm:text-lg">
+                            <p className="mt-7 max-w-xl text-base leading-8 text-slate-600 sm:text-lg lg:mt-5 lg:text-base">
                                 Reporte problemas de acessibilidade, acompanhe cada etapa e contribua para uma cidade mais inclusiva.
                             </p>
 
-                            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                            <div className="mt-8 flex flex-col gap-3 sm:flex-row lg:mt-6">
                                 <MotionLink
                                     whileHover={{ y: -2 }}
                                     whileTap={{ scale: 0.98 }}
@@ -336,7 +358,7 @@ export function LandingPage() {
                                 </MotionLink>
                             </div>
 
-                            <p className="mt-7 flex items-center gap-2 text-sm font-medium text-slate-600">
+                            <p className="mt-7 flex items-center gap-2 text-sm font-medium text-slate-600 lg:mt-5">
                                 <CheckCircle size={21} className="fill-[#1351B4] landing-inverse-icon" />
                                 Gratuito, acessível e transparente
                             </p>
@@ -346,59 +368,19 @@ export function LandingPage() {
                             initial={{ opacity: 0, y: 30, scale: 0.98 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             transition={{ duration: 0.8, delay: 0.15, ease: 'easeOut' }}
-                            className="relative min-h-[390px] w-[calc(100vw-2.5rem)] min-w-0 max-w-full overflow-hidden scroll-mt-28 sm:min-h-[520px] sm:w-full lg:min-h-[600px]"
+                            className="relative z-10 mt-10 w-full overflow-hidden rounded-2xl shadow-[0_24px_60px_rgba(26,71,126,0.18)] sm:mt-12 lg:mt-0"
                         >
-                            <svg
-                                viewBox="0 0 1000 300"
-                                className="pointer-events-none absolute left-[10%] top-[6%] z-[15] hidden h-[32%] w-[80%] sm:block"
-                                aria-hidden="true"
-                            >
-                                <path
-                                    d="M15 190 C 220 20, 390 80, 500 110 S 780 15, 985 160"
-                                    fill="none"
-                                    stroke="#6D9FEE"
-                                    strokeWidth="3"
-                                    strokeDasharray="10 10"
-                                />
-                            </svg>
-
-                            {journeySteps.map((step) => (
-                                <div key={step.label} className={`absolute z-20 ${step.position}`}>
-                                    <div className="relative flex h-[86px] w-[104px] items-center justify-center rounded-lg border border-slate-200 bg-white px-2 pt-3 text-center shadow-[0_10px_28px_rgba(26,71,126,0.16)] sm:h-[88px] sm:w-auto sm:min-w-[132px] sm:px-4">
-                                        <MapPin
-                                            size={46}
-                                            className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 text-white drop-shadow-md"
-                                            fill={step.color}
-                                            stroke={step.color}
-                                        />
-                                        <span className="whitespace-pre-line text-xs font-bold leading-5 text-slate-800 sm:text-base">
-                                            {step.label}
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
-
                             <img
-                                src="/landing-city-hero.png"
-                                alt="Ilustração de um espaço urbano acessível com rampas, piso tátil e faixa de pedestres"
-                                className="absolute bottom-0 left-1/2 z-10 w-[112%] max-w-none -translate-x-1/2 object-contain sm:w-[105%] lg:w-[108%]"
+                                src="/hero-dashboard-mockup.png"
+                                alt="Painel do Cidadão Informa exibindo mapa de solicitações com filtros por categoria, card de protocolo em andamento no computador e linha do tempo no celular"
+                                className="aspect-[4/3] w-full object-cover object-right lg:aspect-[1855/848] lg:object-center"
                             />
-
-                            <div className="absolute bottom-[7%] right-[1%] z-20 flex items-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-4 shadow-[0_12px_30px_rgba(26,71,126,0.18)] sm:right-[2%] sm:px-5">
-                                <Eye size={24} className="mt-0.5 text-[#1351B4]" />
-                                <div>
-                                    <strong className="block text-2xl font-black leading-none text-[#071A3A] sm:text-3xl">5</strong>
-                                    <span className="mt-2 block text-xs font-medium leading-5 text-slate-600 sm:text-sm">
-                                        solicitações<br />na área
-                                    </span>
-                                </div>
-                            </div>
                         </motion.div>
                     </div>
 
                     <div
 
-                        className="relative z-20 mt-8 grid scroll-mt-28 grid-cols-2 rounded-lg border border-slate-200 bg-white shadow-[0_12px_34px_rgba(26,71,126,0.14)] sm:mt-2 lg:grid-cols-4"
+                        className="relative z-20 mt-8 grid scroll-mt-28 grid-cols-2 rounded-lg border border-slate-200 bg-white shadow-[0_12px_34px_rgba(26,71,126,0.14)] sm:mt-2 lg:mx-auto lg:max-w-[1280px] lg:grid-cols-4"
                     >
                         {stats.map((stat, index) => {
                             const Icon = stat.icon;
@@ -430,9 +412,7 @@ export function LandingPage() {
                     <div
                         className="text-center"
                     >
-                        <span className="inline-flex rounded-full border border-[#B8D0F7] bg-[#EAF2FF] px-5 py-2 text-xs font-extrabold uppercase text-[#1351B4] sm:text-sm">
-                            Como funciona
-                        </span>
+                    
                         <h2 className="mt-5 text-3xl font-black leading-tight text-[#111827] sm:text-4xl">
                             Da solicitação à solução,
                             <span className="text-[#1657C8]"> sem complicação.</span>
@@ -476,7 +456,7 @@ export function LandingPage() {
 
                     <div id="beneficios" className="scroll-mt-28 pt-16 lg:pt-20">
                         <h3 className="text-center text-2xl font-black text-[#111827] sm:text-3xl">
-                            Uma plataforma feita para todos
+                            Uma plataforma <span className="text-[#1657C8]">feita para todos</span>
                         </h3>
                         <div className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
                             {features.map((feature, index) => {
@@ -520,33 +500,33 @@ export function LandingPage() {
                                 Cada solicitação ajuda a orientar equipes, priorizar melhorias e transformar espaços urbanos.
                             </p>
 
-                            <div className="mt-8 grid gap-3 sm:grid-cols-3">
+                            <div className="mt-8 grid gap-3 lg:grid-cols-3">
                                 {[
                                     {
                                         value: publicStats ? formatCount(publicStats.total) : EMPTY_METRIC,
-                                        label: 'solicitações registradas',
+                                        label: 'Solicitações Registradas',
                                         icon: ClipboardList, tone: 'text-[#1351B4]', bg: 'bg-[#EEF5FF]',
                                     },
                                     {
                                         value: publicStats ? formatCount(publicStats.resolved) : EMPTY_METRIC,
-                                        label: 'já resolvidas',
+                                        label: 'Já Resolvidas',
                                         icon: Smile, tone: 'text-[#168821]', bg: 'bg-[#EFF9F0]',
                                     },
                                     {
                                         value: publicStats?.resolutionRate === null || !publicStats
                                             ? EMPTY_METRIC
                                             : `${publicStats.resolutionRate}%`,
-                                        label: 'taxa de resolução',
+                                        label: 'Taxa de Resolução',
                                         icon: BarChart3, tone: 'text-[#D99B00]', bg: 'bg-[#FFF8E3]',
                                     },
                                 ].map((metric) => {
                                     const MetricIcon = metric.icon;
                                     return (
-                                        <article key={metric.label} className="flex min-h-32 items-center gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,42,80,0.08)] sm:flex-col sm:items-start xl:flex-row xl:items-center">
+                                        <article key={metric.label} className="flex min-h-32 items-center gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,42,80,0.08)] lg:flex-col lg:items-stretch">
                                             <span className={`flex size-12 shrink-0 items-center justify-center rounded-full ${metric.bg}`}>
                                                 <MetricIcon size={27} className={metric.tone} aria-hidden="true" />
                                             </span>
-                                            <div>
+                                            <div className="min-w-0 flex-1">
                                                 <strong className={`block text-2xl font-black leading-none ${metric.tone}`}>{metric.value}</strong>
                                                 <span className="mt-2 block text-sm leading-5 text-slate-600">{metric.label}</span>
                                             </div>
@@ -558,8 +538,8 @@ export function LandingPage() {
 
                         <div className="relative aspect-[16/10] overflow-hidden rounded-lg border border-slate-200 bg-slate-100 shadow-[0_18px_45px_rgba(15,42,80,0.16)] sm:aspect-video">
                             <img
-                                src="/results-after.png"
-                                alt="Entrada acessível com rampa, corrimãos e piso tátil"
+                                src="/results-before.png"
+                                alt="Calçada com buraco e sem rampa de acesso para cadeira de rodas"
                                 className="absolute inset-0 size-full object-cover"
                             />
                             <div
@@ -568,7 +548,7 @@ export function LandingPage() {
                                 aria-hidden="true"
                             >
                                 <img
-                                    src="/results-before.png"
+                                    src="/results-after.png"
                                     alt=""
                                     className="size-full object-cover"
                                 />
@@ -714,7 +694,7 @@ export function LandingPage() {
                 <div className="mx-auto max-w-[1540px] rounded-lg border border-slate-200 bg-white px-6 shadow-sm sm:px-10">
                     <div className="grid gap-9 py-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_0.9fr_0.9fr_0.9fr] lg:gap-0">
                         <div className="lg:border-r lg:border-slate-200 lg:pr-12">
-                            <CidadaoBrand />
+                            <CidadaoBrand iconClassName="size-12" />
                         </div>
 
                         <nav aria-label="Links da plataforma" className="lg:px-12">
@@ -746,46 +726,14 @@ export function LandingPage() {
 
                     <div className="flex flex-col gap-5 border-t border-slate-200 py-5 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
                         <p>© 2026 Cidadão Informa</p>
-                        <div className="flex items-center gap-2" aria-label="Atalhos de acessibilidade">
-                            <Link
-                                to="/acessibilidade"
-                                className="flex size-10 items-center justify-center rounded-full text-[#1351B4] transition-colors hover:bg-[#EAF2FF]"
-                                title="Opções de acessibilidade"
-                                aria-label="Abrir opções de acessibilidade"
-                            >
-                                <AccessibilitySymbol size={25} aria-hidden="true" />
-                            </Link>
-                            <button
-                                type="button"
-                                onClick={() => setFontSize(Math.min(200, fontSize + 5))}
-                                className="flex size-10 items-center justify-center rounded-full text-base font-black text-[#1351B4] transition-colors hover:bg-[#EAF2FF] disabled:opacity-40"
-                                title="Aumentar texto"
-                                aria-label="Aumentar tamanho do texto"
-                                disabled={fontSize >= 200}
-                            >
-                                A+
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setFontSize(Math.max(100, fontSize - 5))}
-                                className="flex size-10 items-center justify-center rounded-full text-base font-black text-[#1351B4] transition-colors hover:bg-[#EAF2FF] disabled:opacity-40"
-                                title="Diminuir texto"
-                                aria-label="Diminuir tamanho do texto"
-                                disabled={fontSize <= 100}
-                            >
-                                A−
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setTheme(theme === 'high-contrast' ? 'light' : 'high-contrast')}
-                                className="flex size-10 items-center justify-center rounded-full text-[#1351B4] transition-colors hover:bg-[#EAF2FF]"
-                                title="Alternar alto contraste"
-                                aria-label="Alternar alto contraste"
-                                aria-pressed={theme === 'high-contrast'}
-                            >
-                                <Contrast size={22} aria-hidden="true" />
-                            </button>
-                        </div>
+                        <Link
+                            to="/acessibilidade"
+                            className="inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-bold text-[#1351B4] transition-colors hover:bg-[#EAF2FF]"
+                            title="Opções de acessibilidade"
+                        >
+                            <AccessibilityIcon size={20} aria-hidden="true" />
+                            Acessibilidade
+                        </Link>
                     </div>
                 </div>
             </footer>

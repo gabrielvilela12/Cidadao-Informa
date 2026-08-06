@@ -15,7 +15,7 @@ export function NotFound() {
     <div className="min-h-screen w-full flex flex-col bg-[#080d12] text-white font-sans overflow-hidden">
       {/* Brand bar */}
       <div className="flex items-center px-6 md:px-12 h-16 border-b border-white/5">
-        <CidadaoBrand />
+        <CidadaoBrand iconClassName="size-12" />
       </div>
 
       <main className="flex-1 flex items-center justify-center px-6 py-12 relative">

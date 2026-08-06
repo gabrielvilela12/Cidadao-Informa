@@ -1,8 +1,8 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, Briefcase, User, LogOut, BarChart3, List, X, Database, PanelLeftClose } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { AccessibilitySymbol } from './AccessibilitySymbol';
 import { CidadaoBrand } from './CidadaoBrand';
+import { AccessibilityIcon as A11yIcon } from './AccessibilityIcon';
 
 export function Sidebar() {
   const { role, logout, user, isMobileMenuOpen, toggleMobileMenu, isSidebarCollapsed, toggleSidebarCollapsed } = useApp();
@@ -19,7 +19,7 @@ export function Sidebar() {
     { to: '/meus-protocolos', icon: FileText, label: 'Meus Protocolos' },
     { to: '/mapa', icon: MapIcon, label: 'Mapa' },
     { to: '/servicos', icon: Briefcase, label: 'Serviços' },
-    { to: '/acessibilidade', icon: AccessibilitySymbol, label: 'Acessibilidade' },
+    { to: '/acessibilidade', icon: A11yIcon, label: 'Acessibilidade' },
   ];
 
   const adminLinks = [
@@ -28,7 +28,7 @@ export function Sidebar() {
     { to: '/admin/mapa', icon: MapIcon, label: 'Mapa Estratégico' },
     { to: '/admin/relatorios', icon: FileText, label: 'Relatórios' },
     { to: '/admin/ai-logs', icon: Database, label: 'Logs IA' },
-    { to: '/acessibilidade', icon: AccessibilitySymbol, label: 'Acessibilidade' },
+    { to: '/acessibilidade', icon: A11yIcon, label: 'Acessibilidade' },
   ];
 
   const links = role === 'citizen' ? citizenLinks : adminLinks;
@@ -49,7 +49,7 @@ export function Sidebar() {
 
         {/* Logo */}
         <div className="flex h-20 items-center justify-between border-b border-[#D9E1EC] px-6">
-          <CidadaoBrand compact />
+          <CidadaoBrand compact iconClassName="size-11" />
           <button
             onClick={toggleSidebarCollapsed}
             className="hidden size-10 items-center justify-center rounded-lg border border-[#CDD8E7] bg-white text-[#0758BD] shadow-sm transition-colors hover:bg-[#EAF2FF] hover:text-[#1351B4] md:flex"

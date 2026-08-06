@@ -23,8 +23,8 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AccessibilitySymbol } from '../components/AccessibilitySymbol';
 import { CidadaoBrand } from '../components/CidadaoBrand';
+import { AccessibilityIcon } from '../components/AccessibilityIcon';
 import { useA11y, type Theme } from '../context/A11yContext';
 import { useApp } from '../context/AppContext';
 
@@ -161,22 +161,23 @@ export function Accessibility() {
     return (
         <div className="flex h-full min-h-screen flex-1 flex-col overflow-y-auto bg-[linear-gradient(135deg,#F7FAFE_0%,#FFFFFF_48%,#F4F8FD_100%)] text-[#0B1B33]">
             {!isAuthenticated && (
-                <header className="sticky top-0 z-20 border-b border-[#D9E1EC] bg-white/95 px-4 py-4 backdrop-blur sm:px-8">
-                    <div className="mx-auto flex w-full max-w-[1320px] items-center justify-between">
-                        <CidadaoBrand />
+                <header className="fixed inset-x-0 top-0 z-20 flex h-20 items-center border-b border-[#D9E1EC] bg-white px-4 sm:px-8">
+                    <div className="mx-auto grid w-full max-w-[1320px] grid-cols-[1fr_auto_1fr] items-center">
                         <button
                             type="button"
                             onClick={handleBack}
-                            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white transition-colors hover:bg-blue-700"
+                            className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white transition-colors hover:bg-blue-700"
                         >
                             <ArrowLeft size={17} aria-hidden="true" />
                             Voltar
                         </button>
+                        <CidadaoBrand iconClassName="size-12" />
+                        <div aria-hidden="true" />
                     </div>
                 </header>
             )}
 
-            <main className="mx-auto flex w-full max-w-[1320px] flex-col gap-4 px-4 py-6 sm:px-6 lg:px-10 lg:py-7">
+            <main className={`mx-auto flex w-full max-w-[1320px] flex-col gap-4 px-4 pb-6 sm:px-6 lg:px-10 lg:pb-7 ${!isAuthenticated ? 'pt-[104px]' : 'pt-6 lg:pt-7'}`}>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex min-w-0 items-start gap-3 sm:gap-4">
                         {isAuthenticated && (
@@ -190,7 +191,7 @@ export function Accessibility() {
                             </button>
                         )}
                         <div className="hidden size-12 shrink-0 items-center justify-center rounded-full border border-[#CDD8E7] bg-white shadow-[0_8px_18px_rgba(7,88,189,0.12)] sm:flex sm:size-14">
-                            <AccessibilitySymbol size={34} aria-hidden="true" />
+                            <AccessibilityIcon size={34} aria-hidden="true" />
                         </div>
                         <div className="min-w-0">
                             <h1 className="break-words text-2xl font-black leading-tight sm:text-[34px]">Acessibilidade</h1>

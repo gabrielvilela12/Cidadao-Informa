@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { User, Shield, Key, FileText, Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { User, Shield, Key, FileText, Loader2, ArrowRight, Eye, EyeOff, Home } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CidadaoBrand } from '../components/CidadaoBrand';
+import { CitizenLoginHero } from '../components/CitizenLoginHero';
+import { ServerLoginHero } from '../components/ServerLoginHero';
 
 // ─── InputField — must be at module level to avoid remounting on each render ──
 function InputField({ label, icon: Icon, type = 'text', value, onChange, placeholder, autoComplete }: any) {
@@ -189,7 +191,7 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                     >
                         <div className="border-b border-slate-100 bg-slate-50 px-6 py-6">
                             <Link to="/" className="flex justify-center">
-                                <CidadaoBrand compact />
+                                <CidadaoBrand compact iconClassName="size-12" />
                             </Link>
                         </div>
 
@@ -200,11 +202,11 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                                     {isAdmin ? 'Bem-vindo de volta' : isRegistering ? 'Preencha seus dados para' : 'Por favor, insira seu'}
                                 </span>
                                 <h1 className="text-xl font-black leading-snug text-slate-900">
-                                    {isAdmin ? 'Acesse sua conta' : isRegistering ? 'criar sua conta' : 'CPF e senha'}
+                                    {isAdmin ? 'Acesse sua conta' : isRegistering ? 'criar sua conta' : 'CPF e Senha'}
                                 </h1>
                                 <p className="text-sm text-slate-500">
                                     {isAdmin
-                                        ? 'Digite seu CPF e senha para continuar.'
+                                        ? 'Digite seu código e senha para continuar.'
                                         : isRegistering
                                             ? 'Informe seus dados para acompanhar solicitações de acessibilidade.'
                                             : 'Acesse para reportar e acompanhar suas solicitações.'}
@@ -340,15 +342,22 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                                         ? <Loader2 size={18} className="animate-spin" />
                                         : <>{isRegistering ? 'Criar minha conta' : 'Entrar agora'} <ArrowRight size={16} /></>}
                                 </button>
+                                <Link
+                                    to="/"
+                                    className="flex items-center justify-center gap-1.5 text-sm font-semibold text-slate-500 transition-colors hover:text-slate-900"
+                                >
+                                    <Home size={15} /> Voltar para página inicial
+                                </Link>
                             </form>
                           </>
                         ) : (
                             /* Admin form */
                             <form onSubmit={handleAdminAuth} className="flex flex-col gap-4">
-                                <InputField label="CPF do Servidor" icon={Shield} value={cpf}
-                                    onChange={(e: any) => setCpf(formatCPF(e.target.value))} placeholder="000.000.000-00" autoComplete="username" />
+                                <InputField label="Código do Servidor" icon={Shield} value={cpf}
+                                    onChange={(e: any) => setCpf(sanitizeCPF(e.target.value).slice(0, 11))} placeholder="00000000000" autoComplete="username" />
                                 <InputField label="Senha" icon={Key} type="password" value={password}
                                     onChange={(e: any) => setPassword(e.target.value)} placeholder="••••••••" autoComplete="current-password" />
+                                <p className="text-center text-xs text-slate-600">Acesso restrito a servidores municipais autorizados.</p>
                                 <button
                                     type="submit"
                                     disabled={loading}
@@ -356,7 +365,12 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                                 >
                                     {loading ? <Loader2 size={18} className="animate-spin" /> : <>Acessar Painel <ArrowRight size={16} /></>}
                                 </button>
-                                <p className="text-center text-xs text-slate-600">Acesso restrito a servidores municipais autorizados.</p>
+                                <Link
+                                    to="/"
+                                    className="flex items-center justify-center gap-1.5 text-sm font-semibold text-slate-500 transition-colors hover:text-slate-900"
+                                >
+                                    <Home size={15} /> Voltar para página inicial
+                                </Link>
                             </form>
                         )}
                         </div>
@@ -369,14 +383,18 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                     </motion.div>
                 </motion.div>
 
-                <div className={`hidden lg:flex flex-1 items-center justify-center overflow-hidden ${isAdmin ? 'order-2 bg-[#fff8dd]' : 'order-1 auth-citizen-gradient'}`}>
-                    <img
-                        src={isAdmin ? '/login-servidor-hero.svg' : '/login-participacao-hero@2x.png'}
-                        alt=""
-                        aria-hidden="true"
-                        className="block h-full w-full object-contain"
-                    />
-                </div>
+                <motion.div
+                    layout
+                    transition={{ duration: 0.65, type: 'spring', stiffness: 60, damping: 18 }}
+                    style={{ order: isAdmin ? 2 : 1 }}
+                    className={`hidden lg:flex flex-1 items-center justify-center overflow-hidden ${isAdmin ? 'bg-[#fff8dd]' : 'auth-citizen-gradient'}`}
+                >
+                    {isAdmin ? (
+                        <ServerLoginHero />
+                    ) : (
+                        <CitizenLoginHero />
+                    )}
+                </motion.div>
             </div>
         </div>
     );

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-    Accessibility,
     Check,
     ChevronDown,
     ChevronLeft,
@@ -18,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Header } from '../components/Header';
+import { AccessibilityIcon } from '../components/AccessibilityIcon';
 import { useProtocols } from '../hooks/useProtocols';
 import { Protocol } from '../constants';
 import { StatusBadge } from './CitizenDashboard';
@@ -324,7 +324,7 @@ function CategoryIcon({ category }: { category: string }) {
         : normalized.includes('audit')
             ? { Icon: Ear, colors: 'bg-violet-100 text-violet-700' }
             : normalized.includes('fís') || normalized.includes('fis') || normalized.includes('mobil')
-                ? { Icon: Accessibility, colors: 'bg-blue-100 text-[#0758bd]' }
+                ? { Icon: AccessibilityIcon, colors: 'bg-blue-100 text-[#0758bd]' }
                 : { Icon: MoreHorizontal, colors: 'bg-emerald-100 text-emerald-700' };
     const Icon = config.Icon;
 

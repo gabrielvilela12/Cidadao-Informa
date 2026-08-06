@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Accessibility,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -26,6 +25,7 @@ import 'leaflet/dist/leaflet.css';
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { AccessibilityIcon } from '../components/AccessibilityIcon';
 import { type Protocol } from '../constants';
 import { useProtocols } from '../hooks/useProtocols';
 import { exportProtocolsToExcel } from '../utils/exportUtils';
@@ -111,7 +111,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
-  [ALL_CATEGORIES[0]]: Accessibility,
+  [ALL_CATEGORIES[0]]: AccessibilityIcon,
   [ALL_CATEGORIES[1]]: Eye,
   [ALL_CATEGORIES[2]]: Ear,
   [ALL_CATEGORIES[3]]: Ellipsis,
