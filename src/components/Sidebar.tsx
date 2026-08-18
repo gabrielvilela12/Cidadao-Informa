@@ -44,8 +44,18 @@ export function Sidebar() {
         />
       )}
 
-      {/* Sidebar */}
-      <aside className={`fixed left-0 top-0 z-50 flex h-screen w-72 flex-col border-r border-[#D3DDEA] bg-white shadow-[4px_0_18px_rgba(35,65,110,0.03)] transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : isSidebarCollapsed ? '-translate-x-full' : '-translate-x-full md:translate-x-0'}`}>
+      {/*
+        Sidebar.
+
+        O estado oculto precisa de `invisible` junto do `-translate-x-full`: so
+        empurrar para fora da tela mantem os 10 controles no fluxo de foco e na
+        arvore de acessibilidade. No celular isso fazia o primeiro Tab de toda
+        pagina cair no botao "Fechar menu", fora da tela.
+
+        `visibility` entra na transicao para o slide de saida continuar sendo
+        visto: a propriedade so vira `hidden` ao fim dos 300ms.
+      */}
+      <aside className={`fixed left-0 top-0 z-50 flex h-screen w-72 flex-col border-r border-[#D3DDEA] bg-white shadow-[4px_0_18px_rgba(35,65,110,0.03)] transform transition-[transform,visibility] duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0 visible' : isSidebarCollapsed ? '-translate-x-full invisible' : '-translate-x-full invisible md:translate-x-0 md:visible'}`}>
 
         {/* Logo */}
         <div className="flex h-20 items-center justify-between border-b border-[#D9E1EC] px-6">
