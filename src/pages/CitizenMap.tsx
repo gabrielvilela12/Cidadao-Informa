@@ -36,6 +36,19 @@ type AddressSuggestion = {
 const allCategories = ['Física', 'Visual', 'Auditiva', 'Outros'];
 const allStatuses = CANONICAL_STATUSES;
 
+/**
+ * Itens do filtro de status. O `value` e tipado como CanonicalStatus de
+ * proposito: o filtro compara contra canonicalStatus(protocol), entao qualquer
+ * divergencia de grafia aqui vira um filtro morto que ainda parece funcionar na
+ * tela. Com o tipo, o compilador barra a divergencia em vez do usuario.
+ */
+const statusFilterItems: Array<{ label: string; value: CanonicalStatus; color: string }> = [
+  { label: 'Aberto', value: 'Aberto', color: '#0758BD' },
+  { label: 'Em análise', value: 'Em análise', color: '#D97706' },
+  { label: 'Concluído', value: 'Concluído', color: '#168821' },
+  { label: 'Atrasado', value: 'Atrasado', color: '#E52207' },
+];
+
 function categorySymbol(category?: string) {
   const normalized = (category || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
   if (normalized.includes('visual')) return '👁';
@@ -253,12 +266,7 @@ export function CitizenMap() {
                 />
                 <FilterGroup
                   title="Status"
-                  items={[
-                    { label: 'Aberto', value: 'Aberto', color: '#0758BD' },
-                    { label: 'Em análise', value: 'Em Análise', color: '#D97706' },
-                    { label: 'Concluído', value: 'Concluído', color: '#168821' },
-                    { label: 'Atrasado', value: 'Atrasado', color: '#E52207' },
-                  ]}
+                  items={statusFilterItems}
                   selectedItems={activeStatuses}
                   onChange={toggleStatus}
                 />
