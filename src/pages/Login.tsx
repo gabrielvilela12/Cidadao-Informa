@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { User, Shield, Key, FileText, Loader2, ArrowRight, Eye, EyeOff, Home } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../services/api';
+import { ApiError } from '../services/http';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CidadaoBrand } from '../components/CidadaoBrand';
 import { CitizenLoginHero } from '../components/CitizenLoginHero';
@@ -16,15 +17,21 @@ function InputField({ label, icon: Icon, type = 'text', value, onChange, placeho
     // nunca fica exposta de um preenchimento anterior.
     const isPassword = type === 'password';
     const [revealed, setRevealed] = useState(false);
+    // O <label> e irmao do <input>, nao pai, entao sem htmlFor/id o campo fica
+    // sem nome acessivel e o leitor de tela cai no placeholder ("000.000.000-00"
+    // em vez de "CPF"). useId da um id estavel por instancia, incluindo os dois
+    // formularios de acesso na mesma pagina.
+    const fieldId = useId();
 
     return (
         <div className="flex flex-col gap-1">
-            <label className="text-xs font-bold text-slate-700">{label}</label>
+            <label htmlFor={fieldId} className="text-xs font-bold text-slate-700">{label}</label>
             <div className="relative">
                 <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none text-slate-500">
                     <Icon size={16} />
                 </div>
                 <input
+                    id={fieldId}
                     type={isPassword && revealed ? 'text' : type}
                     required
                     value={value}
@@ -50,6 +57,20 @@ function InputField({ label, icon: Icon, type = 'text', value, onChange, placeho
             </div>
         </div>
     );
+}
+
+/**
+ * Texto de erro que o cidadao pode ler.
+ *
+ * So repassa a mensagem quando ela foi escrita para o usuario (erro do backend,
+ * ou regra desta tela). Falha de configuracao, status HTTP cru e queda de rede
+ * viram um aviso generico e o detalhe fica no console, para quem depura.
+ */
+function authErrorMessage(error: unknown): string {
+    if (error instanceof ApiError && error.userFacing) return error.message;
+
+    console.error('Falha na autenticação:', error);
+    return 'Não foi possível concluir o acesso agora. Tente novamente em instantes.';
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -98,8 +119,8 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                 loginSuccess(data.token, { id: data.userId, cpf: data.cpf, full_name: data.name, email: data.email, phone: data.phone, created_at: data.createdAt }, data.role as 'citizen' | 'admin');
                 navigate(data.role === 'admin' ? '/admin' : '/');
             }
-        } catch (err: any) {
-            setErrorDesc(err.message || 'Erro na autenticação. Tente novamente.');
+        } catch (err) {
+            setErrorDesc(authErrorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -117,7 +138,7 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
         try {
             const data = await api.login(cleanCpf, password);
             if (data.role !== 'admin') {
-                throw new Error('Acesso restrito a servidores autorizados.');
+                throw new ApiError('Acesso restrito a servidores autorizados.', true);
             }
 
             loginSuccess(
@@ -133,8 +154,8 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                 'admin'
             );
             navigate('/admin');
-        } catch (err: any) {
-            setErrorDesc(err.message || 'Erro na autenticação. Tente novamente.');
+        } catch (err) {
+            setErrorDesc(authErrorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -244,19 +265,28 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                             </p>
                         </div>
 
-                        {/* Error */}
-                        <AnimatePresence>
-                            {errorDesc && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: -8 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0 }}
-                                    className="rounded-2xl border border-red-200 bg-red-50 p-3 text-center text-sm text-red-700"
-                                >
-                                    {errorDesc}
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                        {/*
+                          Error.
+
+                          O contêiner com role="alert" fica sempre montado, mesmo
+                          vazio: região viva que nasce junto com o texto costuma
+                          não ser anunciada. Sem isso, quem usa leitor de tela
+                          tentava entrar e não recebia nenhum retorno da falha.
+                        */}
+                        <div role="alert" aria-live="assertive">
+                            <AnimatePresence>
+                                {errorDesc && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0 }}
+                                        className="rounded-2xl border border-red-200 bg-red-50 p-3 text-center text-sm text-red-700"
+                                    >
+                                        {errorDesc}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
 
                         {/* Citizen form */}
                         {authMode === 'citizen' ? (
