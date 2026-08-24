@@ -229,7 +229,6 @@ export function AdminMap() {
               if (!isNew) return;
 
               setNewProtocolNotice(protocol);
-              setActiveIncident(protocol);
 
               if (newProtocolNoticeTimer.current) {
                 window.clearTimeout(newProtocolNoticeTimer.current);
@@ -238,14 +237,6 @@ export function AdminMap() {
                 setNewProtocolNotice((current) => current?.id === protocol.id ? null : current);
                 newProtocolNoticeTimer.current = null;
               }, NEW_MARKER_ANIMATION_MS);
-
-              const position = getMarkerPosition(protocol);
-              if (position && map) {
-                map.flyTo(position, Math.max(map.getZoom(), 14), {
-                  animate: true,
-                  duration: 1.25,
-                });
-              }
 
               setNewProtocolIds((current) => {
                 const updated = new Set(current);
@@ -291,7 +282,7 @@ export function AdminMap() {
         newProtocolNoticeTimer.current = null;
       }
     };
-  }, [map, mergeProtocol, refetch]);
+  }, [mergeProtocol, refetch]);
 
   // O contorno das 27 UFs sao ~160 KB, carregados so quando o modo estado e
   // acionado - nenhuma outra tela precisa deles. Vite separa em chunk proprio.
@@ -577,7 +568,7 @@ export function AdminMap() {
                   setActiveIncident(newProtocolNotice);
                   if (position) map?.flyTo(position, Math.max(map.getZoom(), 16), { duration: 1 });
                 }}
-                className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-[#0758BD] px-3 text-sm font-bold text-white hover:bg-[#064A9E]"
+                className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-[#A7C7F2] bg-white px-3 text-sm font-bold text-[#0758BD] hover:bg-[#EAF2FF]"
               >
                 <MapPin size={16} /> Ver no mapa
               </button>
