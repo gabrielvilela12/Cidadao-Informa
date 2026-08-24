@@ -8,7 +8,6 @@ import {
     Clock3,
     Database,
     Download,
-    LogIn,
     MapPinned,
     RefreshCw,
     ShieldCheck,
@@ -228,9 +227,6 @@ export function Transparency() {
                                         <button type="button" onClick={exportCsv} className="inline-flex h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 transition-colors hover:border-[#0B63CE] hover:text-[#0758BD]">
                                             <Download size={17} aria-hidden="true" /> CSV
                                         </button>
-                                        <Link to="/login" className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#0B63CE] px-5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#084C9F]">
-                                            <LogIn size={17} aria-hidden="true" /> Entrar
-                                        </Link>
                                     </div>
                                 </div>
                             )}
