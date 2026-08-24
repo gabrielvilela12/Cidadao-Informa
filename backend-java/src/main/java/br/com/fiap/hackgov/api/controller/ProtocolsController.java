@@ -233,7 +233,11 @@ public class ProtocolsController {
                     evidence
             );
 
-            return ResponseEntity.ok(ProtocolOutputDto.from(updated));
+            // `save()` pode devolver uma instância mesclada cuja relação lazy
+            // com o cidadão já ficou fora da sessão do repositório. Recarregar
+            // pelo método com EntityGraph evita um 500 depois de a alteração e
+            // o bloco de auditoria já terem sido persistidos com sucesso.
+            return ResponseEntity.ok(ProtocolOutputDto.from(findProtocol(id)));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(new ErrorResponse(ex.getMessage()));
         }
