@@ -111,7 +111,9 @@ Para habilitar a simulação de correção por IA, publique a função
 `generate-corrected-image` e configure nela os segredos `OPENROUTER_API_KEY` e
 `AI_IMAGE_FUNCTION_SECRET`. Os modelos podem ser trocados pelos segredos
 opcionais `OPENROUTER_IMAGE_MODEL` (padrão `google/gemini-3.1-flash-image`) e
-`OPENROUTER_REPORT_MODEL` (padrão `google/gemini-2.5-flash-lite`).
+`OPENROUTER_REPORT_MODEL` (padrão `google/gemini-3.1-flash-image`). Assim, tanto
+a leitura da foto e criação do plano quanto a edição visual usam o Nano Banana 2
+(Gemini 3.1 Flash Image), salvo quando uma dessas variáveis for sobrescrita.
 
 Use a conexão Session Pooler mostrada no botão `Connect` do projeto para
 funcionar também em hospedagens e redes compatíveis apenas com IPv4. Nunca
