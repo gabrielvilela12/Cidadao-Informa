@@ -194,7 +194,7 @@ export function Transparency() {
                             <ArrowLeft size={18} aria-hidden="true" />
                             <span className="hidden sm:inline">Página inicial</span>
                         </Link>
-                        <Link to="/login" className="inline-flex h-10 items-center rounded-lg bg-[#0B63CE] px-4 text-sm font-bold text-white hover:bg-[#084C9F]">
+                        <Link to="/login" className="inline-flex h-10 items-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 transition-colors hover:border-[#0B63CE] hover:text-[#0758BD]">
                             Entrar
                         </Link>
                     </nav>
