@@ -6,7 +6,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.UUID;
 
 @RestController
@@ -26,12 +25,6 @@ public class AdminReportsController {
     public ResponseEntity<?> detail(@PathVariable UUID id, Authentication authentication) {
         requireAdmin(authentication);
         return ResponseEntity.ok(service.detail(id));
-    }
-
-    @PostMapping("/generate/{date}")
-    public ResponseEntity<?> generate(@PathVariable LocalDate date, Authentication authentication) {
-        requireAdmin(authentication);
-        return ResponseEntity.ok(service.generate(date));
     }
 
     private void requireAdmin(Authentication authentication) {

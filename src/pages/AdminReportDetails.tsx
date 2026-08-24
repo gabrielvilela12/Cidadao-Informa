@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, CalendarDays, CircleDollarSign, FileClock, Loader2, MapPin, RefreshCw } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CalendarDays, CircleDollarSign, FileClock, FileSpreadsheet, FileText, Loader2, MapPin, RefreshCw } from 'lucide-react';
 import { Header } from '../components/Header';
 import { api, type DailyReportDetail } from '../services/api';
 import { formatCurrency } from '../utils/currency';
+import { exportDailyReportDetailExcel, exportDailyReportDetailPdf } from '../utils/dailyReportExports';
 
 const dateLabel = (value: string) => new Date(`${value}T12:00:00`).toLocaleDateString('pt-BR');
 const dateTimeLabel = (value: string) => new Date(value).toLocaleString('pt-BR');
@@ -13,6 +14,8 @@ export function AdminReportDetails() {
   const [report, setReport] = useState<DailyReportDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [exporting, setExporting] = useState<'pdf' | 'excel' | null>(null);
+  const [exportError, setExportError] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -24,11 +27,29 @@ export function AdminReportDetails() {
   if (!report || error) return <div className="flex h-full flex-col items-center justify-center bg-[#F4F8FC] p-8 text-center"><FileClock size={44} className="text-slate-300" /><h1 className="mt-3 text-2xl font-black text-[#0A1F44]">Relatório não encontrado</h1><p className="mt-2 text-slate-500">{error}</p><Link to="/admin/relatorios" className="mt-5 font-bold text-[#0758BD]">Voltar aos relatórios</Link></div>;
 
   const maxRegion = Math.max(1, ...report.regionDistribution.map((item) => item.count));
+  const exportReport = async (format: 'pdf' | 'excel') => {
+    setExporting(format);
+    setExportError('');
+    try {
+      if (format === 'pdf') await exportDailyReportDetailPdf(report);
+      else await exportDailyReportDetailExcel(report);
+    } catch (reason) {
+      setExportError(reason instanceof Error ? reason.message : 'Não foi possível exportar o relatório.');
+    } finally {
+      setExporting(null);
+    }
+  };
   return (
     <div className="flex h-full flex-1 flex-col overflow-y-auto bg-[#F4F8FC] text-[#0A1F44]">
-      <Header title={`Fechamento de ${dateLabel(report.reportDate)}`} subtitle={`Período encerrado • gerado em ${dateTimeLabel(report.generatedAt)}`} />
+      <Header title={`Fechamento de ${dateLabel(report.reportDate)}`} subtitle={`Período encerrado • gerado em ${dateTimeLabel(report.generatedAt)}`} action={(
+        <div className="flex gap-2">
+          <button type="button" onClick={() => void exportReport('pdf')} disabled={exporting !== null} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#CBD8E9] bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50">{exporting === 'pdf' ? <Loader2 size={17} className="animate-spin" /> : <FileText size={17} />} PDF</button>
+          <button type="button" onClick={() => void exportReport('excel')} disabled={exporting !== null} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#0758BD] px-4 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50">{exporting === 'excel' ? <Loader2 size={17} className="animate-spin" /> : <FileSpreadsheet size={17} />} Excel</button>
+        </div>
+      )} />
       <div className="space-y-5 px-4 pb-8 sm:px-6 lg:px-8">
         <Link to="/admin/relatorios" className="inline-flex items-center gap-2 font-bold text-[#0758BD] hover:text-blue-800"><ArrowLeft size={18} /> Voltar aos relatórios</Link>
+        {exportError && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 font-semibold text-red-700">{exportError}</div>}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Metric icon={CalendarDays} label="Novas solicitações" value={String(report.newProtocolsCount)} tone="blue" />
           <Metric icon={RefreshCw} label="Mudanças de status" value={String(report.statusChangesCount)} tone="amber" />

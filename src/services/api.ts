@@ -305,10 +305,6 @@ export const api = {
         return apiRequest<DailyReportDetail>(`/api/admin/reports/${encodeURIComponent(id)}`);
     },
 
-    generateDailyReport(date: string) {
-        return apiRequest<DailyReportSummary>(`/api/admin/reports/generate/${encodeURIComponent(date)}`, { method: 'POST' });
-    },
-
     async createProtocol(data: any) {
         return apiRequest<ApiProtocol>('/api/protocols', {
             method: 'POST',

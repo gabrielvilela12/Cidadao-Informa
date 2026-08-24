@@ -1,17 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarDays, CircleDollarSign, FileClock, Loader2, MapPin, RefreshCw } from 'lucide-react';
+import { ArrowRight, CalendarDays, CircleDollarSign, FileClock, FileSpreadsheet, FileText, Loader2, MapPin, RefreshCw } from 'lucide-react';
 import { Header } from '../components/Header';
 import { api, type DailyReportSummary } from '../services/api';
 import { formatCurrency } from '../utils/currency';
-
-function yesterdayInSaoPaulo() {
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  const date = new Date(`${values.year}-${values.month}-${values.day}T12:00:00Z`);
-  date.setUTCDate(date.getUTCDate() - 1);
-  return date.toISOString().slice(0, 10);
-}
+import { exportDailyReportsExcel, exportDailyReportsPdf } from '../utils/dailyReportExports';
 
 const dateLabel = (value: string) => new Date(`${value}T12:00:00`).toLocaleDateString('pt-BR');
 const dateTimeLabel = (value: string) => new Date(value).toLocaleString('pt-BR');
@@ -19,7 +12,7 @@ const dateTimeLabel = (value: string) => new Date(value).toLocaleString('pt-BR')
 export function AdminReports() {
   const [reports, setReports] = useState<DailyReportSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
+  const [exporting, setExporting] = useState<'pdf' | 'excel' | null>(null);
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
@@ -32,12 +25,18 @@ export function AdminReports() {
 
   useEffect(() => { void load(); }, [load]);
 
-  const generateYesterday = async () => {
-    setGenerating(true);
+  const exportReports = async (format: 'pdf' | 'excel') => {
+    if (!reports.length) return;
+    setExporting(format);
     setError('');
-    try { await api.generateDailyReport(yesterdayInSaoPaulo()); await load(); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : 'Não foi possível gerar o fechamento de ontem.'); }
-    finally { setGenerating(false); }
+    try {
+      if (format === 'pdf') await exportDailyReportsPdf(reports);
+      else await exportDailyReportsExcel(reports);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Não foi possível exportar os relatórios.');
+    } finally {
+      setExporting(null);
+    }
   };
 
   const totals = useMemo(() => reports.reduce((result, item) => ({
@@ -51,7 +50,8 @@ export function AdminReports() {
       <Header title="Relatórios diários" subtitle="Fechamentos operacionais gerados todos os dias à 00h" action={(
         <div className="flex gap-2">
           <button type="button" onClick={() => void load()} disabled={loading} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#CBD8E9] bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60"><RefreshCw size={17} className={loading ? 'animate-spin' : ''} /> Atualizar</button>
-          <button type="button" onClick={() => void generateYesterday()} disabled={generating} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#0758BD] px-4 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60">{generating ? <Loader2 size={17} className="animate-spin" /> : <FileClock size={17} />} Fechar ontem</button>
+          <button type="button" onClick={() => void exportReports('pdf')} disabled={!reports.length || exporting !== null} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#CBD8E9] bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50">{exporting === 'pdf' ? <Loader2 size={17} className="animate-spin" /> : <FileText size={17} />} PDF</button>
+          <button type="button" onClick={() => void exportReports('excel')} disabled={!reports.length || exporting !== null} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#0758BD] px-4 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50">{exporting === 'excel' ? <Loader2 size={17} className="animate-spin" /> : <FileSpreadsheet size={17} />} Excel</button>
         </div>
       )} />
       <div className="space-y-5 px-4 pb-8 sm:px-6 lg:px-8">
@@ -64,7 +64,7 @@ export function AdminReports() {
         <section className="overflow-hidden rounded-xl border border-[#D7E0EC] bg-white shadow-sm">
           <div className="border-b border-[#E2E8F0] px-5 py-4"><h2 className="text-lg font-black">Histórico de fechamentos</h2><p className="mt-1 text-sm text-slate-500">Cada linha é uma fotografia imutável do dia encerrado.</p></div>
           {loading ? <div className="flex min-h-48 items-center justify-center gap-3 text-slate-500"><Loader2 className="animate-spin text-[#0758BD]" /> Carregando relatórios...</div>
-            : reports.length === 0 ? <div className="flex min-h-48 flex-col items-center justify-center px-6 text-center"><FileClock size={38} className="mb-3 text-slate-300" /><p className="font-bold text-slate-700">Nenhum fechamento diário gerado</p><p className="mt-1 text-sm text-slate-500">O primeiro será criado à meia-noite, ou você pode fechar ontem agora.</p></div>
+            : reports.length === 0 ? <div className="flex min-h-48 flex-col items-center justify-center px-6 text-center"><FileClock size={38} className="mb-3 text-slate-300" /><p className="font-bold text-slate-700">Nenhum fechamento diário gerado</p><p className="mt-1 text-sm text-slate-500">O primeiro será criado automaticamente à meia-noite.</p></div>
               : <div className="overflow-x-auto"><table className="w-full min-w-[930px] text-left text-sm"><thead className="bg-[#F7F9FC] text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-3">Dia</th><th className="px-4 py-3">Novas</th><th className="px-4 py-3">Mudanças</th><th className="px-4 py-3">Valor gasto</th><th className="px-4 py-3">Regiões</th><th className="px-4 py-3">Protocolos envolvidos</th><th className="px-4 py-3">Gerado em</th><th className="px-5 py-3 text-right">Ação</th></tr></thead><tbody className="divide-y divide-[#E8EDF4]">{reports.map((report) => <tr key={report.id} className="hover:bg-blue-50/40"><td className="px-5 py-4 font-black">{dateLabel(report.reportDate)}</td><td className="px-4 py-4 font-bold text-blue-700">{report.newProtocolsCount}</td><td className="px-4 py-4 font-bold text-amber-700">{report.statusChangesCount}</td><td className="px-4 py-4 font-bold text-emerald-700">{formatCurrency(report.totalSpent)}</td><td className="px-4 py-4"><span className="inline-flex items-center gap-1.5"><MapPin size={15} />{report.regionsCount}</span></td><td className="px-4 py-4">{report.protocolsInvolvedCount}</td><td className="px-4 py-4 text-slate-500">{dateTimeLabel(report.generatedAt)}</td><td className="px-5 py-4 text-right"><Link to={`/admin/relatorios/${report.id}`} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#B9CBE2] bg-white px-3 font-bold text-[#0758BD] hover:bg-blue-50">Ver detalhes <ArrowRight size={16} /></Link></td></tr>)}</tbody></table></div>}
         </section>
       </div>
