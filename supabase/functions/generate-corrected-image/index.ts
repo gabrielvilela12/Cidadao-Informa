@@ -8,7 +8,7 @@ const IMAGE_RESOLUTION = Deno.env.get("OPENROUTER_IMAGE_RESOLUTION") ?? "4K";
 const OPENROUTER_IMAGES_URL = "https://openrouter.ai/api/v1/images";
 const OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions";
 const REPORT_MODEL = Deno.env.get("OPENROUTER_REPORT_MODEL")
-  ?? "google/gemini-3.1-flash-image";
+  ?? "google/gemini-3.7-flash";
 const MAX_IMAGES = 4;
 const MAX_INPUT_LENGTH = 3_000_000;
 
