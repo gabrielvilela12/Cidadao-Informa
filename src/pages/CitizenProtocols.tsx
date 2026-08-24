@@ -279,8 +279,12 @@ function ProtocolRow({ protocol, copied, onCopy, alternate }: { protocol: Protoc
             <td className="whitespace-nowrap px-5 py-2.5 text-sm text-slate-600">{protocol.date}</td>
             <td className="px-5 py-2.5"><StatusBadge status={protocol.status} /></td>
             <td className="px-5 py-2.5 text-right">
-                <Link to={`/protocolo/${protocol.id}`} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-[#CDD8E7] bg-white px-4 text-sm font-semibold text-slate-600 transition hover:border-[#0758bd] hover:text-[#0758bd]">
-                    <Eye size={16} />
+                <Link
+                    to={`/protocolo/${protocol.id}`}
+                    aria-label={`Ver detalhes do protocolo ${protocol.id.slice(0, 8)}`}
+                    className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-[#EAF2FF] px-3.5 text-sm font-bold text-[#0758BD] transition-colors hover:bg-[#DCEAFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0758BD] focus-visible:ring-offset-2"
+                >
+                    <Eye className="shrink-0" size={16} aria-hidden="true" />
                     Ver detalhes
                 </Link>
             </td>
@@ -308,8 +312,12 @@ function MobileProtocolCard({ protocol, copied, onCopy }: { protocol: Protocol; 
                     </div>
                 </div>
                 <p className="text-sm text-slate-600">{protocol.date}</p>
-                <Link to={`/protocolo/${protocol.id}`} className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-[#0758bd] bg-white px-4 text-sm font-semibold text-[#0758bd] sm:w-auto">
-                    <Eye size={16} />
+                <Link
+                    to={`/protocolo/${protocol.id}`}
+                    aria-label={`Ver detalhes do protocolo ${protocol.id.slice(0, 8)}`}
+                    className="inline-flex min-h-10 w-full items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-[#EAF2FF] px-4 text-sm font-bold text-[#0758BD] transition-colors hover:bg-[#DCEAFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0758BD] focus-visible:ring-offset-2 sm:w-auto"
+                >
+                    <Eye className="shrink-0" size={16} aria-hidden="true" />
                     Ver detalhes
                 </Link>
             </div>
