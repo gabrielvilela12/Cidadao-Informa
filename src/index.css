@@ -983,6 +983,35 @@ a {
   transform: rotate(-45deg) scale(1.16);
 }
 
+.protocol-marker-pin.is-new {
+  animation: protocol-marker-arrival 1.4s cubic-bezier(0.22, 1, 0.36, 1) 2;
+}
+
+@keyframes protocol-marker-arrival {
+  0% {
+    opacity: 0.35;
+    box-shadow: 0 4px 10px rgba(7, 22, 47, 0.2), 0 0 0 0 rgba(7, 88, 189, 0.35);
+    transform: rotate(-45deg) scale(0.78);
+  }
+  45% {
+    opacity: 1;
+    box-shadow: 0 5px 14px rgba(7, 22, 47, 0.3), 0 0 0 10px rgba(7, 88, 189, 0);
+    transform: rotate(-45deg) scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    box-shadow: 0 4px 10px rgba(7, 22, 47, 0.3), 0 0 0 0 rgba(7, 88, 189, 0);
+    transform: rotate(-45deg) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .protocol-marker-pin.is-new {
+    animation: none;
+    outline: 4px solid rgba(7, 88, 189, 0.2);
+  }
+}
+
 /* Mapa de calor */
 
 /*

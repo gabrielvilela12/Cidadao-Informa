@@ -16,7 +16,7 @@ import { api } from '../services/api';
  * cidadao recebe so os proprios protocolos, admin recebe todos.
  */
 export function useProtocols(_role: 'citizen' | 'admin' | 'all' = 'all') {
-    const { protocols, loading, error, ensureFresh, refetch } = useProtocolsCache();
+    const { protocols, loading, error, ensureFresh, refetch, mergeProtocol } = useProtocolsCache();
 
     useEffect(() => {
         ensureFresh();
@@ -32,5 +32,5 @@ export function useProtocols(_role: 'citizen' | 'admin' | 'all' = 'all') {
         }
     }, []);
 
-    return { protocols, loading, error, fetchProtocolById, refetch };
+    return { protocols, loading, error, fetchProtocolById, refetch, mergeProtocol };
 }

@@ -6,10 +6,12 @@ import br.com.fiap.hackgov.application.dto.protocol.ProtocolOutputDto;
 import br.com.fiap.hackgov.application.dto.protocol.ProtocolStatusUpdateInputDto;
 import br.com.fiap.hackgov.application.dto.protocol.GeocodeBackfillInputDto;
 import br.com.fiap.hackgov.application.dto.protocol.PublicProtocolOutputDto;
+import br.com.fiap.hackgov.application.dto.protocol.ProtocolSummaryOutputDto;
 import br.com.fiap.hackgov.application.service.AiPriorityService;
 import br.com.fiap.hackgov.application.service.AiImageCorrectionService;
 import br.com.fiap.hackgov.application.service.GeocodingService;
 import br.com.fiap.hackgov.application.service.ProtocolAuditService;
+import br.com.fiap.hackgov.application.service.ProtocolEventService;
 import br.com.fiap.hackgov.application.usecase.protocol.CreateProtocolUseCase;
 import br.com.fiap.hackgov.application.usecase.protocol.GetPublicStatsUseCase;
 import br.com.fiap.hackgov.application.usecase.protocol.GetProtocolsUseCase;
@@ -17,6 +19,7 @@ import br.com.fiap.hackgov.domain.entity.Protocol;
 import br.com.fiap.hackgov.domain.repository.ProtocolRepository;
 import br.com.fiap.hackgov.infrastructure.security.AuthenticatedUser;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,6 +29,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Map;
 import java.util.Set;
@@ -49,6 +54,7 @@ public class ProtocolsController {
     private final AiPriorityService aiPriorityService;
     private final AiImageCorrectionService aiImageCorrectionService;
     private final GeocodingService geocodingService;
+    private final ProtocolEventService protocolEventService;
 
     public ProtocolsController(
             CreateProtocolUseCase createProtocolUseCase,
@@ -58,7 +64,8 @@ public class ProtocolsController {
             ProtocolAuditService auditService,
             AiPriorityService aiPriorityService,
             AiImageCorrectionService aiImageCorrectionService,
-            GeocodingService geocodingService
+            GeocodingService geocodingService,
+            ProtocolEventService protocolEventService
     ) {
         this.createProtocolUseCase = createProtocolUseCase;
         this.getProtocolsUseCase = getProtocolsUseCase;
@@ -68,6 +75,7 @@ public class ProtocolsController {
         this.aiPriorityService = aiPriorityService;
         this.aiImageCorrectionService = aiImageCorrectionService;
         this.geocodingService = geocodingService;
+        this.protocolEventService = protocolEventService;
     }
 
     @PostMapping
@@ -106,6 +114,8 @@ public class ProtocolsController {
                     created.category()
             );
 
+            protocolEventService.publishCreated(ProtocolSummaryOutputDto.from(created));
+
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (Exception ex) {
             return ResponseEntity.badRequest().body(new ErrorResponse(ex.getMessage()));
@@ -121,6 +131,19 @@ public class ProtocolsController {
         } catch (Exception ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse(ex.getMessage()));
+        }
+    }
+
+    @GetMapping(value = "/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public ResponseEntity<SseEmitter> streamProtocolEvents(Authentication authentication) {
+        try {
+            requireAdmin(authentication);
+            return ResponseEntity.ok()
+                    .header("Cache-Control", "no-cache, no-transform")
+                    .header("X-Accel-Buffering", "no")
+                    .body(protocolEventService.subscribe());
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, exception.getMessage());
         }
     }
 

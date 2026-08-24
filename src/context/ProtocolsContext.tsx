@@ -37,6 +37,8 @@ interface ProtocolsCacheValue {
     invalidate: () => void;
     /** Busca agora, ignorando a janela de validade. */
     refetch: () => Promise<void>;
+    /** Insere ou atualiza um protocolo entregue pelo canal em tempo real. */
+    mergeProtocol: (protocol: Protocol) => void;
 }
 
 const ProtocolsCacheContext = createContext<ProtocolsCacheValue | undefined>(undefined);
@@ -94,6 +96,19 @@ export function ProtocolsProvider({ children }: { children: React.ReactNode }) {
 
     const refetch = useCallback(() => load(), [load]);
 
+    const mergeProtocol = useCallback((protocol: Protocol) => {
+        setProtocols((current) => {
+            const existingIndex = current.findIndex((item) => item.id === protocol.id);
+            if (existingIndex < 0) return [protocol, ...current];
+
+            const updated = [...current];
+            updated[existingIndex] = protocol;
+            return updated;
+        });
+        hasData.current = true;
+        fetchedAt.current = Date.now();
+    }, []);
+
     // Uma busca por sessao. Trocar de usuario reinicia o cache; sair limpa.
     useEffect(() => {
         if (!user) {
@@ -116,7 +131,7 @@ export function ProtocolsProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <ProtocolsCacheContext.Provider
-            value={{ protocols, loading, error, ensureFresh, invalidate, refetch }}
+            value={{ protocols, loading, error, ensureFresh, invalidate, refetch, mergeProtocol }}
         >
             {children}
         </ProtocolsCacheContext.Provider>

@@ -50,6 +50,7 @@ import { HeatGradientLayer } from '../components/admin/HeatGradientLayer';
 import { HeatStateLayer } from '../components/admin/HeatStateLayer';
 import { HeatCityLayer } from '../components/admin/HeatCityLayer';
 import { HeatLegend, type HeatMode, type HeatSettings } from '../components/admin/HeatLegend';
+import { api } from '../services/api';
 
 /** Pins = um marcador por protocolo. Calor = densidade agregada por área. */
 type MapLayer = 'pins' | 'heat';
@@ -72,6 +73,25 @@ interface VisibleProtocolMarker {
 const OVERLAP_COORDINATE_PRECISION = 6;
 const OVERLAP_SPREAD_METERS = 32;
 const METERS_PER_DEGREE_LATITUDE = 111_320;
+const NEW_MARKER_ANIMATION_MS = 4_000;
+const MAX_SSE_RECONNECT_MS = 15_000;
+
+function waitForReconnect(delay: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal.aborted) {
+      resolve();
+      return;
+    }
+
+    const finish = () => {
+      window.clearTimeout(timer);
+      signal.removeEventListener('abort', finish);
+      resolve();
+    };
+    const timer = window.setTimeout(finish, delay);
+    signal.addEventListener('abort', finish, { once: true });
+  });
+}
 
 function markerGroupKey(position: [number, number]): string {
   return `${position[0].toFixed(OVERLAP_COORDINATE_PRECISION)},${position[1].toFixed(OVERLAP_COORDINATE_PRECISION)}`;
@@ -143,7 +163,7 @@ function MapTracker({ onReady }: { onReady: (map: L.Map) => void }) {
 }
 
 export function AdminMap() {
-  const { protocols, loading } = useProtocols('admin');
+  const { protocols, loading, mergeProtocol, refetch } = useProtocols('admin');
   const { toggleMobileMenu } = useApp();
   const [map, setMap] = useState<L.Map | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>(DEFAULT_MAP_CENTER);
@@ -159,6 +179,9 @@ export function AdminMap() {
   const [mapOnlyMode, setMapOnlyMode] = useState(false);
   const [showOperationalPanel, setShowOperationalPanel] = useState(false);
   const [activeLayer, setActiveLayer] = useState<MapLayer>('pins');
+  const [newProtocolIds, setNewProtocolIds] = useState<Set<string>>(() => new Set());
+  const knownProtocolIds = useRef<Set<string>>(new Set());
+  const newMarkerTimers = useRef<Map<string, number>>(new Map());
   const [heatMode, setHeatMode] = useState<HeatMode>('gradient');
   const [heatSettings, setHeatSettings] = useState<HeatSettings>({
     radiusMeters: HEAT_CONTROLS.radius.default,
@@ -171,6 +194,78 @@ export function AdminMap() {
   const showHeat = activeLayer === 'heat';
   const showStates = showHeat && heatMode === 'state';
   const showCities = showHeat && heatMode === 'city';
+
+  useEffect(() => {
+    protocols.forEach((protocol) => knownProtocolIds.current.add(protocol.id));
+  }, [protocols]);
+
+  // O fetch streaming continua sendo SSE, mas permite autenticar com o bearer
+  // token sem coloca-lo na URL. Ao reconectar, a listagem e revalidada para
+  // recuperar qualquer protocolo criado enquanto o navegador estava offline.
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const connect = async () => {
+      let reconnectDelay = 1_000;
+
+      while (!controller.signal.aborted) {
+        let connected = false;
+
+        try {
+          await api.listenToProtocolEvents(controller.signal, {
+            onConnected: () => {
+              connected = true;
+              reconnectDelay = 1_000;
+              void refetch();
+            },
+            onProtocolCreated: (protocol) => {
+              const isNew = !knownProtocolIds.current.has(protocol.id);
+              knownProtocolIds.current.add(protocol.id);
+              mergeProtocol(protocol);
+
+              if (!isNew) return;
+
+              setNewProtocolIds((current) => {
+                const updated = new Set(current);
+                updated.add(protocol.id);
+                return updated;
+              });
+
+              const currentTimer = newMarkerTimers.current.get(protocol.id);
+              if (currentTimer) window.clearTimeout(currentTimer);
+              const timer = window.setTimeout(() => {
+                setNewProtocolIds((current) => {
+                  const updated = new Set(current);
+                  updated.delete(protocol.id);
+                  return updated;
+                });
+                newMarkerTimers.current.delete(protocol.id);
+              }, NEW_MARKER_ANIMATION_MS);
+              newMarkerTimers.current.set(protocol.id, timer);
+            },
+          });
+        } catch (error) {
+          if (!controller.signal.aborted) {
+            console.warn('Canal de protocolos em tempo real desconectado.', error);
+          }
+        }
+
+        if (controller.signal.aborted) break;
+        await waitForReconnect(reconnectDelay, controller.signal);
+        if (!connected) {
+          reconnectDelay = Math.min(reconnectDelay * 2, MAX_SSE_RECONNECT_MS);
+        }
+      }
+    };
+
+    void connect();
+
+    return () => {
+      controller.abort();
+      newMarkerTimers.current.forEach((timer) => window.clearTimeout(timer));
+      newMarkerTimers.current.clear();
+    };
+  }, [mergeProtocol, refetch]);
 
   // O contorno das 27 UFs sao ~160 KB, carregados so quando o modo estado e
   // acionado - nenhuma outra tela precisa deles. Vite separa em chunk proprio.
@@ -381,6 +476,7 @@ export function AdminMap() {
             protocol={protocol}
             position={position}
             selected={activeIncident?.id === protocol.id}
+            isNew={newProtocolIds.has(protocol.id)}
             overlapCount={overlapCount}
             overlapIndex={overlapIndex}
             onClick={() => handleMarkerClick(protocol, protocolIndex)}
@@ -629,14 +725,14 @@ function FilterGroup({ title, values, selected, onToggle, status = false }: { ti
   );
 }
 
-function ProtocolMarker({ protocol, position, selected, overlapCount, overlapIndex, onClick }: { protocol: Protocol; position: [number, number]; selected: boolean; overlapCount: number; overlapIndex: number; onClick: () => void }) {
+function ProtocolMarker({ protocol, position, selected, isNew, overlapCount, overlapIndex, onClick }: { protocol: Protocol; position: [number, number]; selected: boolean; isNew: boolean; overlapCount: number; overlapIndex: number; onClick: () => void }) {
   const status = canonicalStatus(protocol);
   const categoryIconMarkup = CATEGORY_MARKER_ICONS[protocol.category] || '&hellip;';
   const overlapBadge = overlapCount > 1 ? `<small class="protocol-marker-count">${overlapIndex + 1}</small>` : '';
 
   const icon = L.divIcon({
     className: 'protocol-marker-icon',
-    html: `<span class="protocol-marker-pin ${selected ? 'is-selected' : ''}" style="--marker-color:${STATUS_COLORS[status]}"><span>${categoryIconMarkup}</span>${overlapBadge}</span>`,
+    html: `<span class="protocol-marker-pin${selected ? ' is-selected' : ''}${isNew ? ' is-new' : ''}" style="--marker-color:${STATUS_COLORS[status]}"><span>${categoryIconMarkup}</span>${overlapBadge}</span>`,
     iconSize: [38, 38],
     iconAnchor: [19, 38],
     popupAnchor: [0, -38],

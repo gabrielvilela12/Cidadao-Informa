@@ -60,4 +60,26 @@ public record ProtocolSummaryOutputDto(
                 protocol.getCorrectionGeneratedAt()
         );
     }
+
+    /** Cria o payload leve do SSE sem reenviar as imagens em base64. */
+    public static ProtocolSummaryOutputDto from(ProtocolOutputDto protocol) {
+        return new ProtocolSummaryOutputDto(
+                protocol.id(),
+                protocol.category(),
+                protocol.description(),
+                protocol.address(),
+                protocol.createdAt(),
+                protocol.status(),
+                protocol.userId(),
+                protocol.requester(),
+                protocol.phone(),
+                protocol.aiPriority(),
+                protocol.aiStatus(),
+                protocol.latitude(),
+                protocol.longitude(),
+                protocol.correctionStatus(),
+                protocol.correctionError(),
+                protocol.correctionGeneratedAt()
+        );
+    }
 }

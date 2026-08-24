@@ -1,4 +1,5 @@
-import { apiRequest } from './http';
+import type { Protocol } from '../constants';
+import { apiRequest, readEventStream } from './http';
 
 interface ApiProtocol {
     id: string;
@@ -72,10 +73,9 @@ interface AuthResponse {
     createdAt: string;
 }
 
-function mapProtocol(item: ApiProtocol) {
+function mapProtocol(item: ApiProtocol): Protocol {
     return {
         ...item,
-        user_id: item.userId,
         created_at: item.createdAt,
         ai_priority: item.aiPriority,
         ai_status: item.aiStatus,
@@ -146,6 +146,31 @@ export const api = {
     async getProtocols() {
         const data = await apiRequest<ApiProtocol[]>('/api/protocols');
         return data.map(mapProtocol);
+    },
+
+    listenToProtocolEvents(
+        signal: AbortSignal,
+        handlers: {
+            onConnected?: () => void;
+            onProtocolCreated: (protocol: Protocol) => void;
+        },
+    ) {
+        return readEventStream('/api/protocols/events', {
+            signal,
+            onEvent(event) {
+                if (event.event === 'connected') {
+                    handlers.onConnected?.();
+                    return;
+                }
+                if (event.event !== 'protocol-created') return;
+
+                try {
+                    handlers.onProtocolCreated(mapProtocol(JSON.parse(event.data) as ApiProtocol));
+                } catch (error) {
+                    console.warn('Evento de protocolo inválido recebido pelo SSE.', error);
+                }
+            },
+        });
     },
 
     /**

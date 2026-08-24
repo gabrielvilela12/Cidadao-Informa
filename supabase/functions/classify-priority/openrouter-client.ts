@@ -1,6 +1,6 @@
 const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
-const MODEL = "google/gemini-2.5-flash";
+const MODEL = "google/gemini-3.7-flash";
 
 export interface ClassifyRequest {
   description: string;
