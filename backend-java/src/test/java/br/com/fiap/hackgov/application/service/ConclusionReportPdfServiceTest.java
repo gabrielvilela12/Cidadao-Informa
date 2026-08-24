@@ -6,6 +6,11 @@ import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.junit.jupiter.api.Test;
 
+import javax.imageio.ImageIO;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,8 +29,9 @@ class ConclusionReportPdfServiceTest {
     @Test
     void rendersPublicAndInternalExamples() throws Exception {
         ConclusionReportPdfService service = new ConclusionReportPdfService();
-        String before = dataUrl(Path.of("..", "public", "results-before.png"));
-        String after = dataUrl(Path.of("..", "public", "results-after.png"));
+        Path assetRoot = Path.of(System.getProperty("pdf.example.assets.dir", "../public"));
+        String before = dataUrl(assetRoot.resolve("results-before.png"), false);
+        String after = dataUrl(assetRoot.resolve("results-after.png"), true);
 
         byte[] publicPdf = service.render(snapshot(true), List.of(before), List.of(after));
         byte[] internalPdf = service.render(snapshot(false), List.of(before), List.of(after));
@@ -70,8 +76,29 @@ class ConclusionReportPdfServiceTest {
         );
     }
 
-    private String dataUrl(Path path) throws Exception {
-        return "data:image/png;base64," + Base64.getEncoder().encodeToString(Files.readAllBytes(path));
+    private String dataUrl(Path path, boolean corrected) throws Exception {
+        byte[] bytes = Files.exists(path) ? Files.readAllBytes(path) : fallbackImage(corrected);
+        return "data:image/png;base64," + Base64.getEncoder().encodeToString(bytes);
+    }
+
+    private byte[] fallbackImage(boolean corrected) throws Exception {
+        BufferedImage image = new BufferedImage(960, 540, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = image.createGraphics();
+        try {
+            graphics.setColor(new Color(226, 232, 240));
+            graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
+            graphics.setColor(new Color(71, 85, 105));
+            graphics.fillRect(0, 360, image.getWidth(), 180);
+            graphics.setColor(corrected ? new Color(241, 184, 0) : new Color(185, 28, 28));
+            graphics.fillRect(90, 300, 780, corrected ? 35 : 12);
+            graphics.setColor(corrected ? new Color(0, 143, 68) : new Color(100, 116, 139));
+            graphics.fillRect(390, 170, 180, 190);
+        } finally {
+            graphics.dispose();
+        }
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", output);
+        return output.toByteArray();
     }
 
     private void assertPdf(byte[] content) throws Exception {
@@ -81,4 +108,3 @@ class ConclusionReportPdfServiceTest {
         }
     }
 }
-
