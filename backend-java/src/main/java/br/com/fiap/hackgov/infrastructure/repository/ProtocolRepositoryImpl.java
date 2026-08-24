@@ -57,6 +57,7 @@ public class ProtocolRepositoryImpl implements ProtocolRepository {
                         item.getAddress(),
                         item.getCreatedAt(),
                         item.getStatus(),
+                        item.getResolutionCost(),
                         item.getAiPriority(),
                         item.getAiStatus(),
                         item.getLatitude(),

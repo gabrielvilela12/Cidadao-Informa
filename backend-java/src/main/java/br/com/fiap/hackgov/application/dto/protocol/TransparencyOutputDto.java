@@ -1,5 +1,6 @@
 package br.com.fiap.hackgov.application.dto.protocol;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
@@ -22,6 +23,8 @@ public record TransparencyOutputDto(
             long open,
             long inAnalysis,
             long completed,
+            BigDecimal totalResolutionCost,
+            long completedWithCost,
             long citizens,
             Integer resolutionRate
     ) {
@@ -72,6 +75,7 @@ public record TransparencyOutputDto(
             String location,
             Instant createdAt,
             String status,
+            BigDecimal resolutionCost,
             String priority
     ) {
     }

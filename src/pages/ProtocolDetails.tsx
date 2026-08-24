@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Accessibility, AlertCircle, ArrowLeft, ArrowRight, Box, Calendar, Check, CheckCircle2,
-  ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Copy, ExternalLink,
+  ChevronDown, ChevronLeft, ChevronRight, CircleDollarSign, ClipboardList, Copy, ExternalLink,
   Ear, Ellipsis, Eye, FileText, Hash, Info, Link2, Loader2, LockKeyhole, MapPin, MapPinOff, MoreHorizontal,
   Paperclip, RefreshCw, Settings, ShieldCheck, Sparkles, Tag, User, WandSparkles,
 } from 'lucide-react';
@@ -131,8 +131,12 @@ export function ProtocolDetails() {
     if (activeTab === 'blockchain') void loadAuditTrail();
   }, [activeTab, loadAuditTrail, role]);
 
-  const handleStatusChange = async (newStatus: string) => {
-    if (!id || !protocol || newStatus === normalizeStatus(protocol.status)) return;
+  const handleStatusChange = async (newStatus: string, resolutionCost?: number) => {
+    if (!id || !protocol) return;
+    const sameStatus = newStatus === normalizeStatus(protocol.status);
+    const previousCostInCents = protocol.resolution_cost == null ? null : Math.round(protocol.resolution_cost * 100);
+    const nextCostInCents = resolutionCost == null ? null : Math.round(resolutionCost * 100);
+    if (sameStatus && previousCostInCents === nextCostInCents) return;
     setStatusUpdating(true);
     setStatusError('');
     try {
@@ -140,6 +144,7 @@ export function ProtocolDetails() {
         id,
         newStatus,
         'Atualização de status pelo painel administrativo',
+        resolutionCost,
       );
       setProtocol(updatedProtocol as DetailedProtocol);
       // O status aparece em todas as listagens e no mapa: marca o cache como
@@ -228,7 +233,7 @@ export function ProtocolDetails() {
               <div className="flex min-w-0 flex-col gap-4">
                 <RequesterCard protocol={protocol} />
                 {role === 'admin' && <>
-                  <StatusControlCard status={protocol.status} loading={statusUpdating} error={statusError} onSave={handleStatusChange} />
+                  <StatusControlCard status={protocol.status} resolutionCost={protocol.resolution_cost} loading={statusUpdating} error={statusError} onSave={handleStatusChange} />
                   <PrioritySection protocolId={protocol.id} initialPriority={protocol.ai_priority} initialStatus={protocol.ai_status} />
                 </>}
                 <TimelineCard events={timeline} />
@@ -520,24 +525,91 @@ function RequesterCard({ protocol }: { protocol: DetailedProtocol }) {
   );
 }
 
-function StatusControlCard({ status, loading, error, onSave }: { status: string; loading: boolean; error: string; onSave: (status: string) => Promise<void> | void }) {
+function StatusControlCard({
+  status,
+  resolutionCost,
+  loading,
+  error,
+  onSave,
+}: {
+  status: string;
+  resolutionCost?: number | null;
+  loading: boolean;
+  error: string;
+  onSave: (status: string, resolutionCost?: number) => Promise<void> | void;
+}) {
   const normalized = normalizeStatus(status);
   const [pendingStatus, setPendingStatus] = useState(normalized);
-  useEffect(() => setPendingStatus(normalized), [normalized]);
+  const [costInput, setCostInput] = useState(resolutionCost?.toFixed(2) ?? '');
+  const [costError, setCostError] = useState('');
+
+  useEffect(() => {
+    setPendingStatus(normalized);
+    setCostInput(resolutionCost?.toFixed(2) ?? '');
+    setCostError('');
+  }, [normalized, resolutionCost]);
+
+  const parsedCost = Number(costInput);
+  const decimalPlaces = costInput.includes('.') ? costInput.split('.')[1]?.length ?? 0 : 0;
+  const hasValidCost = costInput.trim() !== ''
+    && Number.isFinite(parsedCost)
+    && parsedCost >= 0
+    && parsedCost <= 9_999_999_999.99
+    && decimalPlaces <= 2;
+  const costChanged = pendingStatus === 'Concluído'
+    && hasValidCost
+    && Math.round(parsedCost * 100) !== Math.round((resolutionCost ?? -1) * 100);
+  const hasChange = pendingStatus !== normalized || costChanged;
+
+  const save = () => {
+    if (pendingStatus === 'Concluído' && !hasValidCost) {
+      setCostError('Informe um custo válido, com até duas casas decimais. O valor pode ser R$ 0,00.');
+      return;
+    }
+    setCostError('');
+    void onSave(pendingStatus, pendingStatus === 'Concluído' ? parsedCost : undefined);
+  };
+
   return (
     <section className="rounded-lg border border-[#CDD8E7] bg-white p-4 shadow-sm">
       <h2 className="flex items-center gap-2 font-black"><span className="flex size-7 items-center justify-center rounded-full bg-[#E7F0FF] text-[#0758BD]"><Settings size={16} /></span>Gestão do protocolo</h2>
       <label className="mt-3 block text-xs font-semibold text-slate-600" htmlFor="protocol-status">Status do protocolo</label>
-      <select id="protocol-status" value={pendingStatus} disabled={loading} onChange={(event) => setPendingStatus(event.target.value)} className="mt-1 h-11 w-full rounded-lg border border-[#CDD8E7] bg-white px-3 text-sm font-semibold text-slate-700 outline-none focus:border-[#0758BD]">
+      <select id="protocol-status" value={pendingStatus} disabled={loading} onChange={(event) => { setPendingStatus(event.target.value); setCostError(''); }} className="mt-1 h-11 w-full rounded-lg border border-[#CDD8E7] bg-white px-3 text-sm font-semibold text-slate-700 outline-none focus:border-[#0758BD]">
         {STATUS_OPTIONS.map((item) => <option key={item}>{item}</option>)}
       </select>
+      {pendingStatus === 'Concluído' && (
+        <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+          <label className="flex items-center gap-2 text-xs font-black text-emerald-900" htmlFor="protocol-resolution-cost">
+            <CircleDollarSign size={16} aria-hidden="true" /> Custo da correção (R$)
+          </label>
+          <input
+            id="protocol-resolution-cost"
+            type="number"
+            inputMode="decimal"
+            min="0"
+            max="9999999999.99"
+            step="0.01"
+            value={costInput}
+            disabled={loading}
+            required
+            aria-describedby="protocol-resolution-cost-help"
+            onChange={(event) => { setCostInput(event.target.value); setCostError(''); }}
+            placeholder="0,00"
+            className="mt-2 h-11 w-full rounded-lg border border-emerald-300 bg-white px-3 text-sm font-bold text-slate-800 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+          />
+          <p id="protocol-resolution-cost-help" className="mt-2 text-xs leading-5 text-emerald-800">
+            Obrigatório para concluir. Este valor será exibido publicamente no protocolo e na Transparência.
+          </p>
+        </div>
+      )}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-slate-500">Cada alteração gera um novo bloco de auditoria.</p>
-        <button type="button" disabled={loading || pendingStatus === normalized} onClick={() => void onSave(pendingStatus)} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white disabled:bg-slate-200 disabled:text-slate-400">
+        <button type="button" disabled={loading || !hasChange || (pendingStatus === 'Concluído' && !hasValidCost)} onClick={save} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white disabled:bg-slate-200 disabled:text-slate-400">
           {loading && <Loader2 size={15} className="animate-spin" />}{loading ? 'Salvando...' : 'Salvar alteração'}
         </button>
       </div>
-      {error && <p className="mt-3 text-xs font-semibold text-red-600">{error}</p>}
+      {costError && <p className="mt-3 text-xs font-semibold text-red-600" role="alert">{costError}</p>}
+      {error && <p className="mt-3 text-xs font-semibold text-red-600" role="alert">{error}</p>}
     </section>
   );
 }
@@ -591,6 +663,7 @@ function auditEventLabel(eventType: string) {
   const labels: Record<string, string> = {
     PROTOCOL_CREATED: 'Protocolo criado',
     STATUS_CHANGED: 'Status alterado',
+    RESOLUTION_COST_RECORDED: 'Custo da correção registrado',
     PRIORITY_CHANGED: 'Prioridade alterada',
     AI_PRIORITY_CLASSIFIED: 'Prioridade definida por IA',
   };

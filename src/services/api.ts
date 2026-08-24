@@ -7,6 +7,7 @@ interface ApiProtocol {
     description: string;
     address: string;
     status: string;
+    resolutionCost?: number | null;
     userId?: string;
     requester?: string;
     phone?: string;
@@ -53,6 +54,8 @@ export interface TransparencyData {
         open: number;
         inAnalysis: number;
         completed: number;
+        totalResolutionCost: number;
+        completedWithCost: number;
         citizens: number;
         resolutionRate: number | null;
     };
@@ -101,6 +104,7 @@ export interface TransparencyData {
         location: string;
         createdAt: string;
         status: string;
+        resolutionCost: number | null;
         priority: string;
     }>;
 }
@@ -149,6 +153,7 @@ function mapProtocol(item: ApiProtocol): Protocol {
             ? new Date(item.createdAt).toLocaleDateString('pt-BR')
             : 'Data não informada',
         status: (item.status || 'Aberto') as 'Aberto' | 'Em Análise' | 'Concluído' | 'Atrasado',
+        resolution_cost: typeof item.resolutionCost === 'number' ? item.resolutionCost : null,
         category: item.category || 'Outros',
         // null = sem localização confirmada. Não substituir por um valor padrão:
         // o mapa depende do null para omitir o pin em vez de inventar posição.
@@ -318,12 +323,12 @@ export const api = {
         return apiRequest('/api/protocols/audit/verify');
     },
 
-    async updateProtocolStatus(protocolId: string, status: string, reason?: string) {
+    async updateProtocolStatus(protocolId: string, status: string, reason?: string, resolutionCost?: number) {
         const data = await apiRequest<ApiProtocol>(
             `/api/protocols/${encodeURIComponent(protocolId)}/status`,
             {
                 method: 'PATCH',
-                body: JSON.stringify({ status, reason }),
+                body: JSON.stringify({ status, reason, resolutionCost }),
             },
         );
         return mapProtocol(data);

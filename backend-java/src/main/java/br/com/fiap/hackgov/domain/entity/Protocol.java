@@ -11,6 +11,7 @@ import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +39,9 @@ public class Protocol {
 
     @Column(name = "status", nullable = false)
     private String status;
+
+    @Column(name = "resolution_cost", precision = 12, scale = 2)
+    private BigDecimal resolutionCost;
 
     @Column(name = "user_id", nullable = false)
     private String userId;
@@ -154,6 +158,14 @@ public class Protocol {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public BigDecimal getResolutionCost() {
+        return resolutionCost;
+    }
+
+    public void setResolutionCost(BigDecimal resolutionCost) {
+        this.resolutionCost = resolutionCost;
     }
 
     public String getUserId() {

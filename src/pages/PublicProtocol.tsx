@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, MapPinOff, Calendar, Clock, FileText, CheckCircle, AlertCircle, Shield, Share2, Check, Image as ImageIcon } from 'lucide-react';
+import { MapPin, MapPinOff, Calendar, Clock, FileText, CheckCircle, AlertCircle, Shield, Share2, Check, Image as ImageIcon, CircleDollarSign } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -7,6 +7,7 @@ import L from 'leaflet';
 import { api } from '../services/api';
 import { CidadaoBrand } from '../components/CidadaoBrand';
 import { ImageLightbox } from '../components/ImageLightbox';
+import { formatCurrency } from '../utils/currency';
 import { getMarkerPosition } from '../utils/mapUtils';
 
 // Fix leaflet icons
@@ -87,6 +88,7 @@ export function PublicProtocol() {
         { type: 'Em Análise', date: protocol.date, desc: 'Solicitação em análise técnica', done: protocol.status !== 'Aberto' && protocol.status !== 'Open' },
         { type: 'Finalizado', date: '—', desc: 'Conclusão do serviço', done: protocol.status === 'Concluído' || protocol.status === 'Resolved' },
     ] : [];
+    const isCompleted = protocol?.status === 'Concluído' || protocol?.status === 'Resolved' || protocol?.status === 'Closed';
 
     return (
         <div className="min-h-screen bg-[#080d12] text-white font-sans">
@@ -210,6 +212,22 @@ export function PublicProtocol() {
 
                             {/* Right column */}
                             <div className="flex flex-col gap-6">
+                                {isCompleted && (
+                                    <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-6">
+                                        <h3 className="flex items-center gap-2 text-sm font-black text-emerald-300">
+                                            <CircleDollarSign size={18} aria-hidden="true" /> Custo público da correção
+                                        </h3>
+                                        <strong className="mt-3 block text-3xl font-black text-white">
+                                            {formatCurrency(protocol.resolution_cost, 'Não informado')}
+                                        </strong>
+                                        <p className="mt-2 text-xs leading-relaxed text-emerald-100/70">
+                                            {protocol.resolution_cost == null
+                                                ? 'Este protocolo foi concluído antes da adoção do registro obrigatório de custos.'
+                                                : 'Valor declarado pela equipe responsável no encerramento desta solicitação.'}
+                                        </p>
+                                    </div>
+                                )}
+
                                 {/* Timeline */}
                                 <div className="bg-white/5 border border-white/8 rounded-2xl p-6">
                                     <h3 className="font-black text-white flex items-center gap-2 mb-5">

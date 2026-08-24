@@ -16,6 +16,8 @@ export interface Protocol {
   address: string;
   date: string;
   status: Status;
+  /** Custo público em reais registrado ao concluir a correção. */
+  resolution_cost?: number | null;
   category: string;
   description?: string;
   requester?: string;

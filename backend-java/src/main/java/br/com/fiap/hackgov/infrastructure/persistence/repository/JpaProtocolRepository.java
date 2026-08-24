@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
@@ -39,6 +40,7 @@ public interface JpaProtocolRepository extends JpaRepository<Protocol, String> {
         String getAddress();
         Instant getCreatedAt();
         String getStatus();
+        BigDecimal getResolutionCost();
         String getUserId();
         String getRequester();
         UserPhoneProjection getUser();
@@ -63,6 +65,7 @@ public interface JpaProtocolRepository extends JpaRepository<Protocol, String> {
         String getAddress();
         Instant getCreatedAt();
         String getStatus();
+        BigDecimal getResolutionCost();
         String getAiPriority();
         String getAiStatus();
         Double getLatitude();

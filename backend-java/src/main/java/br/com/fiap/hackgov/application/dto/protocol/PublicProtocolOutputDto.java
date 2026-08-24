@@ -2,6 +2,7 @@ package br.com.fiap.hackgov.application.dto.protocol;
 
 import br.com.fiap.hackgov.domain.entity.Protocol;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
@@ -12,6 +13,7 @@ public record PublicProtocolOutputDto(
         String address,
         Instant createdAt,
         String status,
+        BigDecimal resolutionCost,
         String aiPriority,
         String aiStatus,
         Double latitude,
@@ -26,6 +28,7 @@ public record PublicProtocolOutputDto(
                 protocol.getAddress(),
                 protocol.getCreatedAt(),
                 protocol.getStatus(),
+                protocol.getResolutionCost(),
                 protocol.getAiPriority(),
                 protocol.getAiStatus(),
                 protocol.getLatitude(),

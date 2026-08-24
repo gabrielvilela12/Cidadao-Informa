@@ -15,6 +15,7 @@ import br.com.fiap.hackgov.application.service.ProtocolEventService;
 import br.com.fiap.hackgov.application.usecase.protocol.CreateProtocolUseCase;
 import br.com.fiap.hackgov.application.usecase.protocol.GetPublicStatsUseCase;
 import br.com.fiap.hackgov.application.usecase.protocol.GetProtocolsUseCase;
+import br.com.fiap.hackgov.application.validation.ProtocolCompletionCostPolicy;
 import br.com.fiap.hackgov.domain.entity.Protocol;
 import br.com.fiap.hackgov.domain.repository.ProtocolRepository;
 import br.com.fiap.hackgov.infrastructure.security.AuthenticatedUser;
@@ -32,7 +33,10 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 @RestController
@@ -196,22 +200,37 @@ public class ProtocolsController {
 
             Protocol protocol = findProtocol(id);
             String previousStatus = protocol.getStatus();
+            BigDecimal resolutionCost = ProtocolCompletionCostPolicy.validate(
+                    input.status(),
+                    input.resolutionCost()
+            );
             protocol.setStatus(input.status());
+            if (resolutionCost != null) {
+                protocol.setResolutionCost(resolutionCost);
+            }
             Protocol updated = protocolRepository.update(protocol);
+
+            Map<String, Object> evidence = new LinkedHashMap<>();
+            evidence.put(
+                    "reason_hash",
+                    input.reason() == null || input.reason().isBlank()
+                            ? ""
+                            : auditService.hashValue(input.reason().trim())
+            );
+            if (resolutionCost != null) {
+                evidence.put("resolution_cost", resolutionCost);
+            }
 
             auditService.append(
                     id,
-                    "STATUS_CHANGED",
+                    Objects.equals(previousStatus, updated.getStatus())
+                            ? "RESOLUTION_COST_RECORDED"
+                            : "STATUS_CHANGED",
                     user.userId(),
                     user.role(),
                     previousStatus,
                     updated.getStatus(),
-                    Map.of(
-                            "reason_hash",
-                            input.reason() == null || input.reason().isBlank()
-                                    ? ""
-                                    : auditService.hashValue(input.reason().trim())
-                    )
+                    evidence
             );
 
             return ResponseEntity.ok(ProtocolOutputDto.from(updated));

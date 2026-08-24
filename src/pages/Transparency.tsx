@@ -6,10 +6,12 @@ import {
     Bot,
     CheckCircle2,
     Clock3,
+    CircleDollarSign,
     Database,
     Download,
     MapPinned,
     RefreshCw,
+    ReceiptText,
     ShieldCheck,
     Users,
 } from 'lucide-react';
@@ -25,6 +27,7 @@ import {
 } from 'recharts';
 import { CidadaoBrand } from '../components/CidadaoBrand';
 import { api, type TransparencyData, type TransparencyMetric } from '../services/api';
+import { formatCurrency } from '../utils/currency';
 
 const TransparencyMap = lazy(() =>
     import('../components/TransparencyMap').then((module) => ({ default: module.TransparencyMap })),
@@ -160,13 +163,14 @@ export function Transparency() {
 
     const exportCsv = () => {
         if (!data) return;
-        const header = ['protocolo_anonimizado', 'categoria', 'localidade', 'data', 'status', 'prioridade'];
+        const header = ['protocolo_anonimizado', 'categoria', 'localidade', 'data', 'status', 'custo_correcao_brl', 'prioridade'];
         const rows = data.recentProtocols.map((item) => [
             item.publicId,
             item.category,
             item.location,
             item.createdAt,
             item.status,
+            item.resolutionCost == null ? '' : item.resolutionCost.toFixed(2).replace('.', ','),
             item.priority,
         ]);
         const csv = [header, ...rows].map((row) => row.map(escapeCsv).join(';')).join('\n');
@@ -262,12 +266,14 @@ export function Transparency() {
                                     <p className="mt-1 text-sm text-slate-500">Indicadores acumulados desde o início da plataforma.</p>
                                 </div>
                             </div>
-                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                 {[
                                     { label: 'Solicitações', value: formatNumber(data.overview.total), icon: Database, color: 'text-blue-700 bg-blue-50' },
                                     { label: 'Abertas', value: formatNumber(data.overview.open), icon: Activity, color: 'text-sky-700 bg-sky-50' },
                                     { label: 'Em análise', value: formatNumber(data.overview.inAnalysis), icon: Clock3, color: 'text-amber-700 bg-amber-50' },
                                     { label: 'Concluídas', value: formatNumber(data.overview.completed), icon: CheckCircle2, color: 'text-emerald-700 bg-emerald-50' },
+                                    { label: 'Investimento divulgado', value: formatCurrency(data.overview.totalResolutionCost), icon: CircleDollarSign, color: 'text-teal-700 bg-teal-50' },
+                                    { label: 'Concluídas com custo', value: `${formatNumber(data.overview.completedWithCost)} de ${formatNumber(data.overview.completed)}`, icon: ReceiptText, color: 'text-green-700 bg-green-50' },
                                     { label: 'Taxa de resolução', value: formatPercent(data.overview.resolutionRate), icon: ShieldCheck, color: 'text-violet-700 bg-violet-50' },
                                     { label: 'Cidadãos', value: formatNumber(data.overview.citizens), icon: Users, color: 'text-indigo-700 bg-indigo-50' },
                                 ].map((card) => (
@@ -366,17 +372,17 @@ export function Transparency() {
 
                         <section className="rounded-2xl border border-slate-200 bg-white shadow-sm" aria-labelledby="recent-title">
                             <div className="flex flex-col gap-2 border-b border-slate-200 p-6 sm:flex-row sm:items-end sm:justify-between lg:px-8">
-                                <div><h2 id="recent-title" className="text-xl font-black text-[#071A3A]">Solicitações recentes anonimizadas</h2><p className="mt-1 text-sm text-slate-500">Somente protocolo abreviado, categoria, cidade/UF, data, status e prioridade.</p></div>
+                                <div><h2 id="recent-title" className="text-xl font-black text-[#071A3A]">Solicitações recentes anonimizadas</h2><p className="mt-1 text-sm text-slate-500">Somente protocolo abreviado, categoria, cidade/UF, data, status, custo da correção e prioridade.</p></div>
                                 <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Últimas {data.recentProtocols.length}</span>
                             </div>
                             <div className="overflow-x-auto">
-                                <table className="w-full min-w-[760px] text-left text-sm">
+                                <table className="w-full min-w-[900px] text-left text-sm">
                                     <caption className="sr-only">Lista de solicitações recentes com dados pessoais removidos</caption>
-                                    <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-6 py-4 lg:pl-8">Protocolo</th><th className="px-6 py-4">Categoria</th><th className="px-6 py-4">Localidade</th><th className="px-6 py-4">Data</th><th className="px-6 py-4">Status</th><th className="px-6 py-4 lg:pr-8">Prioridade</th></tr></thead>
+                                    <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-6 py-4 lg:pl-8">Protocolo</th><th className="px-6 py-4">Categoria</th><th className="px-6 py-4">Localidade</th><th className="px-6 py-4">Data</th><th className="px-6 py-4">Status</th><th className="px-6 py-4">Custo</th><th className="px-6 py-4 lg:pr-8">Prioridade</th></tr></thead>
                                     <tbody className="divide-y divide-slate-100">
                                         {data.recentProtocols.map((item) => (
                                             <tr key={`${item.publicId}-${item.createdAt}`} className="hover:bg-slate-50">
-                                                <td className="px-6 py-4 font-mono font-bold text-[#0758BD] lg:pl-8">#{item.publicId}</td><td className="px-6 py-4 font-semibold text-slate-700">{item.category}</td><td className="px-6 py-4 text-slate-600">{item.location}</td><td className="px-6 py-4 text-slate-600">{dateFormatter.format(new Date(item.createdAt))}</td><td className="px-6 py-4"><span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-800">{item.status}</span></td><td className="px-6 py-4 text-slate-600 lg:pr-8">{item.priority}</td>
+                                                <td className="px-6 py-4 font-mono font-bold text-[#0758BD] lg:pl-8">#{item.publicId}</td><td className="px-6 py-4 font-semibold text-slate-700">{item.category}</td><td className="px-6 py-4 text-slate-600">{item.location}</td><td className="px-6 py-4 text-slate-600">{dateFormatter.format(new Date(item.createdAt))}</td><td className="px-6 py-4"><span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-800">{item.status}</span></td><td className="px-6 py-4 font-bold text-emerald-700">{formatCurrency(item.resolutionCost)}</td><td className="px-6 py-4 text-slate-600 lg:pr-8">{item.priority}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -391,7 +397,7 @@ export function Transparency() {
                             </section>
                             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
                                 <h2 className="text-xl font-black text-[#071A3A]">Metodologia e privacidade</h2>
-                                <p className="mt-4 text-sm leading-6 text-slate-600">Os indicadores são calculados diretamente sobre os protocolos existentes no momento indicado. Não publicamos nome, CPF, telefone, e-mail, descrição, fotos, endereço completo nem coordenadas exatas. Taxas sem base de cálculo aparecem como “—”.</p>
+                                <p className="mt-4 text-sm leading-6 text-slate-600">Os indicadores são calculados diretamente sobre os protocolos existentes no momento indicado. O custo publicado é o valor declarado pela equipe responsável ao concluir a correção. Não publicamos nome, CPF, telefone, e-mail, descrição, fotos, endereço completo nem coordenadas exatas. Valores ainda não informados e taxas sem base de cálculo aparecem como “—”.</p>
                                 <div className="mt-4 flex flex-wrap gap-4 text-sm font-bold"><Link to="/privacidade" className="text-[#0758BD] hover:underline">Política de privacidade</Link><Link to="/termos-de-uso" className="text-[#0758BD] hover:underline">Termos de uso</Link><Link to="/acessibilidade" className="text-[#0758BD] hover:underline">Acessibilidade</Link></div>
                             </section>
                         </div>

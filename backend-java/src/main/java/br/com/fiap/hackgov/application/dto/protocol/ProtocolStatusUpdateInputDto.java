@@ -1,4 +1,6 @@
 package br.com.fiap.hackgov.application.dto.protocol;
 
-public record ProtocolStatusUpdateInputDto(String status, String reason) {
+import java.math.BigDecimal;
+
+public record ProtocolStatusUpdateInputDto(String status, String reason, BigDecimal resolutionCost) {
 }

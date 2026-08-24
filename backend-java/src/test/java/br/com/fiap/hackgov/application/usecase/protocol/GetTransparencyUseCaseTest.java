@@ -10,6 +10,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
@@ -43,6 +44,7 @@ class GetTransparencyUseCaseTest {
                         "Rua Cônego Barros, 120 - Vila, Ribeirão Preto - SP",
                         recent,
                         "Aberto",
+                        null,
                         "alta",
                         "success",
                         -21.1775,
@@ -54,6 +56,7 @@ class GetTransparencyUseCaseTest {
                         "Avenida Paulista, 1000 - Bela Vista, São Paulo/SP",
                         recent.minusSeconds(86400),
                         "Concluído",
+                        new BigDecimal("1250.50"),
                         "media",
                         "success",
                         null,
@@ -70,6 +73,8 @@ class GetTransparencyUseCaseTest {
         assertEquals(2, result.overview().total());
         assertEquals(1, result.overview().completed());
         assertEquals(50, result.overview().resolutionRate());
+        assertEquals(new BigDecimal("1250.50"), result.overview().totalResolutionCost());
+        assertEquals(1, result.overview().completedWithCost());
         assertEquals(9, result.overview().citizens());
         assertEquals(1, result.geography().size());
         assertEquals(-21.25, result.geography().getFirst().latitude());
@@ -87,6 +92,7 @@ class GetTransparencyUseCaseTest {
             String address,
             Instant createdAt,
             String status,
+            BigDecimal resolutionCost,
             String priority,
             String aiStatus,
             Double latitude,
@@ -98,6 +104,7 @@ class GetTransparencyUseCaseTest {
                 address,
                 createdAt,
                 status,
+                resolutionCost,
                 priority,
                 aiStatus,
                 latitude,

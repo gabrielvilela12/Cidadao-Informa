@@ -7,6 +7,7 @@ import br.com.fiap.hackgov.domain.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.text.Normalizer;
 import java.time.Duration;
 import java.time.Instant;
@@ -52,6 +53,14 @@ public class GetTransparencyUseCase {
         long inAnalysis = protocols.stream().filter(item -> normalizeStatus(item.status()).equals("Em análise")).count();
         long total = protocols.size();
         Integer resolutionRate = percentage(completed, total);
+        BigDecimal totalResolutionCost = protocols.stream()
+                .map(ProtocolRepository.TransparencyProtocol::resolutionCost)
+                .filter(java.util.Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        long completedWithCost = protocols.stream()
+                .filter(this::isCompleted)
+                .filter(item -> item.resolutionCost() != null)
+                .count();
 
         List<TransparencyOutputDto.Metric> statuses = metrics(
                 protocols,
@@ -84,6 +93,8 @@ public class GetTransparencyUseCase {
                         open,
                         inAnalysis,
                         completed,
+                        totalResolutionCost,
+                        completedWithCost,
                         userRepository.countByRole("citizen"),
                         resolutionRate
                 ),
@@ -204,6 +215,7 @@ public class GetTransparencyUseCase {
                         publicLocation(item.address()),
                         item.createdAt(),
                         normalizeStatus(item.status()),
+                        item.resolutionCost(),
                         normalizePriority(item.aiPriority())
                 ))
                 .toList();

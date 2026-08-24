@@ -2,6 +2,7 @@ package br.com.fiap.hackgov.domain.repository;
 
 import br.com.fiap.hackgov.domain.entity.Protocol;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -40,6 +41,7 @@ public interface ProtocolRepository {
             String address,
             Instant createdAt,
             String status,
+            BigDecimal resolutionCost,
             String aiPriority,
             String aiStatus,
             Double latitude,
