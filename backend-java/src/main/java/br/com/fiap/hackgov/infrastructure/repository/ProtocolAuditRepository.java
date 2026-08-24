@@ -15,5 +15,7 @@ public interface ProtocolAuditRepository extends JpaRepository<ProtocolAuditBloc
 
     List<ProtocolAuditBlock> findByProtocolIdOrderByBlockIndexAsc(String protocolId);
 
+    Optional<ProtocolAuditBlock> findFirstByProtocolIdOrderByBlockIndexDesc(String protocolId);
+
     List<ProtocolAuditBlock> findAllByOrderByBlockIndexAsc();
 }

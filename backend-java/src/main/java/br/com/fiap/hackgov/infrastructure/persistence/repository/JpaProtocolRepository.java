@@ -4,6 +4,8 @@ import br.com.fiap.hackgov.domain.entity.Protocol;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -73,6 +75,49 @@ public interface JpaProtocolRepository extends JpaRepository<Protocol, String> {
     }
 
     long countByStatusIn(Collection<String> statuses);
+
+    @Query("""
+            select p.id as id, p.category as category, p.description as description,
+                   p.address as address, p.createdAt as createdAt, p.status as status,
+                   p.resolutionCost as resolutionCost, p.requester as requester,
+                   p.aiPriority as aiPriority, p.correctionReport as correctionReport,
+                   u.name as citizenName, u.email as citizenEmail,
+                   u.cpf as citizenCpf, u.phone as citizenPhone
+              from Protocol p join p.user u
+             where p.status in :statuses
+            """)
+    List<ConclusionDocumentProjection> findConclusionDocumentData(
+            @Param("statuses") Collection<String> statuses
+    );
+
+    @Query("""
+            select p.id as id, p.category as category, p.description as description,
+                   p.address as address, p.createdAt as createdAt, p.status as status,
+                   p.resolutionCost as resolutionCost, p.requester as requester,
+                   p.aiPriority as aiPriority, p.correctionReport as correctionReport,
+                   u.name as citizenName, u.email as citizenEmail,
+                   u.cpf as citizenCpf, u.phone as citizenPhone
+              from Protocol p join p.user u
+             where p.id = :id
+            """)
+    Optional<ConclusionDocumentProjection> findConclusionDocumentDataById(@Param("id") String id);
+
+    interface ConclusionDocumentProjection {
+        String getId();
+        String getCategory();
+        String getDescription();
+        String getAddress();
+        Instant getCreatedAt();
+        String getStatus();
+        BigDecimal getResolutionCost();
+        String getRequester();
+        String getAiPriority();
+        String getCorrectionReport();
+        String getCitizenName();
+        String getCitizenEmail();
+        String getCitizenCpf();
+        String getCitizenPhone();
+    }
 
     @Override
     @EntityGraph(attributePaths = "user")

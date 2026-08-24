@@ -159,6 +159,35 @@ export async function apiRequest<T>(
   return data as T;
 }
 
+/** Faz download binário preservando autenticação e mensagens de erro da API. */
+export async function apiRequestBlob(
+  path: string,
+  options: ApiRequestOptions = {},
+): Promise<Blob> {
+  const {
+    authenticated = true,
+    headers: providedHeaders,
+    ...requestOptions
+  } = options;
+  const headers = new Headers(providedHeaders);
+  headers.set('Accept', 'application/pdf');
+
+  if (authenticated) {
+    const token = localStorage.getItem('cidadaoinforma_token');
+    if (!token) throw new ApiError('Sessão inválida ou expirada.', true);
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const response = await fetch(getApiUrl(path), { ...requestOptions, headers });
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw data?.error
+      ? new ApiError(String(data.error), true)
+      : new ApiError(`A API respondeu com o status ${response.status}.`, false);
+  }
+  return response.blob();
+}
+
 /**
  * Abre um SSE autenticado usando fetch.
  *

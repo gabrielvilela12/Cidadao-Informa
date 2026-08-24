@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Accessibility, AlertCircle, ArrowLeft, ArrowRight, Box, Calendar, Check, CheckCircle2,
   ChevronDown, ChevronLeft, ChevronRight, CircleDollarSign, ClipboardList, Copy, ExternalLink,
-  Ear, Ellipsis, Eye, FileText, Hash, Info, Link2, Loader2, LockKeyhole, MapPin, MapPinOff, MoreHorizontal,
+  Download, Ear, Ellipsis, Eye, FileText, Hash, Info, Link2, Loader2, LockKeyhole, MapPin, MapPinOff, MoreHorizontal,
   Paperclip, RefreshCw, Settings, ShieldCheck, Sparkles, Tag, User, WandSparkles,
 } from 'lucide-react';
 import L from 'leaflet';
@@ -17,6 +17,7 @@ import { useProtocolsCache } from '../context/ProtocolsContext';
 import type { Protocol } from '../constants';
 import { api, type ProtocolAuditTrail } from '../services/api';
 import { getMarkerPosition } from '../utils/mapUtils';
+import { saveBlob } from '../utils/download';
 
 type DetailsTab = 'details' | 'blockchain';
 type DetailedProtocol = Protocol & { image_urls?: string[] };
@@ -79,6 +80,8 @@ export function ProtocolDetails() {
   const [statusError, setStatusError] = useState('');
   const [correctionGenerating, setCorrectionGenerating] = useState(false);
   const [correctionError, setCorrectionError] = useState('');
+  const [reportDownloading, setReportDownloading] = useState<'public' | 'internal' | null>(null);
+  const [reportError, setReportError] = useState('');
   const [activeTab, setActiveTab] = useState<DetailsTab>('details');
   // null = protocolo sem localizacao confirmada. Nao usar centro fixo aqui:
   // um default faria o card apontar para um lugar que nao e o da ocorrencia.
@@ -179,6 +182,22 @@ export function ProtocolDetails() {
     }
   };
 
+  const handleDownloadReport = async (type: 'public' | 'internal') => {
+    if (!id) return;
+    setReportDownloading(type);
+    setReportError('');
+    try {
+      const blob = type === 'internal'
+        ? await api.downloadInternalConclusionReport(id)
+        : await api.downloadPublicConclusionReport(id);
+      saveBlob(blob, `relatorio-conclusao-${type === 'internal' ? 'interno' : 'publico'}-${id.slice(0, 8)}.pdf`);
+    } catch (error) {
+      setReportError(error instanceof Error ? error.message : 'Não foi possível baixar o relatório.');
+    } finally {
+      setReportDownloading(null);
+    }
+  };
+
   if (loading) {
     return <div className="flex h-full flex-1 items-center justify-center bg-[#F4F8FC] text-slate-600"><Loader2 className="mr-3 animate-spin text-[#0758BD]" size={24} />Carregando detalhes do protocolo...</div>;
   }
@@ -199,6 +218,7 @@ export function ProtocolDetails() {
   const backPath = role === 'admin' ? '/admin/solicitacoes' : '/meus-protocolos';
   const title = activeTab === 'blockchain' ? 'Auditoria do protocolo' : `Solicitação de acessibilidade ${categoryLabel}`;
   const timeline = buildTimeline(normalizeStatus(protocol.status), protocol.date);
+  const isCompleted = normalizeStatus(protocol.status) === 'Concluído';
 
   return (
     <div className="flex h-full flex-1 flex-col overflow-y-auto bg-[#F4F8FC] text-[#111827]">
@@ -231,6 +251,14 @@ export function ProtocolDetails() {
                 />
               </div>
               <div className="flex min-w-0 flex-col gap-4">
+                {isCompleted && (
+                  <ConclusionReportsCard
+                    isAdmin={role === 'admin'}
+                    downloading={reportDownloading}
+                    error={reportError}
+                    onDownload={handleDownloadReport}
+                  />
+                )}
                 <RequesterCard protocol={protocol} />
                 {role === 'admin' && <>
                   <StatusControlCard status={protocol.status} resolutionCost={protocol.resolution_cost} loading={statusUpdating} error={statusError} onSave={handleStatusChange} />
@@ -246,6 +274,40 @@ export function ProtocolDetails() {
         )}
       </div>
     </div>
+  );
+}
+
+function ConclusionReportsCard({
+  isAdmin, downloading, error, onDownload,
+}: {
+  isAdmin: boolean;
+  downloading: 'public' | 'internal' | null;
+  error: string;
+  onDownload: (type: 'public' | 'internal') => void;
+}) {
+  return (
+    <section className="rounded-lg border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+      <h2 className="flex items-center gap-2 font-black text-emerald-950">
+        <span className="flex size-8 items-center justify-center rounded-full bg-emerald-600 text-white"><FileText size={17} /></span>
+        Relatórios de conclusão
+      </h2>
+      <p className="mt-2 text-xs leading-5 text-emerald-800">Documentos verificáveis com custo, evidências e histórico desta conclusão.</p>
+      <div className="mt-4 grid gap-2">
+        <button type="button" onClick={() => onDownload('public')} disabled={downloading !== null}
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-emerald-700 px-4 text-sm font-bold text-white transition hover:bg-emerald-800 disabled:cursor-wait disabled:opacity-60">
+          {downloading === 'public' ? <Loader2 size={17} className="animate-spin" /> : <Download size={17} />}
+          Baixar versão pública
+        </button>
+        {isAdmin && (
+          <button type="button" onClick={() => onDownload('internal')} disabled={downloading !== null}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-emerald-700 bg-white px-4 text-sm font-bold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-wait disabled:opacity-60">
+            {downloading === 'internal' ? <Loader2 size={17} className="animate-spin" /> : <LockKeyhole size={17} />}
+            Baixar versão interna
+          </button>
+        )}
+      </div>
+      {error && <p className="mt-3 text-xs font-semibold text-red-700" role="alert">{error}</p>}
+    </section>
   );
 }
 

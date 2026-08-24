@@ -1,5 +1,5 @@
 import type { Protocol } from '../constants';
-import { apiRequest, readEventStream } from './http';
+import { apiRequest, apiRequestBlob, readEventStream } from './http';
 
 interface ApiProtocol {
     id: string;
@@ -276,6 +276,19 @@ export const api = {
             { authenticated: false },
         );
         return mapProtocol(data);
+    },
+
+    downloadPublicConclusionReport(id: string) {
+        return apiRequestBlob(
+            `/api/protocols/public/${encodeURIComponent(id)}/documents/conclusion.pdf`,
+            { authenticated: false },
+        );
+    },
+
+    downloadInternalConclusionReport(id: string) {
+        return apiRequestBlob(
+            `/api/protocols/${encodeURIComponent(id)}/documents/conclusion/internal.pdf`,
+        );
     },
 
     async createProtocol(data: any) {

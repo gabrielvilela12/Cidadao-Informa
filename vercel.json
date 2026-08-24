@@ -42,5 +42,11 @@
         "service": "frontend"
       }
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/documents",
+      "schedule": "0 3 * * *"
+    }
   ]
 }

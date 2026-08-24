@@ -48,6 +48,9 @@ springdoc:
     path: /swagger
 
 app:
+  public-base-url: ${PUBLIC_BASE_URL:https://cidadao-informa.vercel.app}
+  cron:
+    secret: ${CRON_SECRET:}
   protocol-events:
     poll-ms: ${PROTOCOL_EVENTS_POLL_MS:1000}
     heartbeat-ms: ${PROTOCOL_EVENTS_HEARTBEAT_MS:25000}

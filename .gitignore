@@ -56,3 +56,9 @@ supabase-schema.sql
 
 # Documento de auditoria (uso local, nao versionar)
 PROMPT-CORRECOES.md
+
+# Artefatos locais de validação (PDFs e páginas renderizadas)
+/output/
+/tmp/
+
+.vercel
