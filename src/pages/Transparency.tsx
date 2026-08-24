@@ -246,7 +246,12 @@ export function Transparency() {
                             <h2 id="evolution-title" className="text-xl font-black text-[#071A3A]">Evolução nos últimos 12 meses</h2>
                             <p className="mt-1 text-sm text-slate-500">Concluídas considera a situação atual das solicitações abertas em cada mês.</p>
                             <div className="mt-7 h-80 min-w-0" aria-label="Gráfico mensal de solicitações registradas e atualmente concluídas">
-                                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                                <ResponsiveContainer
+                                    width="100%"
+                                    height="100%"
+                                    minWidth={0}
+                                    initialDimension={{ width: 800, height: 320 }}
+                                >
                                     <BarChart data={monthlyData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
                                         <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#D9E2EF" />
                                         <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#64748B' }} axisLine={false} tickLine={false} />
