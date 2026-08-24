@@ -247,11 +247,11 @@ Variáveis opcionais:
 
 ### Variáveis operacionais de inicialização
 
-Os valores abaixo são os padrões do `application.yml`, e são também o que
-`.env.example` documenta. A configuração anterior — inicialização preguiçosa,
-Flyway desligado, `ddl-auto: none` — existia para disfarçar o cold start da
-Vercel; ela foi revertida junto com a decisão de tratar o cold start na
-infraestrutura, e não no boot da aplicação.
+Os valores abaixo são os padrões locais do `application.yml`, e são também o
+que `.env.example` documenta. A imagem da Vercel ativa separadamente o perfil
+`vercel`, que mantém a inicialização eager, mas desliga Flyway, validação do
+schema e OpenAPI. O frontend ainda antecipa uma chamada a `/api/health` quando
+uma tela pública abre sem sessão.
 
 | Variável | Valor atual | Motivo |
 |---|---|---|
@@ -260,6 +260,11 @@ infraestrutura, e não no boot da aplicação.
 | `SPRING_FLYWAY_ENABLED` | `true` | Schema migrado junto com o deploy |
 | `SPRING_JPA_HIBERNATE_DDL_AUTO` | `validate` | O Hibernate confere o schema e nunca o altera |
 | `APP_SCHEDULING_ENABLED` | `true` | Reprocessa jobs de IA que falharam, a cada 5 minutos |
+
+No perfil `vercel`, os valores efetivos de Flyway e `ddl-auto` são `false` e
+`none`. Toda migration deve ser aplicada pelos SQLs de `supabase/migrations/`
+antes do deploy; a aplicação não altera nem valida o schema durante o cold
+start.
 
 Com mais de uma instância subindo ao mesmo tempo, aplique a migration de forma
 controlada antes do deploy e suba com `SPRING_FLYWAY_ENABLED=false` — o mesmo

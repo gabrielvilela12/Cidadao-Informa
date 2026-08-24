@@ -12,4 +12,10 @@ export PORT="${internal_port}"
 
 exec /opt/java/openjdk/bin/java \
   -XX:MaxRAMPercentage=75.0 \
-  -jar /app/app.jar
+  -XX:+UseSerialGC \
+  -XX:TieredStopAtLevel=1 \
+  -jar /app/app.jar \
+  --spring.flyway.enabled=false \
+  --spring.jpa.hibernate.ddl-auto=none \
+  --springdoc.api-docs.enabled=false \
+  --springdoc.swagger-ui.enabled=false

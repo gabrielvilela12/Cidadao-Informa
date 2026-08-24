@@ -27,6 +27,25 @@ function getApiUrl(path: string): string {
   return `${configuredApiUrl.replace(/\/+$/, '')}${path}`;
 }
 
+/**
+ * Acorda o container Java enquanto o visitante ainda esta na tela publica.
+ *
+ * A Vercel pode reduzir o backend a zero. Esta chamada e intencionalmente
+ * silenciosa: ela nao bloqueia a renderizacao e uma falha sera tratada pela
+ * requisicao real de login, que possui a mensagem adequada para o usuario.
+ */
+export async function warmApi(): Promise<void> {
+  try {
+    await fetch(getApiUrl('/api/health'), {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    });
+  } catch {
+    // Preaquecimento e apenas uma otimizacao, nunca um requisito da interface.
+  }
+}
+
 type ApiRequestOptions = RequestInit & {
   authenticated?: boolean;
 };

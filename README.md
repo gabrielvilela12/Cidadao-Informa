@@ -281,6 +281,13 @@ Vite e o backend Spring Boot como *container service* (`Dockerfile.vercel`, com
 para o frontend. Como é o mesmo domínio, o navegador nunca conhece o endereço
 interno do container.
 
+O container ativa o perfil `vercel`: Flyway e a validação de schema do
+Hibernate ficam desligados, a documentação OpenAPI não é carregada e a JVM
+prioriza startup. Ao abrir a tela pública sem sessão, o frontend também chama
+`/api/health` em segundo plano para começar o cold start antes do envio do
+login. O ambiente local continua usando as configurações completas de
+`application.yml`.
+
 Para o frontend, configure:
 
 ```env
@@ -328,10 +335,12 @@ O schema é versionado em dois lugares equivalentes: as migrations Flyway da API
 em `backend-java/src/main/resources/db/migration/` (V1 a V9), e os SQLs
 correspondentes em `supabase/migrations/`, para aplicar pelo painel do Supabase.
 
-O Flyway roda na inicialização da API (`SPRING_FLYWAY_ENABLED=true`, com
-`ddl-auto: validate` — o Hibernate confere o schema, nunca o altera). Em ambiente
-com mais de uma instância subindo ao mesmo tempo, aplique a migration de forma
-controlada antes do deploy e suba com `SPRING_FLYWAY_ENABLED=false`.
+Localmente, o Flyway roda na inicialização da API
+(`SPRING_FLYWAY_ENABLED=true`, com `ddl-auto: validate` — o Hibernate confere o
+schema, nunca o altera). O perfil `vercel` usa `SPRING_FLYWAY_ENABLED=false` e
+`ddl-auto: none` para não repetir esse trabalho em cada cold start. Portanto,
+uma migration nova deve ser aplicada primeiro pelos SQLs em
+`supabase/migrations/`; só depois a nova imagem deve ser publicada.
 
 Além do schema base, as migrations cobrem prioridade por IA e seus logs, a cadeia
 de auditoria dos protocolos, coordenadas, imagens, imagens corrigidas por IA,

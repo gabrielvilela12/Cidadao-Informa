@@ -19,7 +19,8 @@ COPY start-vercel.sh start-vercel.sh
 
 RUN chmod +x /app/start-vercel.sh
 
-ENV PORT=80
+ENV PORT=80 \
+    SPRING_PROFILES_ACTIVE=vercel
 
 EXPOSE 80
 
