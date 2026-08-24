@@ -60,30 +60,70 @@ function escapeCsv(value: string | number) {
     return `"${String(value).replaceAll('"', '""')}"`;
 }
 
+const distributionItemStyles: Record<string, { bar: string; dot: string; badge: string }> = {
+    Aberto: { bar: 'bg-blue-600', dot: 'bg-blue-600', badge: 'bg-blue-50 text-blue-700' },
+    'Em análise': { bar: 'bg-amber-500', dot: 'bg-amber-500', badge: 'bg-amber-50 text-amber-700' },
+    Concluído: { bar: 'bg-emerald-500', dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700' },
+    Atrasado: { bar: 'bg-red-500', dot: 'bg-red-500', badge: 'bg-red-50 text-red-700' },
+    Física: { bar: 'bg-sky-500', dot: 'bg-sky-500', badge: 'bg-sky-50 text-sky-700' },
+    Visual: { bar: 'bg-violet-500', dot: 'bg-violet-500', badge: 'bg-violet-50 text-violet-700' },
+    Auditiva: { bar: 'bg-orange-500', dot: 'bg-orange-500', badge: 'bg-orange-50 text-orange-700' },
+    Outros: { bar: 'bg-indigo-500', dot: 'bg-indigo-500', badge: 'bg-indigo-50 text-indigo-700' },
+    Crítica: { bar: 'bg-red-600', dot: 'bg-red-600', badge: 'bg-red-50 text-red-700' },
+    Alta: { bar: 'bg-orange-500', dot: 'bg-orange-500', badge: 'bg-orange-50 text-orange-700' },
+    Média: { bar: 'bg-amber-400', dot: 'bg-amber-400', badge: 'bg-amber-50 text-amber-700' },
+    Baixa: { bar: 'bg-emerald-500', dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700' },
+    'Não classificada': { bar: 'bg-slate-400', dot: 'bg-slate-400', badge: 'bg-slate-100 text-slate-600' },
+};
+
+const defaultDistributionItemStyle = {
+    bar: 'bg-blue-600',
+    dot: 'bg-blue-600',
+    badge: 'bg-blue-50 text-blue-700',
+};
+
+const distributionCardStyles: Record<string, { border: string; dot: string }> = {
+    'Por status': { border: 'border-t-blue-500', dot: 'bg-blue-500' },
+    'Por categoria': { border: 'border-t-violet-500', dot: 'bg-violet-500' },
+    'Por prioridade': { border: 'border-t-orange-500', dot: 'bg-orange-500' },
+};
+
 function DistributionCard({ title, items }: { title: string; items: TransparencyMetric[] }) {
     const total = items.reduce((sum, item) => sum + item.value, 0);
     const max = Math.max(...items.map((item) => item.value), 1);
+    const cardStyle = distributionCardStyles[title] ?? distributionCardStyles['Por status'];
 
     return (
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-black text-[#071A3A]">{title}</h2>
+        <section className={`rounded-2xl border border-t-4 border-slate-200 bg-white p-6 shadow-sm ${cardStyle.border}`}>
+            <h2 className="flex items-center gap-2.5 text-lg font-black text-[#071A3A]">
+                <span className={`size-2.5 rounded-full ${cardStyle.dot}`} aria-hidden="true" />
+                {title}
+            </h2>
             <div className="mt-5 space-y-4">
-                {items.map((item) => (
-                    <div key={item.label}>
-                        <div className="mb-1.5 flex items-center justify-between gap-4 text-sm">
-                            <span className="font-semibold text-slate-700">{item.label}</span>
-                            <span className="text-slate-500">
-                                {formatNumber(item.value)} · {total ? Math.round((item.value / total) * 100) : 0}%
-                            </span>
+                {items.map((item) => {
+                    const itemStyle = distributionItemStyles[item.label] ?? defaultDistributionItemStyle;
+                    const percentage = total ? Math.round((item.value / total) * 100) : 0;
+
+                    return (
+                        <div key={item.label}>
+                            <div className="mb-2 flex items-center justify-between gap-4 text-sm">
+                                <span className="flex min-w-0 items-center gap-2 font-semibold text-slate-700">
+                                    <span className={`size-2 rounded-full ${itemStyle.dot}`} aria-hidden="true" />
+                                    {item.label}
+                                </span>
+                                <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${itemStyle.badge}`}>
+                                    {formatNumber(item.value)} · {percentage}%
+                                </span>
+                            </div>
+                            <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+                                <div
+                                    className={`h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none ${itemStyle.bar}`}
+                                    style={{ width: `${Math.max(item.value ? 3 : 0, (item.value / max) * 100)}%` }}
+                                />
+                            </div>
                         </div>
-                        <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
-                            <div
-                                className="h-full rounded-full bg-[#0B63CE] transition-[width] duration-500 motion-reduce:transition-none"
-                                style={{ width: `${Math.max(item.value ? 3 : 0, (item.value / max) * 100)}%` }}
-                            />
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </section>
     );
