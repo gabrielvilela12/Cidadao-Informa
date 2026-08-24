@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { AppProvider, useApp } from './context/AppContext';
@@ -25,6 +25,10 @@ import { NotFound } from './pages/NotFound';
 import { PanelLeftOpen } from 'lucide-react';
 import { TermsOfUse } from './pages/TermsOfUse';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
+
+const Transparency = lazy(() =>
+  import('./pages/Transparency').then((module) => ({ default: module.Transparency })),
+);
 
 function getHashRoutePath() {
   const hashPath = window.location.hash.replace(/^#/, '');
@@ -61,6 +65,16 @@ function AppContent() {
   const isMapRoute = routeLocation.pathname === '/mapa' || routeLocation.pathname === '/admin/mapa';
 
   useKeyboardShortcuts(role);
+
+  // A transparência é uma experiência pública e independente do painel, mesmo
+  // quando o visitante já possui uma sessão autenticada no navegador.
+  if (routeLocation.pathname === '/transparencia') {
+    return (
+      <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#F5F8FC] font-semibold text-slate-600">Carregando transparência…</div>}>
+        <Transparency />
+      </Suspense>
+    );
+  }
 
   if (!isAuthenticated) {
     return (

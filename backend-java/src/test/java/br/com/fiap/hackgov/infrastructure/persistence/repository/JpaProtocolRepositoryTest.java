@@ -22,4 +22,17 @@ class JpaProtocolRepositoryTest {
         assertNotNull(createdAtOrder);
         assertEquals(Sort.Direction.ASC, createdAtOrder.getDirection());
     }
+
+    @Test
+    void parsesTransparencyProjectionQueryAgainstProtocolEntity() {
+        PartTree query = new PartTree(
+                "findAllProjectedByOrderByCreatedAtDesc",
+                Protocol.class
+        );
+
+        assertEquals(0, query.getParts().stream().count());
+        Sort.Order createdAtOrder = query.getSort().getOrderFor("createdAt");
+        assertNotNull(createdAtOrder);
+        assertEquals(Sort.Direction.DESC, createdAtOrder.getDirection());
+    }
 }

@@ -46,6 +46,70 @@ export interface ProtocolAuditTrail {
     blocks: ProtocolAuditBlock[];
 }
 
+export interface TransparencyData {
+    generatedAt: string;
+    overview: {
+        total: number;
+        open: number;
+        inAnalysis: number;
+        completed: number;
+        citizens: number;
+        resolutionRate: number | null;
+    };
+    statusDistribution: TransparencyMetric[];
+    categoryDistribution: TransparencyMetric[];
+    priorityDistribution: TransparencyMetric[];
+    monthlyEvolution: Array<{
+        month: string;
+        registered: number;
+        currentlyCompleted: number;
+    }>;
+    sla: {
+        evaluated: number;
+        onTime: number;
+        dueSoon: number;
+        late: number;
+        onTimeRate: number | null;
+    };
+    ai: {
+        total: number;
+        classified: number;
+        pending: number;
+        failed: number;
+        coverageRate: number | null;
+        model: string;
+    };
+    dataQuality: {
+        withCoordinates: number;
+        withoutCoordinates: number;
+        withAiClassification: number;
+        withoutAiClassification: number;
+    };
+    audit: {
+        valid: boolean;
+        totalBlocks: number;
+        verifiedAt: string;
+    };
+    geography: Array<{
+        latitude: number;
+        longitude: number;
+        count: number;
+    }>;
+    recentProtocols: Array<{
+        publicId: string;
+        category: string;
+        location: string;
+        createdAt: string;
+        status: string;
+        priority: string;
+    }>;
+}
+
+export interface TransparencyMetric {
+    label: string;
+    value: number;
+}
+
 interface ApiAuditBlock {
     id: string;
     blockIndex: number | string;
@@ -190,6 +254,10 @@ export const api = {
             resolutionRate: number | null;
             citizens: number;
         }>('/api/protocols/stats', { authenticated: false });
+    },
+
+    getTransparency() {
+        return apiRequest<TransparencyData>('/api/transparency', { authenticated: false });
     },
 
     async getProtocolById(id: string) {

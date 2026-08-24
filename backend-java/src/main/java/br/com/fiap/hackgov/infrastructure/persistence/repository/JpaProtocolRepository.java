@@ -55,6 +55,20 @@ public interface JpaProtocolRepository extends JpaRepository<Protocol, String> {
         String getPhone();
     }
 
+    List<TransparencyProtocolProjection> findAllProjectedByOrderByCreatedAtDesc();
+
+    interface TransparencyProtocolProjection {
+        String getId();
+        String getCategory();
+        String getAddress();
+        Instant getCreatedAt();
+        String getStatus();
+        String getAiPriority();
+        String getAiStatus();
+        Double getLatitude();
+        Double getLongitude();
+    }
+
     long countByStatusIn(Collection<String> statuses);
 
     @Override

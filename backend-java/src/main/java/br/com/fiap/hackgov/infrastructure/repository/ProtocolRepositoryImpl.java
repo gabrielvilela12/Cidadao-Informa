@@ -49,6 +49,23 @@ public class ProtocolRepositoryImpl implements ProtocolRepository {
     }
 
     @Override
+    public List<TransparencyProtocol> getTransparencyData() {
+        return repository.findAllProjectedByOrderByCreatedAtDesc().stream()
+                .map(item -> new TransparencyProtocol(
+                        item.getId(),
+                        item.getCategory(),
+                        item.getAddress(),
+                        item.getCreatedAt(),
+                        item.getStatus(),
+                        item.getAiPriority(),
+                        item.getAiStatus(),
+                        item.getLatitude(),
+                        item.getLongitude()
+                ))
+                .toList();
+    }
+
+    @Override
     public List<Protocol> getWithoutCoordinates(int limit) {
         return repository.findByLatitudeIsNullOrderByCreatedAtDesc(PageRequest.of(0, limit));
     }

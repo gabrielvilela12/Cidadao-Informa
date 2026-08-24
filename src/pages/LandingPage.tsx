@@ -271,6 +271,9 @@ export function LandingPage() {
                         <a href="#resultados" className="text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]">
                             Resultados
                         </a>
+                        <Link to="/transparencia" className="text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]">
+                            Transparência
+                        </Link>
                         <Link
                             to="/acessibilidade"
                             className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]"
@@ -702,6 +705,7 @@ export function LandingPage() {
                             <div className="mt-5 flex flex-col items-start gap-3">
                                 <a href="#como-funciona" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Como funciona</a>
                                 <a href="#beneficios" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Benefícios</a>
+                                <Link to="/transparencia" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Transparência</Link>
                                 <Link to="/login" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Entrar</Link>
                             </div>
                         </nav>
