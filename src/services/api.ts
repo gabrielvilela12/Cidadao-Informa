@@ -1,5 +1,5 @@
 import type { Protocol } from '../constants';
-import { apiRequest, apiRequestBlob, readEventStream } from './http';
+import { apiRequest, readEventStream } from './http';
 
 interface ApiProtocol {
     id: string;
@@ -112,6 +112,25 @@ export interface TransparencyData {
 export interface TransparencyMetric {
     label: string;
     value: number;
+}
+
+export interface DailyReportSummary {
+    id: string;
+    reportDate: string;
+    generatedAt: string;
+    newProtocolsCount: number;
+    statusChangesCount: number;
+    protocolsInvolvedCount: number;
+    totalSpent: number;
+    regionsCount: number;
+}
+
+export interface DailyReportDetail extends DailyReportSummary {
+    periodStart: string;
+    periodEnd: string;
+    statusTransitions: Array<{ fromStatus: string; toStatus: string; count: number }>;
+    regionDistribution: Array<{ region: string; count: number }>;
+    protocols: Array<{ protocolId: string; category: string; address: string; region: string; currentStatus: string; protocolCreatedAt: string; createdDuringPeriod: boolean; resolutionCost: number | null; spentDuringPeriod: number; statusChanges: Array<{ fromStatus: string; toStatus: string; occurredAt: string }> }>;
 }
 
 interface ApiAuditBlock {
@@ -278,17 +297,16 @@ export const api = {
         return mapProtocol(data);
     },
 
-    downloadPublicConclusionReport(id: string) {
-        return apiRequestBlob(
-            `/api/protocols/public/${encodeURIComponent(id)}/documents/conclusion.pdf`,
-            { authenticated: false },
-        );
+    getDailyReports() {
+        return apiRequest<DailyReportSummary[]>('/api/admin/reports');
     },
 
-    downloadInternalConclusionReport(id: string) {
-        return apiRequestBlob(
-            `/api/protocols/${encodeURIComponent(id)}/documents/conclusion/internal.pdf`,
-        );
+    getDailyReport(id: string) {
+        return apiRequest<DailyReportDetail>(`/api/admin/reports/${encodeURIComponent(id)}`);
+    },
+
+    generateDailyReport(date: string) {
+        return apiRequest<DailyReportSummary>(`/api/admin/reports/generate/${encodeURIComponent(date)}`, { method: 'POST' });
     },
 
     async createProtocol(data: any) {

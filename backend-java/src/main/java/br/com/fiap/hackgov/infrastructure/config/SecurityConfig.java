@@ -66,7 +66,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/protocols/stats").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/transparency").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/protocols/public/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/cron/documents").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/cron/daily-reports").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

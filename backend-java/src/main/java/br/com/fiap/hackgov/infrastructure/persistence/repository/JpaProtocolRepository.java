@@ -77,46 +77,29 @@ public interface JpaProtocolRepository extends JpaRepository<Protocol, String> {
     long countByStatusIn(Collection<String> statuses);
 
     @Query("""
-            select p.id as id, p.category as category, p.description as description,
-                   p.address as address, p.createdAt as createdAt, p.status as status,
-                   p.resolutionCost as resolutionCost, p.requester as requester,
-                   p.aiPriority as aiPriority, p.correctionReport as correctionReport,
-                   u.name as citizenName, u.email as citizenEmail,
-                   u.cpf as citizenCpf, u.phone as citizenPhone
-              from Protocol p join p.user u
-             where p.status in :statuses
+            select p.id as id, p.category as category, p.address as address,
+                   p.createdAt as createdAt, p.status as status, p.resolutionCost as resolutionCost
+              from Protocol p
+             where p.createdAt >= :start and p.createdAt < :end
             """)
-    List<ConclusionDocumentProjection> findConclusionDocumentData(
-            @Param("statuses") Collection<String> statuses
-    );
+    List<DailyReportProtocolProjection> findDailyReportDataCreatedBetween(
+            @Param("start") Instant start, @Param("end") Instant end);
 
     @Query("""
-            select p.id as id, p.category as category, p.description as description,
-                   p.address as address, p.createdAt as createdAt, p.status as status,
-                   p.resolutionCost as resolutionCost, p.requester as requester,
-                   p.aiPriority as aiPriority, p.correctionReport as correctionReport,
-                   u.name as citizenName, u.email as citizenEmail,
-                   u.cpf as citizenCpf, u.phone as citizenPhone
-              from Protocol p join p.user u
-             where p.id = :id
+            select p.id as id, p.category as category, p.address as address,
+                   p.createdAt as createdAt, p.status as status, p.resolutionCost as resolutionCost
+              from Protocol p
+             where p.id in :ids
             """)
-    Optional<ConclusionDocumentProjection> findConclusionDocumentDataById(@Param("id") String id);
+    List<DailyReportProtocolProjection> findDailyReportDataByIdIn(@Param("ids") Collection<String> ids);
 
-    interface ConclusionDocumentProjection {
+    interface DailyReportProtocolProjection {
         String getId();
         String getCategory();
-        String getDescription();
         String getAddress();
         Instant getCreatedAt();
         String getStatus();
         BigDecimal getResolutionCost();
-        String getRequester();
-        String getAiPriority();
-        String getCorrectionReport();
-        String getCitizenName();
-        String getCitizenEmail();
-        String getCitizenCpf();
-        String getCitizenPhone();
     }
 
     @Override

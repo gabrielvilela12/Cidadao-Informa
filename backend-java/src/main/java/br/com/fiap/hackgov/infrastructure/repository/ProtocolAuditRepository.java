@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Instant;
 
 @Repository
 public interface ProtocolAuditRepository extends JpaRepository<ProtocolAuditBlock, UUID> {
@@ -18,4 +19,7 @@ public interface ProtocolAuditRepository extends JpaRepository<ProtocolAuditBloc
     Optional<ProtocolAuditBlock> findFirstByProtocolIdOrderByBlockIndexDesc(String protocolId);
 
     List<ProtocolAuditBlock> findAllByOrderByBlockIndexAsc();
+
+    List<ProtocolAuditBlock> findByCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtAsc(
+            Instant start, Instant end);
 }

@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, MapPinOff, Calendar, Clock, FileText, CheckCircle, AlertCircle, Shield, Share2, Check, Image as ImageIcon, CircleDollarSign, Download, Loader2 } from 'lucide-react';
+import { MapPin, MapPinOff, Calendar, Clock, FileText, CheckCircle, AlertCircle, Shield, Share2, Check, Image as ImageIcon, CircleDollarSign } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -9,7 +9,6 @@ import { CidadaoBrand } from '../components/CidadaoBrand';
 import { ImageLightbox } from '../components/ImageLightbox';
 import { formatCurrency } from '../utils/currency';
 import { getMarkerPosition } from '../utils/mapUtils';
-import { saveBlob } from '../utils/download';
 
 // Fix leaflet icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -50,8 +49,6 @@ export function PublicProtocol() {
     const [copied, setCopied] = useState(false);
     const [notFound, setNotFound] = useState(false);
     const [expandedImage, setExpandedImage] = useState<{ src: string; alt: string } | null>(null);
-    const [reportDownloading, setReportDownloading] = useState(false);
-    const [reportError, setReportError] = useState('');
     // Coordenada confirmada do protocolo, ou null quando nao houver.
     const publicPosition = protocol ? getMarkerPosition(protocol) : null;
 
@@ -84,20 +81,6 @@ export function PublicProtocol() {
         navigator.clipboard.writeText(window.location.href);
         setCopied(true);
         setTimeout(() => setCopied(false), 2500);
-    };
-
-    const handleDownloadReport = async () => {
-        if (!id) return;
-        setReportDownloading(true);
-        setReportError('');
-        try {
-            const blob = await api.downloadPublicConclusionReport(id);
-            saveBlob(blob, `relatorio-conclusao-publico-${id.slice(0, 8)}.pdf`);
-        } catch (error) {
-            setReportError(error instanceof Error ? error.message : 'Não foi possível baixar o relatório.');
-        } finally {
-            setReportDownloading(false);
-        }
     };
 
     const events = protocol ? [
@@ -242,12 +225,6 @@ export function PublicProtocol() {
                                                 ? 'Este protocolo foi concluído antes da adoção do registro obrigatório de custos.'
                                                 : 'Valor declarado pela equipe responsável no encerramento desta solicitação.'}
                                         </p>
-                                        <button type="button" onClick={handleDownloadReport} disabled={reportDownloading}
-                                            className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-black text-emerald-800 transition hover:bg-emerald-50 disabled:cursor-wait disabled:opacity-60">
-                                            {reportDownloading ? <Loader2 size={17} className="animate-spin" /> : <Download size={17} />}
-                                            {reportDownloading ? 'Gerando PDF...' : 'Baixar relatório público'}
-                                        </button>
-                                        {reportError && <p className="mt-3 text-xs font-semibold text-red-300" role="alert">{reportError}</p>}
                                     </div>
                                 )}
 

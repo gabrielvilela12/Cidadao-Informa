@@ -45,7 +45,7 @@
   ],
   "crons": [
     {
-      "path": "/api/cron/documents",
+      "path": "/api/cron/daily-reports",
       "schedule": "0 3 * * *"
     }
   ]
