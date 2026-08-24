@@ -8,7 +8,7 @@ import {
     Clock3,
     Database,
     Download,
-    FileJson,
+    LogIn,
     MapPinned,
     RefreshCw,
     ShieldCheck,
@@ -119,15 +119,6 @@ export function Transparency() {
         void loadData();
     }, [loadData]);
 
-    const exportJson = () => {
-        if (!data) return;
-        downloadFile(
-            `transparencia-cidadao-informa-${data.generatedAt.slice(0, 10)}.json`,
-            JSON.stringify(data, null, 2),
-            'application/json;charset=utf-8',
-        );
-    };
-
     const exportCsv = () => {
         if (!data) return;
         const header = ['protocolo_anonimizado', 'categoria', 'localidade', 'data', 'status', 'prioridade'];
@@ -173,8 +164,8 @@ export function Transparency() {
 
             <main>
                 <section className="border-b border-blue-100 bg-[linear-gradient(135deg,#EAF3FF_0%,#F8FBFF_55%,#ECFDF3_100%)]">
-                    <div className="mx-auto max-w-[1440px] px-5 py-12 sm:px-8 lg:py-16">
-                        <div className="max-w-4xl">
+                    <div className="mx-auto grid max-w-[1440px] items-center gap-10 px-5 py-10 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.9fr)] lg:gap-14 lg:py-14">
+                        <div className="min-w-0">
                             <span className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-3 py-1.5 text-xs font-black uppercase tracking-wider text-[#0758BD]">
                                 <ShieldCheck size={16} aria-hidden="true" /> Dados públicos e protegidos
                             </span>
@@ -184,26 +175,37 @@ export function Transparency() {
                             <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-600">
                                 Acompanhe os resultados da plataforma, os prazos, a cobertura dos dados e o uso de inteligência artificial — sem expor nenhum cidadão.
                             </p>
+
+                            {data && (
+                                <div className="mt-8">
+                                    <p className="text-sm text-slate-600" aria-live="polite">
+                                        Atualizado em <strong>{dateFormatter.format(new Date(data.generatedAt))}</strong>
+                                    </p>
+                                    <div className="mt-5 flex flex-wrap gap-2">
+                                        <button type="button" onClick={() => void loadData()} disabled={loading} className="inline-flex h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 transition-colors hover:border-[#0B63CE] hover:text-[#0758BD] disabled:opacity-60">
+                                            <RefreshCw size={17} className={loading ? 'animate-spin motion-reduce:animate-none' : ''} aria-hidden="true" /> Atualizar
+                                        </button>
+                                        <button type="button" onClick={exportCsv} className="inline-flex h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 transition-colors hover:border-[#0B63CE] hover:text-[#0758BD]">
+                                            <Download size={17} aria-hidden="true" /> CSV
+                                        </button>
+                                        <Link to="/login" className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#0B63CE] px-5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#084C9F]">
+                                            <LogIn size={17} aria-hidden="true" /> Entrar
+                                        </Link>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
-                        {data && (
-                            <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                <p className="text-sm text-slate-600" aria-live="polite">
-                                    Atualizado em <strong>{dateFormatter.format(new Date(data.generatedAt))}</strong>
-                                </p>
-                                <div className="flex flex-wrap gap-2">
-                                    <button type="button" onClick={() => void loadData()} disabled={loading} className="inline-flex h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 hover:border-[#0B63CE] disabled:opacity-60">
-                                        <RefreshCw size={17} className={loading ? 'animate-spin motion-reduce:animate-none' : ''} aria-hidden="true" /> Atualizar
-                                    </button>
-                                    <button type="button" onClick={exportCsv} className="inline-flex h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 hover:border-[#0B63CE]">
-                                        <Download size={17} aria-hidden="true" /> CSV
-                                    </button>
-                                    <button type="button" onClick={exportJson} className="inline-flex h-11 items-center gap-2 rounded-lg bg-[#0B63CE] px-4 text-sm font-bold text-white hover:bg-[#084C9F]">
-                                        <FileJson size={17} aria-hidden="true" /> JSON
-                                    </button>
-                                </div>
-                            </div>
-                        )}
+                        <div className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-white/60 p-2 shadow-[0_24px_70px_-35px_rgba(11,99,206,0.55)]">
+                            <img
+                                src="/transparency-banner.jpg"
+                                alt="Cidadãos acompanhando dados públicos acessíveis em um mapa da cidade"
+                                width="1536"
+                                height="1024"
+                                className="aspect-[3/2] w-full rounded-[1.55rem] object-cover"
+                                fetchPriority="high"
+                            />
+                        </div>
                     </div>
                 </section>
 
