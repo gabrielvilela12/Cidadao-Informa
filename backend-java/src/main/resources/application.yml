@@ -48,6 +48,9 @@ springdoc:
     path: /swagger
 
 app:
+  protocol-events:
+    poll-ms: ${PROTOCOL_EVENTS_POLL_MS:1000}
+    heartbeat-ms: ${PROTOCOL_EVENTS_HEARTBEAT_MS:25000}
   scheduling:
     enabled: ${APP_SCHEDULING_ENABLED:true}
   security:

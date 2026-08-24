@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  BellRing,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -73,7 +74,7 @@ interface VisibleProtocolMarker {
 const OVERLAP_COORDINATE_PRECISION = 6;
 const OVERLAP_SPREAD_METERS = 32;
 const METERS_PER_DEGREE_LATITUDE = 111_320;
-const NEW_MARKER_ANIMATION_MS = 4_000;
+const NEW_MARKER_ANIMATION_MS = 9_000;
 const MAX_SSE_RECONNECT_MS = 15_000;
 
 function waitForReconnect(delay: number, signal: AbortSignal): Promise<void> {
@@ -180,8 +181,10 @@ export function AdminMap() {
   const [showOperationalPanel, setShowOperationalPanel] = useState(false);
   const [activeLayer, setActiveLayer] = useState<MapLayer>('pins');
   const [newProtocolIds, setNewProtocolIds] = useState<Set<string>>(() => new Set());
+  const [newProtocolNotice, setNewProtocolNotice] = useState<Protocol | null>(null);
   const knownProtocolIds = useRef<Set<string>>(new Set());
   const newMarkerTimers = useRef<Map<string, number>>(new Map());
+  const newProtocolNoticeTimer = useRef<number | null>(null);
   const [heatMode, setHeatMode] = useState<HeatMode>('gradient');
   const [heatSettings, setHeatSettings] = useState<HeatSettings>({
     radiusMeters: HEAT_CONTROLS.radius.default,
@@ -225,6 +228,25 @@ export function AdminMap() {
 
               if (!isNew) return;
 
+              setNewProtocolNotice(protocol);
+              setActiveIncident(protocol);
+
+              if (newProtocolNoticeTimer.current) {
+                window.clearTimeout(newProtocolNoticeTimer.current);
+              }
+              newProtocolNoticeTimer.current = window.setTimeout(() => {
+                setNewProtocolNotice((current) => current?.id === protocol.id ? null : current);
+                newProtocolNoticeTimer.current = null;
+              }, NEW_MARKER_ANIMATION_MS);
+
+              const position = getMarkerPosition(protocol);
+              if (position && map) {
+                map.flyTo(position, Math.max(map.getZoom(), 14), {
+                  animate: true,
+                  duration: 1.25,
+                });
+              }
+
               setNewProtocolIds((current) => {
                 const updated = new Set(current);
                 updated.add(protocol.id);
@@ -264,8 +286,12 @@ export function AdminMap() {
       controller.abort();
       newMarkerTimers.current.forEach((timer) => window.clearTimeout(timer));
       newMarkerTimers.current.clear();
+      if (newProtocolNoticeTimer.current) {
+        window.clearTimeout(newProtocolNoticeTimer.current);
+        newProtocolNoticeTimer.current = null;
+      }
     };
-  }, [mergeProtocol, refetch]);
+  }, [map, mergeProtocol, refetch]);
 
   // O contorno das 27 UFs sao ~160 KB, carregados so quando o modo estado e
   // acionado - nenhuma outra tela precisa deles. Vite separa em chunk proprio.
@@ -470,6 +496,13 @@ export function AdminMap() {
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
         />
+        {!loading && protocols.flatMap((protocol) => {
+          if (!newProtocolIds.has(protocol.id)) return [];
+          const position = getMarkerPosition(protocol);
+          return position
+            ? [<ProtocolArrivalWave key={`arrival-${protocol.id}`} protocol={protocol} position={position} />]
+            : [];
+        })}
         {!loading && !showHeat && visibleProtocolMarkers.map(({ protocol, protocolIndex, position, overlapCount, overlapIndex }) => (
           <ProtocolMarker
             key={protocol.id}
@@ -506,6 +539,58 @@ export function AdminMap() {
           />
         )}
       </MapContainer>
+
+      {newProtocolNotice && (
+        <aside
+          role="status"
+          aria-live="polite"
+          className="new-protocol-notice pointer-events-auto absolute inset-x-3 top-20 z-[650] overflow-hidden rounded-xl border border-[#A7C7F2] bg-white shadow-2xl sm:left-auto sm:right-20 sm:top-24 sm:w-[360px]"
+        >
+          <div className="h-1 bg-gradient-to-r from-[#0758BD] via-[#168821] to-[#FFCD07]" />
+          <div className="p-4">
+            <div className="flex items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#EAF2FF] text-[#0758BD]">
+                <BellRing size={20} aria-hidden="true" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-black uppercase tracking-wider text-[#168821]">Nova solicitação recebida</p>
+                <p className="mt-1 font-black text-slate-950">
+                  Protocolo #{newProtocolNotice.id.slice(0, 8)} · {newProtocolNotice.category}
+                </p>
+                <p className="mt-1 line-clamp-2 text-sm text-slate-600">{newProtocolNotice.address}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNewProtocolNotice(null)}
+                className="flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
+                aria-label="Fechar aviso de nova solicitação"
+              >
+                <X size={17} />
+              </button>
+            </div>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const position = getMarkerPosition(newProtocolNotice);
+                  setActiveLayer('pins');
+                  setActiveIncident(newProtocolNotice);
+                  if (position) map?.flyTo(position, Math.max(map.getZoom(), 16), { duration: 1 });
+                }}
+                className="inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-[#0758BD] px-3 text-sm font-bold text-white hover:bg-[#064A9E]"
+              >
+                <MapPin size={16} /> Ver no mapa
+              </button>
+              <Link
+                to={`/protocolo/${newProtocolNotice.id}`}
+                className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[#A7C7F2] px-3 text-sm font-bold text-[#0758BD] hover:bg-[#EAF2FF]"
+              >
+                Abrir protocolo
+              </Link>
+            </div>
+          </div>
+        </aside>
+      )}
 
       {!mapOnlyMode ? <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] p-3 sm:p-5">
         <div className="pointer-events-auto flex flex-wrap items-center gap-2">
@@ -757,5 +842,25 @@ function ProtocolMarker({ protocol, position, selected, isNew, overlapCount, ove
         </div>
       </Popup>
     </Marker>
+  );
+}
+
+function ProtocolArrivalWave({ protocol, position }: { protocol: Protocol; position: [number, number] }) {
+  const color = STATUS_COLORS[canonicalStatus(protocol)];
+  const icon = L.divIcon({
+    className: 'protocol-arrival-wave-icon',
+    html: `<span class="protocol-arrival-wave" style="--arrival-color:${color}"><span class="protocol-arrival-ring protocol-arrival-ring-one"></span><span class="protocol-arrival-ring protocol-arrival-ring-two"></span><span class="protocol-arrival-ring protocol-arrival-ring-three"></span><span class="protocol-arrival-core"></span></span>`,
+    iconSize: [150, 150],
+    iconAnchor: [75, 75],
+  });
+
+  return (
+    <Marker
+      position={position}
+      icon={icon}
+      interactive={false}
+      keyboard={false}
+      zIndexOffset={-500}
+    />
   );
 }

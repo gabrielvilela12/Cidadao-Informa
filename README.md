@@ -197,6 +197,7 @@ interface:
 | `PATCH /api/protocols/{id}/status` | Admin |
 | `POST /api/protocols/{id}/ai-correction` | Admin; simulação de correção por IA |
 | `POST /api/protocols/geocode/backfill` | Admin; preenche coordenada faltante |
+| `GET /api/protocols/events` | Admin; stream SSE de novas solicitações |
 | `GET /api/protocols/{id}/audit` | Dono do protocolo ou admin |
 | `GET /api/protocols/audit/verify` | Admin; revalida a cadeia de hashes |
 | `GET /api/ai-priority/{protocolId}` | Qualquer sessão válida |
@@ -288,6 +289,12 @@ prioriza startup. Ao abrir a tela pública sem sessão, o frontend também chama
 login. O ambiente local continua usando as configurações completas de
 `application.yml`.
 
+O mapa administrativo mantém um SSE aberto em `/api/protocols/events`. Como a
+Vercel pode atender o POST do cidadão e o stream do admin em instâncias
+diferentes, instâncias com assinantes consultam no PostgreSQL somente a projeção
+leve dos protocolos recentes e deduplicam os ids já enviados. O padrão é uma
+consulta por segundo; sem mapa conectado, nenhuma consulta adicional é feita.
+
 Para o frontend, configure:
 
 ```env
@@ -309,6 +316,7 @@ CORS_ALLOWED_ORIGINS=https://cidadao-informa.vercel.app
 LOGIN_RATE_LIMIT_MAX_FAILURES_PER_IP=30
 LOGIN_RATE_LIMIT_MAX_FAILURES_PER_CPF=10
 LOGIN_RATE_LIMIT_WINDOW_MINUTES=15
+PROTOCOL_EVENTS_POLL_MS=1000
 ```
 
 `CORS_ALLOWED_ORIGINS` deve listar domínios reais: a API recusa subir com `*`.
