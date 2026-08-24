@@ -114,7 +114,9 @@ opcionais `OPENROUTER_IMAGE_MODEL` (padrão `google/gemini-3.1-flash-image`) e
 `OPENROUTER_REPORT_MODEL` (padrão `google/gemini-3.7-flash`). A leitura da foto e
 a criação do plano usam o Gemini 3.7 Flash; a edição visual continua no Nano
 Banana 2 (Gemini 3.1 Flash Image), pois o Gemini 3.7 Flash gera apenas saída em
-texto. Qualquer um desses valores pode ser sobrescrito pela variável respectiva.
+texto. A imagem corrigida é solicitada em JPEG 4K com compressão 85 para manter
+alta qualidade sem ultrapassar o limite de transporte e persistência em Base64.
+Qualquer um dos modelos pode ser sobrescrito pela variável respectiva.
 
 Use a conexão Session Pooler mostrada no botão `Connect` do projeto para
 funcionar também em hospedagens e redes compatíveis apenas com IPv4. Nunca

@@ -5,6 +5,8 @@ const IMAGE_FUNCTION_SECRET = Deno.env.get("AI_IMAGE_FUNCTION_SECRET")
 const IMAGE_MODEL = Deno.env.get("OPENROUTER_IMAGE_MODEL")
   ?? "google/gemini-3.1-flash-image";
 const IMAGE_RESOLUTION = Deno.env.get("OPENROUTER_IMAGE_RESOLUTION") ?? "4K";
+const IMAGE_OUTPUT_FORMAT = "jpeg";
+const IMAGE_OUTPUT_COMPRESSION = 85;
 const OPENROUTER_IMAGES_URL = "https://openrouter.ai/api/v1/images";
 const OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions";
 const REPORT_MODEL = Deno.env.get("OPENROUTER_REPORT_MODEL")
@@ -144,7 +146,8 @@ async function correctOneImage(image: string, prompt: string): Promise<string> {
       prompt,
       resolution: IMAGE_RESOLUTION,
       quality: "high",
-      output_format: "png",
+      output_format: IMAGE_OUTPUT_FORMAT,
+      output_compression: IMAGE_OUTPUT_COMPRESSION,
       n: 1,
       input_references: [
         {
@@ -165,10 +168,16 @@ async function correctOneImage(image: string, prompt: string): Promise<string> {
     throw new Error("O modelo não retornou uma imagem.");
   }
 
-  const mediaType = generated.media_type || "image/png";
+  const mediaType = (generated.media_type || `image/${IMAGE_OUTPUT_FORMAT}`).toLowerCase();
   if (!/^image\/(jpeg|png|webp)$/i.test(mediaType)) {
     throw new Error("O modelo retornou um formato de imagem não suportado.");
   }
+
+  console.log("Corrected image generated", {
+    model: IMAGE_MODEL,
+    media_type: mediaType,
+    base64_length: generated.b64_json.length,
+  });
 
   return `data:${mediaType};base64,${generated.b64_json}`;
 }

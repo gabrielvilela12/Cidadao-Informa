@@ -112,15 +112,30 @@ public class AiImageCorrectionService {
             throw new IllegalStateException("A IA retornou uma quantidade inesperada de imagens.");
         }
 
-        boolean invalidImage = images.stream().anyMatch(image -> image == null
-                || image.length() > MAX_DATA_URL_LENGTH
-                || !(image.startsWith("data:image/jpeg;base64,")
-                || image.startsWith("data:image/png;base64,")
-                || image.startsWith("data:image/webp;base64,")));
-        if (invalidImage) {
-            throw new IllegalStateException("A IA retornou uma imagem em formato inválido.");
+        for (int index = 0; index < images.size(); index++) {
+            String image = images.get(index);
+            if (image == null || !isSupportedImageDataUrl(image)) {
+                throw new IllegalStateException("A IA retornou uma imagem em formato inválido.");
+            }
+            if (image.length() > MAX_DATA_URL_LENGTH) {
+                LOGGER.warn(
+                        "AI correction image {} rejected for protocol payload: {} characters exceeds limit {}",
+                        index + 1,
+                        image.length(),
+                        MAX_DATA_URL_LENGTH
+                );
+                throw new IllegalStateException(
+                        "A imagem corrigida ficou maior que o limite permitido. Tente gerar novamente."
+                );
+            }
         }
         return List.copyOf(images);
+    }
+
+    static boolean isSupportedImageDataUrl(String image) {
+        return image.regionMatches(true, 0, "data:image/jpeg;base64,", 0, "data:image/jpeg;base64,".length())
+                || image.regionMatches(true, 0, "data:image/png;base64,", 0, "data:image/png;base64,".length())
+                || image.regionMatches(true, 0, "data:image/webp;base64,", 0, "data:image/webp;base64,".length());
     }
 
     private String validateReport(CorrectionResponse response) {
