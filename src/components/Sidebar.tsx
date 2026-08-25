@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, User, LogOut, BarChart3, List, X, Sparkles, ChevronLeft, Users, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, User, LogOut, BarChart3, List, X, Sparkles, ChevronDown, ChevronLeft, Users, ShieldCheck } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { CidadaoBrand } from './CidadaoBrand';
 import { AccessibilityIcon as A11yIcon } from './AccessibilityIcon';
@@ -22,18 +23,48 @@ export function Sidebar() {
   ];
 
   const adminLinks = [
-    { to: '/admin', icon: BarChart3, label: 'Dashboard Executivo' },
-    { to: '/admin/solicitacoes', icon: List, label: 'Fila de Solicitações' },
-    { to: '/admin/cidadaos', icon: Users, label: 'Cidadãos' },
-    { to: '/admin/permissoes', icon: ShieldCheck, label: 'Permissões' },
-    { to: '/admin/mapa', icon: MapIcon, label: 'Mapa Estratégico' },
-    { to: '/admin/relatorios', icon: FileText, label: 'Relatórios' },
-    { to: '/admin/ia', icon: Sparkles, label: 'IA' },
-    { to: '/acessibilidade', icon: A11yIcon, label: 'Acessibilidade' },
+    {
+      id: 'atendimento',
+      label: 'Atendimento',
+      links: [
+        { to: '/admin/solicitacoes', icon: List, label: 'Fila de Solicitações' },
+        { to: '/admin/cidadaos', icon: Users, label: 'Cidadãos' },
+      ],
+    },
+    {
+      id: 'gestao',
+      label: 'Gestão',
+      links: [
+        { to: '/admin/permissoes', icon: ShieldCheck, label: 'Permissões' },
+        { to: '/admin/relatorios', icon: FileText, label: 'Relatórios' },
+      ],
+    },
+    {
+      id: 'inteligencia',
+      label: 'Inteligência',
+      links: [
+        { to: '/admin/mapa', icon: MapIcon, label: 'Mapa Estratégico' },
+        { to: '/admin/ia', icon: Sparkles, label: 'IA' },
+      ],
+    },
   ];
 
-  const links = role === 'citizen' ? citizenLinks : adminLinks;
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+    atendimento: true,
+    gestao: true,
+    inteligencia: true,
+  });
   const initials = user?.full_name ? user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'U';
+
+  const closeMobileMenu = () => {
+    if (isMobileMenuOpen) toggleMobileMenu();
+  };
+
+  const linkClassName = (isActive: boolean, nested = false) =>
+    `flex items-center gap-3 rounded-lg py-3 text-sm font-semibold transition-all ${nested ? 'ml-3 px-4' : 'px-4'} ${isActive
+      ? 'bg-blue-600 text-white shadow-[0_7px_16px_rgba(19,81,180,0.2)]'
+      : 'text-slate-600 hover:bg-[#EAF2FF] hover:text-[#1351B4]'
+    }`;
 
   return (
     <>
@@ -88,23 +119,82 @@ export function Sidebar() {
 
         {/* Nav */}
         <nav className="flex flex-1 flex-col gap-1.5 overflow-y-auto px-4">
-          {links.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              end={link.to === '/' || link.to === '/admin'}
-              onClick={() => { if (isMobileMenuOpen) toggleMobileMenu(); }}
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold transition-all ${isActive
-                  ? 'bg-blue-600 text-white shadow-[0_7px_16px_rgba(19,81,180,0.2)]'
-                  : 'text-slate-600 hover:bg-[#EAF2FF] hover:text-[#1351B4]'
-                }`
-              }
-            >
-              <link.icon size={18} />
-              <span>{link.label}</span>
-            </NavLink>
-          ))}
+          {role === 'citizen' ? citizenLinks.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                end={link.to === '/'}
+                onClick={closeMobileMenu}
+                className={({ isActive }) => linkClassName(isActive)}
+              >
+                <link.icon size={18} />
+                <span>{link.label}</span>
+              </NavLink>
+            )) : (
+              <>
+                <NavLink
+                  to="/admin"
+                  end
+                  onClick={closeMobileMenu}
+                  className={({ isActive }) => linkClassName(isActive)}
+                >
+                  <BarChart3 size={18} />
+                  <span>Dashboard Executivo</span>
+                </NavLink>
+
+                {adminLinks.map((group) => {
+                  const isExpanded = expandedGroups[group.id];
+
+                  return (
+                    <section key={group.id} className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedGroups((current) => ({
+                          ...current,
+                          [group.id]: !current[group.id],
+                        }))}
+                        aria-expanded={isExpanded}
+                        aria-controls={`sidebar-group-${group.id}`}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[11px] font-extrabold uppercase tracking-[0.08em] text-slate-500 transition-colors hover:bg-slate-50 hover:text-[#1351B4]"
+                      >
+                        <ChevronDown
+                          aria-hidden="true"
+                          size={15}
+                          className={`shrink-0 transition-transform ${isExpanded ? '' : '-rotate-90'}`}
+                        />
+                        <span>{group.label}</span>
+                      </button>
+
+                      <div
+                        id={`sidebar-group-${group.id}`}
+                        className={`mt-0.5 space-y-1 ${isExpanded ? '' : 'hidden'}`}
+                      >
+                        {group.links.map((link) => (
+                          <NavLink
+                            key={link.to}
+                            to={link.to}
+                            onClick={closeMobileMenu}
+                            className={({ isActive }) => linkClassName(isActive, true)}
+                          >
+                            <link.icon size={17} />
+                            <span>{link.label}</span>
+                          </NavLink>
+                        ))}
+                      </div>
+                    </section>
+                  );
+                })}
+
+                <NavLink
+                  to="/acessibilidade"
+                  onClick={closeMobileMenu}
+                  className={({ isActive }) => `${linkClassName(isActive)} mt-auto`}
+                >
+                  <A11yIcon size={18} />
+                  <span>Acessibilidade</span>
+                </NavLink>
+              </>
+            )}
         </nav>
 
         {/* Bottom: profile + logout */}
