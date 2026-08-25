@@ -22,6 +22,7 @@ import {
   serverPermissionService,
   type ServerPermission,
   type AdminScreenPermission,
+  type AdminRole,
 } from '../services/serverPermissionService';
 import { useApp } from '../context/AppContext';
 
@@ -51,13 +52,14 @@ function accessLabel(count: number) {
 }
 
 export function AdminPermissions() {
-  const { adminAccess, user, refreshAdminAccess } = useApp();
+  const { adminAccess, user, role, refreshAdminAccess } = useApp();
   const [servers, setServers] = useState<ServerPermission[]>([]);
   const [selected, setSelected] = useState<ServerPermission | null>(null);
   const [selectedStates, setSelectedStates] = useState<string[]>([]);
   const [selectedScreens, setSelectedScreens] = useState<AdminScreenPermission[]>([]);
+  const [selectedRole, setSelectedRole] = useState<AdminRole>('admin');
   const [creating, setCreating] = useState(false);
-  const [newAdmin, setNewAdmin] = useState({ name: '', email: '', cpf: '', password: '' });
+  const [newAdmin, setNewAdmin] = useState<{ name: string; email: string; cpf: string; password: string; role: AdminRole }>({ name: '', email: '', cpf: '', password: '', role: 'admin' });
   const [newStates, setNewStates] = useState<string[]>([]);
   const [newScreens, setNewScreens] = useState<AdminScreenPermission[]>([]);
   const [search, setSearch] = useState('');
@@ -101,6 +103,7 @@ export function AdminPermissions() {
     setSelected(server);
     setSelectedStates([...server.states]);
     setSelectedScreens([...server.screens]);
+    setSelectedRole(server.role);
     setError('');
     setSuccess('');
   };
@@ -110,6 +113,7 @@ export function AdminPermissions() {
     setSelected(null);
     setSelectedStates([]);
     setSelectedScreens([]);
+    setSelectedRole('admin');
   };
 
   const toggleState = (state: string) => {
@@ -130,13 +134,17 @@ export function AdminPermissions() {
     setError('');
     setSuccess('');
     try {
-      const updated = await serverPermissionService.update(selected.userId, selectedStates, selectedScreens);
+      const updated = await serverPermissionService.update(selected.userId, selectedRole, selectedStates, selectedScreens);
       setServers((current) => current.map((server) => server.userId === updated.userId ? updated : server));
       setSelected(updated);
       setSelectedStates([...updated.states]);
       setSelectedScreens([...updated.screens]);
+      setSelectedRole(updated.role);
       setSuccess(`Permissões de ${updated.name} atualizadas.`);
-      if (updated.userId === user?.id) await refreshAdminAccess();
+      if (updated.userId === user?.id) {
+        await refreshAdminAccess();
+        if (updated.role !== role) window.location.reload();
+      }
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Não foi possível salvar as permissões.');
     } finally {
@@ -145,12 +153,28 @@ export function AdminPermissions() {
   };
 
   const openCreate = () => {
-    setNewAdmin({ name: '', email: '', cpf: '', password: '' });
+    setNewAdmin({ name: '', email: '', cpf: '', password: '', role: 'admin' });
     setNewStates([]);
     setNewScreens([]);
     setError('');
     setSuccess('');
     setCreating(true);
+  };
+
+  const changeSelectedRole = (nextRole: AdminRole) => {
+    setSelectedRole(nextRole);
+    if (nextRole === 'master') {
+      setSelectedStates([...allowedStates]);
+      setSelectedScreens(allowedScreens.map((screen) => screen.key));
+    }
+  };
+
+  const changeNewRole = (nextRole: AdminRole) => {
+    setNewAdmin((current) => ({ ...current, role: nextRole }));
+    if (nextRole === 'master') {
+      setNewStates([...allowedStates]);
+      setNewScreens(allowedScreens.map((screen) => screen.key));
+    }
   };
 
   const createAdmin = async () => {
@@ -234,7 +258,7 @@ export function AdminPermissions() {
                 return (
                   <button key={server.userId} type="button" onClick={() => openEditor(server)} className="flex w-full items-center gap-4 p-4 text-left transition hover:bg-blue-50/60 sm:px-6">
                     <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#EAF2FF] font-black text-blue-700">{server.name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</div>
-                    <div className="min-w-0 flex-1"><p className="truncate font-bold text-slate-900">{server.name}</p><p className="truncate text-sm text-slate-500">{server.email}</p></div>
+                    <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="truncate font-bold text-slate-900">{server.name}</p><span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide ${server.role === 'master' ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-600'}`}>{server.role === 'master' ? 'Master' : 'Admin'}</span></div><p className="truncate text-sm text-slate-500">{server.email}</p></div>
                     <span className={`hidden rounded-full px-3 py-1 text-xs font-bold ring-1 ring-inset sm:inline-flex ${access.className}`}>{access.label}</span>
                     <ChevronRight size={20} className="shrink-0 text-slate-400" />
                   </button>
@@ -257,6 +281,17 @@ export function AdminPermissions() {
             </div>
 
             <div className="overflow-y-auto px-5 py-5 sm:px-7">
+              {role === 'master' && (
+                <div className="mb-5 rounded-xl border border-violet-200 bg-violet-50 p-4">
+                  <label className="text-sm font-black text-violet-950">Cargo administrativo
+                    <select value={selectedRole} onChange={(event) => changeSelectedRole(event.target.value as AdminRole)} className="mt-2 min-h-11 w-full rounded-xl border border-violet-200 bg-white px-3 font-semibold text-slate-800 outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100">
+                      <option value="admin">Administrador</option>
+                      <option value="master">Master — acesso total e gestão de masters</option>
+                    </select>
+                  </label>
+                  {selectedRole === 'master' && <p className="mt-2 text-sm text-violet-700">Masters possuem acesso automático a todas as UFs e telas.</p>}
+                </div>
+              )}
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50 p-4">
                 <div><p className="font-bold text-blue-950">Estados permitidos</p><p className="text-sm text-blue-700">{selectedStates.length} de {allowedStates.length} UFs que você pode delegar</p></div>
                 <div className="flex gap-2"><button type="button" onClick={() => setSelectedStates([...allowedStates])} className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-blue-700 shadow-sm ring-1 ring-blue-200 hover:bg-blue-100">Selecionar todas</button><button type="button" onClick={() => setSelectedStates([])} className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-600 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50">Limpar</button></div>
@@ -319,6 +354,7 @@ export function AdminPermissions() {
                 <label className="text-sm font-bold text-slate-700">E-mail<input required type="email" value={newAdmin.email} onChange={(event) => setNewAdmin((current) => ({ ...current, email: event.target.value }))} className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 px-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" /></label>
                 <label className="text-sm font-bold text-slate-700">CPF<input required inputMode="numeric" maxLength={14} value={newAdmin.cpf} onChange={(event) => setNewAdmin((current) => ({ ...current, cpf: event.target.value }))} placeholder="Somente números" className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 px-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" /></label>
                 <label className="text-sm font-bold text-slate-700">Senha inicial<input required type="password" minLength={6} value={newAdmin.password} onChange={(event) => setNewAdmin((current) => ({ ...current, password: event.target.value }))} className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 px-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" /></label>
+                {role === 'master' && <label className="text-sm font-bold text-slate-700 sm:col-span-2">Cargo<select value={newAdmin.role} onChange={(event) => changeNewRole(event.target.value as AdminRole)} className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"><option value="admin">Administrador</option><option value="master">Master — acesso total e gestão de masters</option></select></label>}
               </div>
 
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50 p-4">
@@ -351,7 +387,7 @@ export function AdminPermissions() {
 
             <div className="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
               <button type="button" onClick={() => setCreating(false)} disabled={saving} className="min-h-11 rounded-xl border border-slate-300 bg-white px-5 text-sm font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-60">Cancelar</button>
-              <button type="button" onClick={() => void createAdmin()} disabled={saving || !newAdmin.name.trim() || !newAdmin.email.trim() || newAdmin.cpf.replace(/\D/g, '').length !== 11 || newAdmin.password.length < 6 || newStates.length === 0} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">{saving ? <LoaderCircle size={17} className="animate-spin" /> : <UserPlus size={17} />} Criar administrador</button>
+              <button type="button" onClick={() => void createAdmin()} disabled={saving || !newAdmin.name.trim() || !newAdmin.email.trim() || newAdmin.cpf.replace(/\D/g, '').length !== 11 || newAdmin.password.length < 6 || (newAdmin.role === 'admin' && newStates.length === 0)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">{saving ? <LoaderCircle size={17} className="animate-spin" /> : <UserPlus size={17} />} Criar {newAdmin.role === 'master' ? 'master' : 'administrador'}</button>
             </div>
           </div>
         </div>

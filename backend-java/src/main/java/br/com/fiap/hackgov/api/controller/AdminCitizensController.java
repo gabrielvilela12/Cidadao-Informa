@@ -4,6 +4,7 @@ import br.com.fiap.hackgov.application.usecase.admin.GetAdminCitizensUseCase;
 import br.com.fiap.hackgov.infrastructure.security.AuthenticatedUser;
 import br.com.fiap.hackgov.application.service.ServerStatePermissionService;
 import br.com.fiap.hackgov.application.service.AdminAccessService;
+import br.com.fiap.hackgov.application.util.AdminRoles;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -48,7 +49,7 @@ public class AdminCitizensController {
 
     private AuthenticatedUser requireAdmin(Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof AuthenticatedUser user)
-                || !"admin".equalsIgnoreCase(user.role())) {
+                || !AdminRoles.isAdministrative(user.role())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acesso restrito a administradores.");
         }
         return user;

@@ -3,6 +3,7 @@ package br.com.fiap.hackgov.application.service;
 import br.com.fiap.hackgov.application.dto.admin.AdminAccessProfileOutputDto;
 import br.com.fiap.hackgov.application.dto.admin.AdminUserAccessOutputDto;
 import br.com.fiap.hackgov.application.util.AuthUtils;
+import br.com.fiap.hackgov.application.util.AdminRoles;
 import br.com.fiap.hackgov.domain.entity.ServerScreenPermission;
 import br.com.fiap.hackgov.domain.entity.User;
 import br.com.fiap.hackgov.domain.repository.UserRepository;
@@ -54,10 +55,14 @@ public class AdminAccessService {
     @Transactional(readOnly = true)
     public List<AdminUserAccessOutputDto> listManageable(String actorUserId) {
         requireScreen(actorUserId, USER_MANAGEMENT);
+        User actor = requireAdminUser(actorUserId);
         Set<String> actorStates = statePermissionService.allowedStates(actorUserId);
         Set<String> actorScreens = screenPermissions(actorUserId);
 
-        return userRepository.getByRole("admin").stream()
+        List<User> manageableUsers = new ArrayList<>(userRepository.getByRole(AdminRoles.ADMIN));
+        if (AdminRoles.isMaster(actor.getRole())) manageableUsers.addAll(userRepository.getByRole(AdminRoles.MASTER));
+
+        return manageableUsers.stream()
                 .map(user -> toOutput(user,
                         statePermissionService.allowedStates(user.getId()),
                         screenPermissions(user.getId())))
@@ -71,10 +76,17 @@ public class AdminAccessService {
                                            String email,
                                            String cpf,
                                            String password,
+                                           String requestedRole,
                                            List<String> requestedStates,
                                            List<String> requestedScreens) {
-        Delegation delegation = validateDelegation(actorUserId, requestedStates, requestedScreens);
-        validateNewAdmin(name, email, cpf, password, delegation.states());
+        requireScreen(actorUserId, USER_MANAGEMENT);
+        User actor = requireAdminUser(actorUserId);
+        String role = normalizeRole(requestedRole);
+        requireCanAssignRole(actor, role);
+        Delegation delegation = AdminRoles.isMaster(role)
+                ? fullDelegation()
+                : validateDelegation(actorUserId, requestedStates, requestedScreens);
+        validateNewAdmin(name, email, cpf, password, delegation.states(), role);
         String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
         String normalizedCpf = cpf.replaceAll("\\D", "");
 
@@ -90,7 +102,7 @@ public class AdminAccessService {
         user.setEmail(normalizedEmail);
         user.setCpf(normalizedCpf);
         user.setPasswordHash(AuthUtils.hashPassword(password));
-        user.setRole("admin");
+        user.setRole(role);
         User created = userRepository.add(user);
 
         statePermissionService.update(created.getId(), delegation.states().stream().toList());
@@ -101,10 +113,16 @@ public class AdminAccessService {
     @Transactional
     public AdminUserAccessOutputDto update(String actorUserId,
                                            String targetUserId,
+                                           String requestedRole,
                                            List<String> requestedStates,
                                            List<String> requestedScreens) {
         requireScreen(actorUserId, USER_MANAGEMENT);
+        User actor = requireAdminUser(actorUserId);
         User target = requireAdminUser(targetUserId);
+        String role = requestedRole == null || requestedRole.isBlank()
+                ? target.getRole().toLowerCase(Locale.ROOT)
+                : normalizeRole(requestedRole);
+        requireCanChangeRole(actor, target, role);
         Set<String> actorStates = statePermissionService.allowedStates(actorUserId);
         Set<String> actorScreens = screenPermissions(actorUserId);
         Set<String> currentTargetStates = statePermissionService.allowedStates(targetUserId);
@@ -114,8 +132,12 @@ public class AdminAccessService {
             throw new AdminAccessDeniedException("Você não pode alterar um administrador com permissões superiores às suas.");
         }
 
-        Delegation delegation = normalizeDelegation(requestedStates, requestedScreens);
-        requireSubset(actorStates, actorScreens, delegation);
+        Delegation delegation = AdminRoles.isMaster(role)
+                ? fullDelegation()
+                : normalizeDelegation(requestedStates, requestedScreens);
+        if (!AdminRoles.isMaster(role)) requireSubset(actorStates, actorScreens, delegation);
+        target.setRole(role);
+        userRepository.update(target);
         statePermissionService.update(targetUserId, delegation.states().stream().toList());
         replaceScreens(targetUserId, delegation.screens());
         return toOutput(target, delegation.states(), delegation.screens());
@@ -136,6 +158,9 @@ public class AdminAccessService {
 
     @Transactional(readOnly = true)
     public Set<String> screenPermissions(String userId) {
+        if (userRepository.getById(userId).map(User::getRole).filter(AdminRoles::isMaster).isPresent()) {
+            return OPTIONAL_SCREENS;
+        }
         return screenRepository.findByUserIdOrderByScreenKeyAsc(userId).stream()
                 .map(ServerScreenPermission::getScreenKey)
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());
@@ -194,19 +219,52 @@ public class AdminAccessService {
         return value == null ? "" : value.trim().toUpperCase(Locale.ROOT);
     }
 
-    private void validateNewAdmin(String name, String email, String cpf, String password, Set<String> states) {
+    private void validateNewAdmin(String name, String email, String cpf, String password, Set<String> states, String role) {
         if (name == null || name.isBlank()) throw new IllegalArgumentException("O nome completo é obrigatório.");
         if (email == null || email.isBlank() || !email.contains("@")) throw new IllegalArgumentException("Informe um e-mail válido.");
         String normalizedCpf = cpf == null ? "" : cpf.replaceAll("\\D", "");
         if (normalizedCpf.length() != 11) throw new IllegalArgumentException("O CPF deve ter exatamente 11 dígitos.");
         if (password == null || password.length() < 6) throw new IllegalArgumentException("A senha deve ter pelo menos 6 caracteres.");
-        if (states.isEmpty()) throw new IllegalArgumentException("Selecione ao menos um estado para o novo administrador.");
+        if (!AdminRoles.isMaster(role) && states.isEmpty()) {
+            throw new IllegalArgumentException("Selecione ao menos um estado para o novo administrador.");
+        }
     }
 
     private User requireAdminUser(String userId) {
         return userRepository.getById(userId)
-                .filter(user -> "admin".equalsIgnoreCase(user.getRole()))
+                .filter(user -> AdminRoles.isAdministrative(user.getRole()))
                 .orElseThrow(() -> new IllegalArgumentException("Administrador não encontrado."));
+    }
+
+    private String normalizeRole(String value) {
+        String role = value == null || value.isBlank()
+                ? AdminRoles.ADMIN
+                : value.trim().toLowerCase(Locale.ROOT);
+        if (!AdminRoles.ADMIN.equals(role) && !AdminRoles.MASTER.equals(role)) {
+            throw new IllegalArgumentException("Cargo administrativo inválido.");
+        }
+        return role;
+    }
+
+    private void requireCanAssignRole(User actor, String requestedRole) {
+        if (AdminRoles.isMaster(requestedRole) && !AdminRoles.isMaster(actor.getRole())) {
+            throw new AdminAccessDeniedException("Somente um master pode adicionar outro master.");
+        }
+    }
+
+    private void requireCanChangeRole(User actor, User target, String requestedRole) {
+        boolean roleTouchesMaster = AdminRoles.isMaster(target.getRole()) || AdminRoles.isMaster(requestedRole);
+        if (roleTouchesMaster && !AdminRoles.isMaster(actor.getRole())) {
+            throw new AdminAccessDeniedException("Somente um master pode promover ou alterar outro master.");
+        }
+        if (AdminRoles.isMaster(target.getRole()) && !AdminRoles.isMaster(requestedRole)
+                && userRepository.countByRole(AdminRoles.MASTER) <= 1) {
+            throw new IllegalArgumentException("Não é possível remover o último master do sistema.");
+        }
+    }
+
+    private Delegation fullDelegation() {
+        return new Delegation(Set.copyOf(ServerStatePermissionService.ALL_STATES), OPTIONAL_SCREENS);
     }
 
     private void replaceScreens(String userId, Set<String> screens) {
@@ -222,7 +280,7 @@ public class AdminAccessService {
 
     private AdminUserAccessOutputDto toOutput(User user, Set<String> states, Set<String> screens) {
         return new AdminUserAccessOutputDto(
-                user.getId(), user.getName(), user.getEmail(), user.getCreatedAt(),
+                user.getId(), user.getName(), user.getEmail(), user.getRole(), user.getCreatedAt(),
                 states.stream().sorted().toList(), screens.stream().sorted().toList()
         );
     }

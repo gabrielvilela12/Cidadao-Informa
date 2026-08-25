@@ -1,6 +1,7 @@
 import React, { useId, useState } from 'react';
 import { User, Shield, Key, FileText, Loader2, ArrowRight, Eye, EyeOff, Home } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import type { UserRole } from '../context/AppContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { ApiError } from '../services/http';
@@ -116,8 +117,8 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                 navigate('/');
             } else {
                 const data = await api.login(cleanCpf, password);
-                loginSuccess(data.token, { id: data.userId, cpf: data.cpf, full_name: data.name, email: data.email, phone: data.phone, created_at: data.createdAt }, data.role as 'citizen' | 'admin');
-                navigate(data.role === 'admin' ? '/admin' : '/');
+                loginSuccess(data.token, { id: data.userId, cpf: data.cpf, full_name: data.name, email: data.email, phone: data.phone, created_at: data.createdAt }, data.role as UserRole);
+                navigate(data.role === 'citizen' ? '/' : '/admin');
             }
         } catch (err) {
             setErrorDesc(authErrorMessage(err));
@@ -137,7 +138,7 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
 
         try {
             const data = await api.login(cleanCpf, password);
-            if (data.role !== 'admin') {
+            if (data.role !== 'admin' && data.role !== 'master') {
                 throw new ApiError('Acesso restrito a servidores autorizados.', true);
             }
 

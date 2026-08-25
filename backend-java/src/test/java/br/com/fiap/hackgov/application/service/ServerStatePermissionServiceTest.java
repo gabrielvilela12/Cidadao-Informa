@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 class ServerStatePermissionServiceTest {
@@ -61,5 +62,16 @@ class ServerStatePermissionServiceTest {
         assertFalse(service.canAccess(protocol, Set.of("MG")));
         assertThrows(IllegalArgumentException.class,
                 () -> service.resolveState("XX", "Rua sem UF"));
+    }
+
+    @Test
+    void masterAlwaysHasNationalAccess() {
+        User master = new User();
+        master.setId("master-1");
+        master.setRole("master");
+        when(users.getById("master-1")).thenReturn(Optional.of(master));
+
+        assertEquals(Set.copyOf(ServerStatePermissionService.ALL_STATES), service.allowedStates("master-1"));
+        verify(repository, never()).findByUserIdOrderByStateCodeAsc("master-1");
     }
 }

@@ -71,7 +71,7 @@ export function Accessibility() {
     const location = useLocation();
     const { isAuthenticated, role, toggleMobileMenu } = useApp();
 
-    const fallbackPath = isAuthenticated ? (role === 'admin' ? '/admin' : '/') : '/login';
+    const fallbackPath = isAuthenticated ? (role === 'citizen' ? '/' : '/admin') : '/login';
 
     useEffect(() => {
         setFontSizeInput(String(fontSize));

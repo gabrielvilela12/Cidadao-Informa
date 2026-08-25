@@ -47,6 +47,20 @@ class AdminCitizensControllerTest {
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
     }
 
+    @Test
+    void allowsMasterToListCitizens() {
+        GetAdminCitizensUseCase useCase = mock(GetAdminCitizensUseCase.class);
+        ServerStatePermissionService permissions = mock(ServerStatePermissionService.class);
+        AdminAccessService access = mock(AdminAccessService.class);
+        when(permissions.allowedStates("user-id")).thenReturn(Set.copyOf(ServerStatePermissionService.ALL_STATES));
+        when(useCase.list(Set.copyOf(ServerStatePermissionService.ALL_STATES))).thenReturn(List.of());
+
+        AdminCitizensController controller = new AdminCitizensController(useCase, permissions, access);
+
+        assertEquals(HttpStatus.OK, controller.list(authentication("master")).getStatusCode());
+        verify(access).requireScreen("user-id", AdminAccessService.CITIZENS);
+    }
+
     private Authentication authentication(String role) {
         Authentication authentication = mock(Authentication.class);
         when(authentication.getPrincipal()).thenReturn(

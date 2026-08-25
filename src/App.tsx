@@ -37,7 +37,7 @@ const Transparency = lazy(() =>
 
 function AdminScreenRoute({ permission, children }: { permission: AdminScreenPermission; children: ReactNode }) {
   const { role, adminAccessLoading, hasAdminScreen } = useApp();
-  if (role !== 'admin') return <Navigate to="/" replace />;
+  if (role === 'citizen') return <Navigate to="/" replace />;
   if (adminAccessLoading) {
     return <div className="flex h-full items-center justify-center bg-[#F4F8FC] font-semibold text-slate-600">Carregando permissões…</div>;
   }
@@ -137,13 +137,13 @@ function AppContent() {
           <Route path="/meus-protocolos" element={<CitizenProtocols />} />
           <Route path="/servicos" element={<Navigate to="/nova-solicitacao" replace />} />
 
-          <Route path="/admin" element={role === 'admin' ? <AdminDashboard /> : <Navigate to="/" replace />} />
-          <Route path="/admin/solicitacoes" element={role === 'admin' ? <AdminRequestsQueue /> : <Navigate to="/" replace />} />
+          <Route path="/admin" element={role !== 'citizen' ? <AdminDashboard /> : <Navigate to="/" replace />} />
+          <Route path="/admin/solicitacoes" element={role !== 'citizen' ? <AdminRequestsQueue /> : <Navigate to="/" replace />} />
           <Route path="/admin/cidadaos" element={<AdminScreenRoute permission="CITIZENS"><AdminCitizens /></AdminScreenRoute>} />
           <Route path="/admin/cidadaos/:id" element={<AdminScreenRoute permission="CITIZENS"><AdminCitizenDetails /></AdminScreenRoute>} />
           <Route path="/admin/usuarios" element={<AdminScreenRoute permission="USER_MANAGEMENT"><AdminPermissions /></AdminScreenRoute>} />
           <Route path="/admin/permissoes" element={<AdminScreenRoute permission="USER_MANAGEMENT"><Navigate to="/admin/usuarios" replace /></AdminScreenRoute>} />
-          <Route path="/admin/mapa" element={role === 'admin' ? <AdminMap /> : <Navigate to="/" replace />} />
+          <Route path="/admin/mapa" element={role !== 'citizen' ? <AdminMap /> : <Navigate to="/" replace />} />
           <Route path="/admin/relatorios" element={<AdminScreenRoute permission="REPORTS"><AdminReports /></AdminScreenRoute>} />
           <Route path="/admin/relatorios/:id" element={<AdminScreenRoute permission="REPORTS"><AdminReportDetails /></AdminScreenRoute>} />
           <Route path="/admin/ia" element={<AdminScreenRoute permission="AI"><AiLogsPage /></AdminScreenRoute>} />

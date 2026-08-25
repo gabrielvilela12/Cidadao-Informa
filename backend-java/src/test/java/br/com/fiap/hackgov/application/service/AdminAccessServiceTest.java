@@ -29,6 +29,7 @@ class AdminAccessServiceTest {
 
     @BeforeEach
     void actorPermissions() {
+        when(users.getById("actor")).thenReturn(Optional.of(admin("actor")));
         when(states.allowedStates("actor")).thenReturn(Set.of("SP", "RJ"));
         when(screens.findByUserIdOrderByScreenKeyAsc("actor")).thenReturn(List.of(
                 screen("actor", AdminAccessService.USER_MANAGEMENT),
@@ -40,7 +41,7 @@ class AdminAccessServiceTest {
     void rejectsStateOutsideCreatorsScope() {
         assertThrows(AdminAccessService.AdminAccessDeniedException.class, () -> service.create(
                 "actor", "Novo Admin", "novo@gov.br", "12345678901", "senha123",
-                List.of("BA"), List.of(AdminAccessService.CITIZENS)
+                "admin", List.of("BA"), List.of(AdminAccessService.CITIZENS)
         ));
 
         verify(users, never()).add(any(User.class));
@@ -50,7 +51,7 @@ class AdminAccessServiceTest {
     void rejectsScreenOutsideCreatorsScope() {
         assertThrows(AdminAccessService.AdminAccessDeniedException.class, () -> service.create(
                 "actor", "Novo Admin", "novo@gov.br", "12345678901", "senha123",
-                List.of("SP"), List.of(AdminAccessService.REPORTS)
+                "admin", List.of("SP"), List.of(AdminAccessService.REPORTS)
         ));
     }
 
@@ -67,7 +68,7 @@ class AdminAccessServiceTest {
 
         var result = service.create(
                 "actor", "Novo Admin", "NOVO@GOV.BR ", "123.456.789-01", "senha123",
-                List.of("SP"), List.of(AdminAccessService.CITIZENS)
+                "admin", List.of("SP"), List.of(AdminAccessService.CITIZENS)
         );
 
         assertEquals("created", result.userId());
@@ -87,7 +88,52 @@ class AdminAccessServiceTest {
         ));
 
         assertThrows(AdminAccessService.AdminAccessDeniedException.class, () -> service.update(
-                "actor", "target", List.of("SP"), List.of()
+                "actor", "target", "admin", List.of("SP"), List.of()
+        ));
+    }
+
+    @Test
+    void onlyMasterCanCreateAnotherMaster() {
+        assertThrows(AdminAccessService.AdminAccessDeniedException.class, () -> service.create(
+                "actor", "Novo Master", "master@gov.br", "12345678902", "senha123",
+                "master", List.of(), List.of()
+        ));
+    }
+
+    @Test
+    void masterCreatesAnotherMasterWithFullAccess() {
+        User master = admin("master-actor");
+        master.setRole("master");
+        when(users.getById("master-actor")).thenReturn(Optional.of(master));
+        when(users.getByCpf("12345678902")).thenReturn(Optional.empty());
+        when(users.getByEmail("master@gov.br")).thenReturn(Optional.empty());
+        when(users.add(any(User.class))).thenAnswer(invocation -> {
+            User user = invocation.getArgument(0);
+            user.setId("new-master");
+            user.setCreatedAt(Instant.parse("2026-08-25T12:00:00Z"));
+            return user;
+        });
+
+        var result = service.create(
+                "master-actor", "Novo Master", "master@gov.br", "12345678902", "senha123",
+                "master", List.of(), List.of()
+        );
+
+        assertEquals("master", result.role());
+        assertEquals(27, result.states().size());
+        assertEquals(4, result.screens().size());
+    }
+
+    @Test
+    void preventsDemotingLastMaster() {
+        User master = admin("master-actor");
+        master.setRole("master");
+        when(users.getById("master-actor")).thenReturn(Optional.of(master));
+        when(states.allowedStates("master-actor")).thenReturn(Set.copyOf(ServerStatePermissionService.ALL_STATES));
+        when(users.countByRole("master")).thenReturn(1L);
+
+        assertThrows(IllegalArgumentException.class, () -> service.update(
+                "master-actor", "master-actor", "admin", List.of("SP"), List.of()
         ));
     }
 

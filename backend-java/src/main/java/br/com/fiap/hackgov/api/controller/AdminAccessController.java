@@ -3,6 +3,7 @@ package br.com.fiap.hackgov.api.controller;
 import br.com.fiap.hackgov.api.response.ErrorResponse;
 import br.com.fiap.hackgov.application.service.AdminAccessService;
 import br.com.fiap.hackgov.infrastructure.security.AuthenticatedUser;
+import br.com.fiap.hackgov.application.util.AdminRoles;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -22,7 +23,7 @@ public class AdminAccessController {
     @GetMapping("/me")
     public ResponseEntity<?> me(Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof AuthenticatedUser user)
-                || !"admin".equalsIgnoreCase(user.role())) {
+                || !AdminRoles.isAdministrative(user.role())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse("Acesso restrito a administradores."));
         }

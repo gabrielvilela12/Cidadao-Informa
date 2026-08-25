@@ -2,13 +2,14 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import type { AdminScreenPermission } from '../services/serverPermissionService';
+import type { UserRole } from '../context/AppContext';
 
 export interface ShortcutDefinition {
   key: string;
   label: string;
   description: string;
   path: string;
-  roles: ('citizen' | 'admin')[];
+  roles: UserRole[];
   permission?: AdminScreenPermission;
 }
 
@@ -20,18 +21,18 @@ export const CITIZEN_SHORTCUTS: ShortcutDefinition[] = [
 ];
 
 export const ADMIN_SHORTCUTS: ShortcutDefinition[] = [
-  { key: 'Alt+1', label: 'Alt + 1', description: 'Dashboard', path: '/admin', roles: ['admin'] },
-  { key: 'Alt+2', label: 'Alt + 2', description: 'Solicitações', path: '/admin/solicitacoes', roles: ['admin'] },
-  { key: 'Alt+3', label: 'Alt + 3', description: 'Mapa', path: '/admin/mapa', roles: ['admin'] },
-  { key: 'Alt+4', label: 'Alt + 4', description: 'Relatórios', path: '/admin/relatorios', roles: ['admin'], permission: 'REPORTS' },
+  { key: 'Alt+1', label: 'Alt + 1', description: 'Dashboard', path: '/admin', roles: ['admin', 'master'] },
+  { key: 'Alt+2', label: 'Alt + 2', description: 'Solicitações', path: '/admin/solicitacoes', roles: ['admin', 'master'] },
+  { key: 'Alt+3', label: 'Alt + 3', description: 'Mapa', path: '/admin/mapa', roles: ['admin', 'master'] },
+  { key: 'Alt+4', label: 'Alt + 4', description: 'Relatórios', path: '/admin/relatorios', roles: ['admin', 'master'], permission: 'REPORTS' },
 ];
 
 export const SHARED_SHORTCUTS: ShortcutDefinition[] = [
-  { key: 'Alt+P', label: 'Alt + P', description: 'Perfil', path: '/perfil', roles: ['citizen', 'admin'] },
-  { key: 'Alt+A', label: 'Alt + A', description: 'Acessibilidade', path: '/acessibilidade', roles: ['citizen', 'admin'] },
+  { key: 'Alt+P', label: 'Alt + P', description: 'Perfil', path: '/perfil', roles: ['citizen', 'admin', 'master'] },
+  { key: 'Alt+A', label: 'Alt + A', description: 'Acessibilidade', path: '/acessibilidade', roles: ['citizen', 'admin', 'master'] },
 ];
 
-export function useKeyboardShortcuts(role: 'citizen' | 'admin') {
+export function useKeyboardShortcuts(role: UserRole) {
   const navigate = useNavigate();
   const { hasAdminScreen } = useApp();
 

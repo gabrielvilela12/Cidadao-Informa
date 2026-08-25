@@ -3,6 +3,7 @@ package br.com.fiap.hackgov.api.controller;
 import br.com.fiap.hackgov.api.response.ErrorResponse;
 import br.com.fiap.hackgov.application.service.AiPromptService;
 import br.com.fiap.hackgov.application.service.AdminAccessService;
+import br.com.fiap.hackgov.application.util.AdminRoles;
 import br.com.fiap.hackgov.infrastructure.security.AuthenticatedUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -58,7 +59,7 @@ public class AdminAiPromptsController {
 
     private AuthenticatedUser requireAdmin(Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof AuthenticatedUser user)
-                || !"admin".equalsIgnoreCase(user.role())) {
+                || !AdminRoles.isAdministrative(user.role())) {
             throw new IllegalArgumentException("Acesso restrito a administradores.");
         }
         return user;

@@ -8,9 +8,10 @@ import {
     ShortcutDefinition,
 } from '../hooks/useKeyboardShortcuts';
 import { useApp } from '../context/AppContext';
+import type { UserRole } from '../context/AppContext';
 
 interface ShortcutsBarProps {
-    role: 'citizen' | 'admin';
+    role: UserRole;
 }
 
 function KbdTag({ children }: { children: string }) {

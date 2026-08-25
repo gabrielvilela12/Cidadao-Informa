@@ -221,6 +221,7 @@ interface:
 | `GET /api/admin/citizens` | Admin; cidadãos com contagem de protocolos e disponibilidade de WhatsApp |
 | `GET /api/admin/citizens/{id}` | Admin; cadastro do cidadão e histórico completo de protocolos |
 | `GET /api/admin/server-permissions` | Admin; lista servidores e suas UFs autorizadas |
+| `POST /api/admin/server-permissions` | Admin autorizado cria outro admin dentro do próprio escopo; somente master cria master |
 | `PUT /api/admin/server-permissions/{userId}` | Admin; substitui as UFs autorizadas do servidor |
 
 O limite de login conta falhas em janela deslizante, por IP e por CPF em
@@ -251,6 +252,9 @@ minutos, desligável por `APP_SCHEDULING_ENABLED=false`.
 
 Rota de admin acessada por cidadão redireciona para `/`. A verificação vale como
 navegação; a autorização de verdade é a do backend.
+
+O papel `master` possui acesso nacional e a todas as telas. Somente masters podem
+criar ou promover outros masters, e o último master não pode ser rebaixado.
 
 ## Mapa de calor
 
@@ -367,7 +371,7 @@ e a validação antes de virar o tráfego, está em `backend-java/DEPLOY-FLY.md`
 ## Banco e migrations
 
 O schema é versionado em dois lugares equivalentes: as migrations Flyway da API,
-em `backend-java/src/main/resources/db/migration/` (V1 a V15), e os SQLs
+em `backend-java/src/main/resources/db/migration/` (V1 a V16), e os SQLs
 correspondentes em `supabase/migrations/`, para aplicar pelo painel do Supabase.
 
 Localmente, o Flyway roda na inicialização da API

@@ -4,12 +4,14 @@ export interface ServerPermission {
   userId: string;
   name: string;
   email: string;
+  role: AdminRole;
   createdAt: string;
   states: string[];
   screens: AdminScreenPermission[];
 }
 
 export type AdminScreenPermission = 'CITIZENS' | 'USER_MANAGEMENT' | 'REPORTS' | 'AI';
+export type AdminRole = 'admin' | 'master';
 
 export interface AdminAccessProfile {
   states: string[];
@@ -21,6 +23,7 @@ export interface CreateAdminInput {
   email: string;
   cpf: string;
   password: string;
+  role: AdminRole;
   states: string[];
   screens: AdminScreenPermission[];
 }
@@ -41,10 +44,10 @@ export const serverPermissionService = {
     });
   },
 
-  update(userId: string, states: string[], screens: AdminScreenPermission[]): Promise<ServerPermission> {
+  update(userId: string, role: AdminRole, states: string[], screens: AdminScreenPermission[]): Promise<ServerPermission> {
     return apiRequest(`/api/admin/server-permissions/${encodeURIComponent(userId)}`, {
       method: 'PUT',
-      body: JSON.stringify({ states, screens }),
+      body: JSON.stringify({ role, states, screens }),
     });
   },
 };

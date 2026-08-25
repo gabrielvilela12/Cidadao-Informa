@@ -20,6 +20,7 @@ import br.com.fiap.hackgov.application.validation.ProtocolCompletionCostPolicy;
 import br.com.fiap.hackgov.domain.entity.Protocol;
 import br.com.fiap.hackgov.domain.repository.ProtocolRepository;
 import br.com.fiap.hackgov.infrastructure.security.AuthenticatedUser;
+import br.com.fiap.hackgov.application.util.AdminRoles;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -367,7 +368,7 @@ public class ProtocolsController {
     }
 
     private boolean isAdmin(AuthenticatedUser user) {
-        return "admin".equalsIgnoreCase(user.role());
+        return AdminRoles.isAdministrative(user.role());
     }
 
     private void requireAllStates(AuthenticatedUser admin) {

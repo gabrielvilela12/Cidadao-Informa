@@ -3,6 +3,7 @@ package br.com.fiap.hackgov.api.controller;
 import br.com.fiap.hackgov.api.response.ErrorResponse;
 import br.com.fiap.hackgov.application.service.AdminAccessService;
 import br.com.fiap.hackgov.infrastructure.security.AuthenticatedUser;
+import br.com.fiap.hackgov.application.util.AdminRoles;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -44,7 +45,7 @@ public class AdminServerPermissionsController {
         try {
             return ResponseEntity.status(HttpStatus.CREATED).body(service.create(
                     admin.userId(), request.name(), request.email(), request.cpf(), request.password(),
-                    request.states(), request.screens()
+                    request.role(), request.states(), request.screens()
             ));
         } catch (AdminAccessService.AdminAccessDeniedException exception) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(exception.getMessage()));
@@ -60,7 +61,7 @@ public class AdminServerPermissionsController {
         AuthenticatedUser admin = admin(authentication);
         if (admin == null) return forbidden();
         try {
-            return ResponseEntity.ok(service.update(admin.userId(), userId, request.states(), request.screens()));
+            return ResponseEntity.ok(service.update(admin.userId(), userId, request.role(), request.states(), request.screens()));
         } catch (AdminAccessService.AdminAccessDeniedException exception) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(exception.getMessage()));
         } catch (IllegalArgumentException exception) {
@@ -71,7 +72,7 @@ public class AdminServerPermissionsController {
     private AuthenticatedUser admin(Authentication authentication) {
         if (authentication != null
                 && authentication.getPrincipal() instanceof AuthenticatedUser user
-                && "admin".equalsIgnoreCase(user.role())) return user;
+                && AdminRoles.isAdministrative(user.role())) return user;
         return null;
     }
 
@@ -80,13 +81,14 @@ public class AdminServerPermissionsController {
                 .body(new ErrorResponse("Acesso restrito a administradores."));
     }
 
-    public record UpdatePermissionsRequest(List<String> states, List<String> screens) { }
+    public record UpdatePermissionsRequest(String role, List<String> states, List<String> screens) { }
 
     public record CreateAdminRequest(
             String name,
             String email,
             String cpf,
             String password,
+            String role,
             List<String> states,
             List<String> screens
     ) { }

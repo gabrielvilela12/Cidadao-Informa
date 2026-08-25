@@ -92,7 +92,7 @@ export function Profile() {
                         </div>
                         <h2 className="text-xl font-black text-white mb-1">{user?.full_name || 'Usuário'}</h2>
                         <span className="px-3 py-1 bg-blue-500/15 text-blue-400 text-xs font-bold rounded-full mb-4 border border-blue-500/20">
-                            {role === 'admin' ? '⚙️ Servidor Público' : '👤 Cidadão'}
+                            {role === 'master' ? '🛡️ Administrador Master' : role === 'admin' ? '⚙️ Servidor Público' : '👤 Cidadão'}
                         </span>
                         <p className="text-xs text-slate-500 flex items-center gap-1.5">
                             <Calendar size={12} />

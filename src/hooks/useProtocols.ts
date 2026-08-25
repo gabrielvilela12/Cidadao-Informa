@@ -15,7 +15,7 @@ import { api } from '../services/api';
  * mas nao tem efeito: o escopo e decidido no servidor a partir do token -
  * cidadao recebe so os proprios protocolos, admin recebe todos.
  */
-export function useProtocols(_role: 'citizen' | 'admin' | 'all' = 'all') {
+export function useProtocols(_role: 'citizen' | 'admin' | 'master' | 'all' = 'all') {
     const { protocols, loading, error, ensureFresh, refetch, mergeProtocol } = useProtocolsCache();
 
     useEffect(() => {

@@ -4,7 +4,7 @@ import type { AdminAccessProfile, AdminScreenPermission } from '../services/serv
 /**
  * Definição dos papéis (roles) suportados pela aplicação.
  */
-type UserRole = 'citizen' | 'admin';
+export type UserRole = 'citizen' | 'admin' | 'master';
 
 /**
  * Representação do Usuário autenticado na aplicação.
@@ -41,6 +41,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 function normalizeRole(role: unknown): UserRole {
+  if (role === 'master') return 'master';
   return role === 'admin' ? 'admin' : 'citizen';
 }
 
@@ -126,9 +127,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(Boolean(cachedSession));
   const [user, setUser] = useState<AppUser | null>(cachedSession?.user ?? null);
   const [adminAccess, setAdminAccess] = useState<AdminAccessProfile | null>(() =>
-    cachedSession?.role === 'admin' ? readCachedAdminAccess() : null,
+    cachedSession?.role !== 'citizen' ? readCachedAdminAccess() : null,
   );
-  const [adminAccessLoading, setAdminAccessLoading] = useState(cachedSession?.role === 'admin');
+  const [adminAccessLoading, setAdminAccessLoading] = useState(cachedSession?.role !== 'citizen');
   // Só bloqueia a árvore quando há token sem usuário em cache: aí não há o que
   // desenhar antes da resposta. Visitante anônimo e sessão em cache renderizam
   // no primeiro frame.
@@ -219,7 +220,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    if (!isAuthenticated || role !== 'admin' || !user?.id) {
+    if (!isAuthenticated || role === 'citizen' || !user?.id) {
       setAdminAccess(null);
       setAdminAccessLoading(false);
       localStorage.removeItem('cidadaoinforma_admin_access');
@@ -235,7 +236,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('cidadaoinforma_role', validatedRole);
     localStorage.removeItem('cidadaoinforma_admin_access');
     setAdminAccess(null);
-    setAdminAccessLoading(validatedRole === 'admin');
+    setAdminAccessLoading(validatedRole !== 'citizen');
     setUser(user);
     setRoleState(validatedRole);
     setIsAuthenticated(true);
@@ -253,7 +254,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const hasAdminScreen = (screen: AdminScreenPermission) =>
-    role === 'admin' && Boolean(adminAccess?.screens.includes(screen));
+    role !== 'citizen' && Boolean(adminAccess?.screens.includes(screen));
 
   if (loading) {
     return (

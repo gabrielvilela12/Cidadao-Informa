@@ -3,6 +3,7 @@ package br.com.fiap.hackgov.api.controller;
 import br.com.fiap.hackgov.api.response.ErrorResponse;
 import br.com.fiap.hackgov.application.service.AiPriorityService;
 import br.com.fiap.hackgov.application.service.AdminAccessService;
+import br.com.fiap.hackgov.application.util.AdminRoles;
 import br.com.fiap.hackgov.application.service.ServerStatePermissionService;
 import br.com.fiap.hackgov.domain.entity.Protocol;
 import br.com.fiap.hackgov.domain.repository.ProtocolRepository;
@@ -127,7 +128,7 @@ public class AiPriorityController {
 
     private AuthenticatedUser requireAdmin(Authentication authentication) {
         AuthenticatedUser user = requireUser(authentication);
-        if (!"admin".equalsIgnoreCase(user.role())) {
+        if (!AdminRoles.isAdministrative(user.role())) {
             throw new IllegalArgumentException("Acesso restrito a administradores.");
         }
         return user;
@@ -136,7 +137,7 @@ public class AiPriorityController {
     private void requireProtocolAccess(String protocolId, AuthenticatedUser user) {
         Protocol protocol = protocolRepository.getById(protocolId)
                 .orElseThrow(() -> new IllegalArgumentException("Protocolo não encontrado."));
-        if ("admin".equalsIgnoreCase(user.role())) {
+        if (AdminRoles.isAdministrative(user.role())) {
             permissionService.requireAccess(protocol, user.userId());
         } else if (!protocol.getUserId().equals(user.userId())) {
             throw new IllegalArgumentException("Você não tem acesso a este protocolo.");

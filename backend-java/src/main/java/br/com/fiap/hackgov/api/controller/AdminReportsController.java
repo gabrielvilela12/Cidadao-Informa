@@ -4,6 +4,7 @@ import br.com.fiap.hackgov.application.service.DailyOperationalReportService;
 import br.com.fiap.hackgov.application.service.AdminAccessService;
 import br.com.fiap.hackgov.application.service.ServerStatePermissionService;
 import br.com.fiap.hackgov.infrastructure.security.AuthenticatedUser;
+import br.com.fiap.hackgov.application.util.AdminRoles;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -41,7 +42,7 @@ public class AdminReportsController {
 
     private AuthenticatedUser requireAdmin(Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof AuthenticatedUser user)
-                || !"admin".equalsIgnoreCase(user.role())) {
+                || !AdminRoles.isAdministrative(user.role())) {
             throw new IllegalArgumentException("Acesso restrito a administradores.");
         }
         return user;

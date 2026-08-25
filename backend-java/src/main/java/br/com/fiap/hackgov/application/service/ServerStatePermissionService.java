@@ -5,6 +5,7 @@ import br.com.fiap.hackgov.domain.entity.Protocol;
 import br.com.fiap.hackgov.domain.entity.ServerStatePermission;
 import br.com.fiap.hackgov.domain.entity.User;
 import br.com.fiap.hackgov.domain.repository.UserRepository;
+import br.com.fiap.hackgov.application.util.AdminRoles;
 import br.com.fiap.hackgov.infrastructure.repository.ServerStatePermissionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,7 +62,9 @@ public class ServerStatePermissionService {
                 statesByUser.computeIfAbsent(permission.getUserId(), ignored -> new java.util.ArrayList<>())
                         .add(permission.getStateCode()));
 
-        return userRepository.getByRole("admin").stream()
+        return java.util.stream.Stream.concat(
+                        userRepository.getByRole(AdminRoles.ADMIN).stream(),
+                        userRepository.getByRole(AdminRoles.MASTER).stream())
                 .map(user -> new ServerPermissionOutputDto(
                         user.getId(), user.getName(), user.getEmail(), user.getCreatedAt(),
                         List.copyOf(statesByUser.getOrDefault(user.getId(), List.of()))
@@ -72,7 +75,7 @@ public class ServerStatePermissionService {
     @Transactional
     public ServerPermissionOutputDto update(String userId, List<String> requestedStates) {
         User server = userRepository.getById(userId)
-                .filter(user -> "admin".equalsIgnoreCase(user.getRole()))
+                .filter(user -> AdminRoles.isAdministrative(user.getRole()))
                 .orElseThrow(() -> new IllegalArgumentException("Servidor não encontrado."));
 
         LinkedHashSet<String> states = new LinkedHashSet<>();
@@ -102,6 +105,9 @@ public class ServerStatePermissionService {
 
     @Transactional(readOnly = true)
     public Set<String> allowedStates(String userId) {
+        if (userRepository.getById(userId).map(User::getRole).filter(AdminRoles::isMaster).isPresent()) {
+            return Set.copyOf(ALL_STATES);
+        }
         return permissionRepository.findByUserIdOrderByStateCodeAsc(userId).stream()
                 .map(ServerStatePermission::getStateCode)
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());
