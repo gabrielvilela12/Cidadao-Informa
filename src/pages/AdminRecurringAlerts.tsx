@@ -55,18 +55,18 @@ export function AdminRecurringAlerts() {
       />
 
       <main className="mx-auto flex w-full max-w-[1500px] flex-col gap-4 px-4 pb-8 sm:px-6 lg:px-8">
-        <section className="overflow-hidden rounded-xl border border-red-200 bg-gradient-to-r from-red-700 to-red-600 text-white shadow-lg shadow-red-900/10">
-          <div className="flex flex-col gap-5 p-6 md:flex-row md:items-center md:justify-between md:p-8">
-            <div className="flex items-start gap-4">
-              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-white/15"><AlertTriangle size={27} /></span>
+        <section className="overflow-hidden rounded-xl border border-red-200 bg-gradient-to-r from-red-700 to-red-600 shadow-md shadow-red-900/10">
+          <div className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between md:px-5 md:py-4">
+            <div className="flex items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white"><AlertTriangle size={22} /></span>
               <div>
-                <h1 className="text-xl font-black sm:text-2xl">Pontos que merecem atenção prioritária</h1>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-red-50">Cada alerta representa mais de 10 cidadãos relatando a mesma causa no mesmo endereço. Os protocolos permanecem unidos e caminham com o status sincronizado.</p>
+                <h1 className="text-lg font-black leading-6 text-white">Pontos que merecem atenção prioritária</h1>
+                <p className="mt-1 max-w-3xl text-sm leading-5 text-red-50">Cada alerta representa mais de 10 cidadãos relatando a mesma causa no mesmo endereço. Os protocolos permanecem unidos e caminham com o status sincronizado.</p>
               </div>
             </div>
-            <div className="shrink-0 rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-center">
-              <p className="text-3xl font-black">{affectedReports}</p>
-              <p className="text-xs font-bold uppercase tracking-wide text-red-100">relatos envolvidos</p>
+            <div className="flex min-w-[168px] shrink-0 items-center justify-center gap-3 self-start rounded-lg border border-white/25 bg-white/10 px-4 py-2.5 text-white md:self-center">
+              <p className="text-2xl font-black leading-none text-white">{affectedReports}</p>
+              <p className="text-[11px] font-bold uppercase leading-4 tracking-wide text-red-50">relatos<br />envolvidos</p>
             </div>
           </div>
         </section>
