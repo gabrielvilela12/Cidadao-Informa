@@ -2,8 +2,8 @@ UPDATE public.users
    SET role = 'master'
  WHERE lower(email) = 'gabrielvilela.dev@gmail.com';
 
-INSERT INTO public.server_state_permissions (user_id, state_code)
-SELECT users.id, states.state_code
+INSERT INTO public.server_state_permissions (id, user_id, state_code)
+SELECT gen_random_uuid(), users.id, states.state_code
   FROM public.users
  CROSS JOIN (VALUES
     ('AC'),('AL'),('AP'),('AM'),('BA'),('CE'),('DF'),('ES'),('GO'),
@@ -13,8 +13,8 @@ SELECT users.id, states.state_code
  WHERE lower(users.email) = 'gabrielvilela.dev@gmail.com'
 ON CONFLICT (user_id, state_code) DO NOTHING;
 
-INSERT INTO public.server_screen_permissions (user_id, screen_key)
-SELECT users.id, screens.screen_key
+INSERT INTO public.server_screen_permissions (id, user_id, screen_key)
+SELECT gen_random_uuid(), users.id, screens.screen_key
   FROM public.users
  CROSS JOIN (VALUES
     ('CITIZENS'), ('USER_MANAGEMENT'), ('REPORTS'), ('AI')
