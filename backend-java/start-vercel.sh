@@ -15,7 +15,7 @@ exec /opt/java/openjdk/bin/java \
   -XX:+UseSerialGC \
   -XX:TieredStopAtLevel=1 \
   -jar /app/app.jar \
-  --spring.flyway.enabled=false \
+  --spring.flyway.enabled=true \
   --spring.jpa.hibernate.ddl-auto=none \
   --springdoc.api-docs.enabled=false \
   --springdoc.swagger-ui.enabled=false
