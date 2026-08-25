@@ -8,7 +8,7 @@ describe('aiChatService', () => {
 
   it('deve responder com recusa educada para consultas fora do escopo', async () => {
     const response = await aiChatService.sendMessage('Como fazer uma receita de lasanha?');
-    expect(response.reply).toContain('Assistente Virtual do Cidadão Informa');
+    expect(response.reply).toContain('Assistente Cidadão');
     expect(response.reply).toContain('serviços');
   });
 

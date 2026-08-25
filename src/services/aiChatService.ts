@@ -79,7 +79,7 @@ function buildDynamicFallback(query: string, currentRoute?: string): { reply: st
   if (!isQueryInScope(query)) {
     return {
       reply:
-        'Olá! Sou o **Assistente Virtual do Cidadão Informa**.\n\nFui programado exclusivamente para ajudar você com os serviços e demandas da sua cidade (como buracos no asfalto, iluminação pública, poda de árvores, descarte de lixo, bueiros e acompanhamento de protocolos).\n\nComo posso ajudar você com algum problema na sua rua ou bairro hoje?',
+        'Olá! Sou o **Assistente Cidadão**.\n\nEstou aqui para ajudar você com os serviços da sua cidade (como buracos no asfalto, iluminação pública, poda de árvores, descarte de lixo, bueiros e acompanhamento de protocolos).\n\nComo posso ajudar você com algum problema na sua rua ou bairro hoje?',
       topics: ['Ajuda ao Morador'],
     };
   }

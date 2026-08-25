@@ -19,7 +19,7 @@ const INITIAL_MESSAGE: ChatMessage = {
   id: 'init-1',
   role: 'assistant',
   content:
-    'Olá! Sou o **Assistente Virtual do Cidadão Informa**! 👋\n\nEstou aqui para ajudar você a resolver problemas na sua rua e no seu bairro:\n- 🛠️ **Como pedir consertos** (tapar buraco, trocar lâmpada queimada, podar árvore com perigo, limpar entulho, consertar calçada e bueiro);\n- 🔍 **Como acompanhar seu pedido** pelo número de protocolo;\n- 🗺️ **Como ver o mapa da cidade** com todos os chamados;\n- 📊 **Como consultar a transparência** das obras públicas;\n- ♿ **Como usar recursos de acessibilidade** (aumentar a letra, modo escuro).\n\nComo posso ajudar você hoje?',
+    'Olá! Sou o **Assistente Cidadão**! 👋\n\nEstou aqui para ajudar você a resolver problemas na sua rua e no seu bairro:\n- 🛠️ **Como pedir consertos** (tapar buraco, trocar lâmpada queimada, podar árvore, limpar entulho, consertar calçada e bueiro);\n- 🔍 **Como acompanhar seu pedido** pelo número de protocolo;\n- 🗺️ **Como ver o mapa da cidade** com todos os chamados;\n- 📊 **Como consultar a transparência** das obras públicas;\n- ♿ **Como usar recursos de acessibilidade** (aumentar a letra, modo escuro).\n\nComo posso ajudar você hoje?',
   timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
   topics: ['Boas-vindas', 'Visão Geral'],
 };
@@ -290,17 +290,11 @@ export function AiChatbot() {
             <div className="flex items-center gap-3">
               <div className="relative flex items-center justify-center size-10 rounded-xl bg-white/15 backdrop-blur-md border border-white/25 shadow-inner">
                 <Bot className="size-6 text-white" />
-                <span className="absolute -bottom-0.5 -right-0.5 size-3 bg-emerald-400 border-2 border-[#0c326f] rounded-full" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="font-bold text-sm md:text-base leading-none text-white tracking-tight">
-                    Assistente Cidadão IA
-                  </h2>
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-white/20 text-white uppercase tracking-wider">
-                    Online
-                  </span>
-                </div>
+                <h2 className="font-bold text-sm md:text-base leading-none text-white tracking-tight">
+                  Assistente Cidadão
+                </h2>
                 <p className="text-xs text-blue-100 font-medium mt-1">
                   Tire dúvidas sobre os serviços da sua cidade
                 </p>
@@ -357,7 +351,7 @@ export function AiChatbot() {
                     {!isUser && (
                       <div className="flex items-center gap-1.5 mb-1.5 pb-1 border-b border-slate-100 text-[11px] font-semibold text-[#1351b4]">
                         <Sparkles size={13} className="text-amber-500" />
-                        <span>Cidadão Informa IA</span>
+                        <span>Assistente Cidadão</span>
                       </div>
                     )}
 
