@@ -41,4 +41,23 @@ export interface Protocol {
   correction_report?: string | null;
   ai_priority?: 'baixa' | 'media' | 'alta' | 'critica' | null;
   ai_status?: 'pending' | 'success' | 'failed';
+  /** Quantidade de relatos vinculados ao mesmo local. */
+  location_group_count?: number;
+  /** A partir de 2 relatos da mesma causa e local, os protocolos compartilham status. */
+  location_grouped?: boolean;
+  /** Verdadeiro quando existem mais de 10 relatos da mesma causa no local. */
+  location_alert?: boolean;
+  /** Protocolo mais antigo, usado como principal do agrupamento. */
+  primary_protocol_id?: string;
+  /** Pessoas e protocolos do grupo; enviado somente no detalhe administrativo. */
+  location_reports?: LocationReport[];
+}
+
+export interface LocationReport {
+  protocol_id: string;
+  requester: string;
+  phone?: string | null;
+  created_at: string;
+  category: string;
+  status: string;
 }

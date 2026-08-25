@@ -5,6 +5,8 @@ import br.com.fiap.hackgov.application.dto.protocol.ProtocolOutputDto;
 import br.com.fiap.hackgov.domain.entity.Protocol;
 import br.com.fiap.hackgov.domain.repository.ProtocolRepository;
 import br.com.fiap.hackgov.application.service.ServerStatePermissionService;
+import br.com.fiap.hackgov.domain.util.ProtocolLocationKey;
+import br.com.fiap.hackgov.domain.util.ProtocolCauseKey;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -38,10 +40,25 @@ public class CreateProtocolUseCase {
         protocol.setCategory(input.category().trim());
         protocol.setDescription(input.description().trim());
         protocol.setAddress(input.address().trim());
+        protocol.setLocationKey(ProtocolLocationKey.fromAddress(input.address()));
+        protocol.setCauseKey(ProtocolCauseKey.from(input.category(), input.description()));
+        if (protocol.getLocationKey() == null || protocol.getLocationKey().isBlank()
+                || protocol.getCauseKey() == null || protocol.getCauseKey().isBlank()) {
+            throw new IllegalArgumentException("Informe um endereço e uma causa válidos.");
+        }
         protocol.setStateCode(permissionService.resolveState(input.stateCode(), input.address()));
         protocol.setUserId(userId);
         protocol.setRequester(requester);
-        protocol.setStatus("Aberto");
+        // Um novo relato da mesma causa no mesmo local entra no andamento que
+        // ja existe. A partir do segundo protocolo o grupo nasce sincronizado.
+        String sharedStatus = repository.getByLocationAndCause(
+                        protocol.getLocationKey(),
+                        protocol.getCauseKey()
+                ).stream()
+                .findFirst()
+                .map(Protocol::getStatus)
+                .orElse("Aberto");
+        protocol.setStatus(sharedStatus);
         protocol.setAiStatus("pending");
         // Sem a posicao marcada no mapa a equipe so tem o endereco em texto para
         // chegar ao local, entao ela e persistida junto do chamado.

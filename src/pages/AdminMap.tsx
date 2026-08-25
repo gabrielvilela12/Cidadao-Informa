@@ -231,6 +231,10 @@ export function AdminMap() {
               const isNew = !knownProtocolIds.current.has(protocol.id);
               knownProtocolIds.current.add(protocol.id);
               mergeProtocol(protocol);
+              // O novo relato pode ser justamente o 2o (agrupamento) ou o
+              // 11o (alerta). Revalidar traz os metadados atualizados tambem
+              // para os protocolos anteriores daquele endereco.
+              void refetch();
 
               if (!isNew) return;
 

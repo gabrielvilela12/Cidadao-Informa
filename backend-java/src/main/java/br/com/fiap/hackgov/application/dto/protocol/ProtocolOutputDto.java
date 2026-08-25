@@ -27,7 +27,12 @@ public record ProtocolOutputDto(
         String correctionStatus,
         String correctionError,
         Instant correctionGeneratedAt,
-        String correctionReport
+        String correctionReport,
+        int locationGroupCount,
+        boolean locationGrouped,
+        boolean locationAlert,
+        String primaryProtocolId,
+        List<LocationReportOutputDto> locationReports
 ) {
     public static ProtocolOutputDto from(Protocol protocol) {
         return new ProtocolOutputDto(
@@ -51,7 +56,31 @@ public record ProtocolOutputDto(
                 protocol.getCorrectionStatus(),
                 protocol.getCorrectionError(),
                 protocol.getCorrectionGeneratedAt(),
-                protocol.getCorrectionReport()
+                protocol.getCorrectionReport(),
+                1,
+                false,
+                false,
+                protocol.getId(),
+                List.of()
+        );
+    }
+
+    public static ProtocolOutputDto from(
+            Protocol protocol,
+            int locationGroupCount,
+            boolean locationGrouped,
+            boolean locationAlert,
+            String primaryProtocolId,
+            List<LocationReportOutputDto> locationReports
+    ) {
+        ProtocolOutputDto base = from(protocol);
+        return new ProtocolOutputDto(
+                base.id(), base.category(), base.description(), base.address(), base.stateCode(),
+                base.createdAt(), base.status(), base.resolutionCost(), base.userId(), base.requester(),
+                base.phone(), base.aiPriority(), base.aiStatus(), base.latitude(), base.longitude(),
+                base.imageUrls(), base.correctedImageUrls(), base.correctionStatus(), base.correctionError(),
+                base.correctionGeneratedAt(), base.correctionReport(), locationGroupCount, locationGrouped,
+                locationAlert, primaryProtocolId, locationReports == null ? List.of() : List.copyOf(locationReports)
         );
     }
 }

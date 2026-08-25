@@ -10,6 +10,7 @@ import { CitizenProtocols } from './pages/CitizenProtocols';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminMap } from './pages/AdminMap';
 import { AdminRequestsQueue } from './pages/AdminRequestsQueue';
+import { AdminRecurringAlerts } from './pages/AdminRecurringAlerts';
 import { AdminReports } from './pages/AdminReports';
 import { AdminReportDetails } from './pages/AdminReportDetails';
 import { AiLogsPage } from './pages/AiLogsPage';
@@ -139,6 +140,7 @@ function AppContent() {
 
           <Route path="/admin" element={role !== 'citizen' ? <AdminDashboard /> : <Navigate to="/" replace />} />
           <Route path="/admin/solicitacoes" element={role !== 'citizen' ? <AdminRequestsQueue /> : <Navigate to="/" replace />} />
+          <Route path="/admin/alertas" element={role !== 'citizen' ? <AdminRecurringAlerts /> : <Navigate to="/" replace />} />
           <Route path="/admin/cidadaos" element={<AdminScreenRoute permission="CITIZENS"><AdminCitizens /></AdminScreenRoute>} />
           <Route path="/admin/cidadaos/:id" element={<AdminScreenRoute permission="CITIZENS"><AdminCitizenDetails /></AdminScreenRoute>} />
           <Route path="/admin/usuarios" element={<AdminScreenRoute permission="USER_MANAGEMENT"><AdminPermissions /></AdminScreenRoute>} />

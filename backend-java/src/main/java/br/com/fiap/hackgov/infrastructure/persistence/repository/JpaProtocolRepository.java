@@ -33,6 +33,9 @@ public interface JpaProtocolRepository extends JpaRepository<Protocol, String> {
     @EntityGraph(attributePaths = "user")
     List<Protocol> findByUserIdAndStateCodeInOrderByCreatedAtDesc(String userId, Collection<String> states);
 
+    @EntityGraph(attributePaths = "user")
+    List<Protocol> findByLocationKeyAndCauseKeyOrderByCreatedAtAsc(String locationKey, String causeKey);
+
     /**
      * Payload leve usado pelo barramento SSE entre instancias. A projecao evita
      * ler as imagens base64 dos protocolos a cada consulta de eventos.

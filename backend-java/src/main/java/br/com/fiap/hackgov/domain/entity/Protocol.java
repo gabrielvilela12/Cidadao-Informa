@@ -17,6 +17,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import br.com.fiap.hackgov.domain.util.ProtocolLocationKey;
+import br.com.fiap.hackgov.domain.util.ProtocolCauseKey;
+
 @Entity
 @Table(name = "protocols")
 public class Protocol {
@@ -33,6 +36,12 @@ public class Protocol {
 
     @Column(name = "address", nullable = false)
     private String address;
+
+    @Column(name = "location_key", nullable = false)
+    private String locationKey;
+
+    @Column(name = "cause_key", nullable = false)
+    private String causeKey;
 
     @Column(name = "state_code", length = 2)
     private String stateCode;
@@ -101,6 +110,12 @@ public class Protocol {
         if (status == null) {
             status = "Aberto";
         }
+        if (locationKey == null || locationKey.isBlank()) {
+            locationKey = ProtocolLocationKey.fromAddress(address);
+        }
+        if (causeKey == null || causeKey.isBlank()) {
+            causeKey = ProtocolCauseKey.from(category, description);
+        }
         if (requester == null) {
             requester = "";
         }
@@ -145,6 +160,22 @@ public class Protocol {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public String getLocationKey() {
+        return locationKey;
+    }
+
+    public void setLocationKey(String locationKey) {
+        this.locationKey = locationKey;
+    }
+
+    public String getCauseKey() {
+        return causeKey;
+    }
+
+    public void setCauseKey(String causeKey) {
+        this.causeKey = causeKey;
     }
 
     public String getStateCode() {

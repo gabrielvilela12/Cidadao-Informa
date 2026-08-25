@@ -12,6 +12,7 @@ import br.com.fiap.hackgov.application.service.AiImageCorrectionService;
 import br.com.fiap.hackgov.application.service.GeocodingService;
 import br.com.fiap.hackgov.application.service.ProtocolAuditService;
 import br.com.fiap.hackgov.application.service.ProtocolEventService;
+import br.com.fiap.hackgov.application.service.ProtocolLocationGroupService;
 import br.com.fiap.hackgov.application.service.ServerStatePermissionService;
 import br.com.fiap.hackgov.application.usecase.protocol.CreateProtocolUseCase;
 import br.com.fiap.hackgov.application.usecase.protocol.GetPublicStatsUseCase;
@@ -34,9 +35,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -61,6 +64,7 @@ public class ProtocolsController {
     private final AiImageCorrectionService aiImageCorrectionService;
     private final GeocodingService geocodingService;
     private final ProtocolEventService protocolEventService;
+    private final ProtocolLocationGroupService locationGroupService;
     private final ServerStatePermissionService permissionService;
 
     public ProtocolsController(
@@ -73,6 +77,7 @@ public class ProtocolsController {
             AiImageCorrectionService aiImageCorrectionService,
             GeocodingService geocodingService,
             ProtocolEventService protocolEventService,
+            ProtocolLocationGroupService locationGroupService,
             ServerStatePermissionService permissionService
     ) {
         this.createProtocolUseCase = createProtocolUseCase;
@@ -84,6 +89,7 @@ public class ProtocolsController {
         this.aiImageCorrectionService = aiImageCorrectionService;
         this.geocodingService = geocodingService;
         this.protocolEventService = protocolEventService;
+        this.locationGroupService = locationGroupService;
         this.permissionService = permissionService;
     }
 
@@ -170,7 +176,10 @@ public class ProtocolsController {
         try {
             AuthenticatedUser user = requireUser(authentication);
             Protocol protocol = findProtocol(id);
-            if (isAdmin(user) && !permissionService.canAccess(protocol, permissionService.allowedStates(user.userId()))) {
+            Set<String> allowedStates = isAdmin(user)
+                    ? permissionService.allowedStates(user.userId())
+                    : Set.of();
+            if (isAdmin(user) && !permissionService.canAccess(protocol, allowedStates)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new ErrorResponse("Você não tem permissão para acessar protocolos desta UF."));
             }
@@ -178,7 +187,9 @@ public class ProtocolsController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new ErrorResponse("Você não tem acesso a este protocolo."));
             }
-            return ResponseEntity.ok(ProtocolOutputDto.from(protocol));
+            return ResponseEntity.ok(isAdmin(user)
+                    ? locationGroupService.detailsForAdmin(protocol, allowedStates)
+                    : ProtocolOutputDto.from(protocol));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new ErrorResponse(ex.getMessage()));
@@ -196,6 +207,7 @@ public class ProtocolsController {
     }
 
     @PatchMapping("/{id}/status")
+    @Transactional
     public ResponseEntity<?> updateStatus(
             @PathVariable String id,
             @RequestBody ProtocolStatusUpdateInputDto input,
@@ -209,46 +221,64 @@ public class ProtocolsController {
             }
 
             Protocol protocol = findProtocol(id);
-            permissionService.requireAccess(protocol, user.userId());
-            String previousStatus = protocol.getStatus();
+            Set<String> allowedStates = permissionService.allowedStates(user.userId());
+            if (!permissionService.canAccess(protocol, allowedStates)) {
+                throw new IllegalArgumentException("Você não tem permissão para acessar protocolos desta UF.");
+            }
+
+            List<Protocol> synchronizedProtocols = locationGroupService.membersForStatusSync(protocol)
+                    .stream()
+                    .filter(member -> permissionService.canAccess(member, allowedStates))
+                    .toList();
             BigDecimal resolutionCost = ProtocolCompletionCostPolicy.validate(
                     input.status(),
                     input.resolutionCost()
             );
-            protocol.setStatus(input.status());
-            if (resolutionCost != null) {
-                protocol.setResolutionCost(resolutionCost);
-            }
-            Protocol updated = protocolRepository.update(protocol);
+            String primaryProtocolId = synchronizedProtocols.getFirst().getId();
 
-            Map<String, Object> evidence = new LinkedHashMap<>();
-            evidence.put(
-                    "reason_hash",
-                    input.reason() == null || input.reason().isBlank()
-                            ? ""
-                            : auditService.hashValue(input.reason().trim())
-            );
-            if (resolutionCost != null) {
-                evidence.put("resolution_cost", resolutionCost);
-            }
+            for (Protocol member : synchronizedProtocols) {
+                String previousStatus = member.getStatus();
+                boolean isPrimary = Objects.equals(member.getId(), primaryProtocolId);
+                boolean costChanged = isPrimary && resolutionCost != null
+                        && !Objects.equals(member.getResolutionCost(), resolutionCost);
+                if (Objects.equals(previousStatus, input.status()) && !costChanged) continue;
 
-            auditService.append(
-                    id,
-                    Objects.equals(previousStatus, updated.getStatus())
-                            ? "RESOLUTION_COST_RECORDED"
-                            : "STATUS_CHANGED",
-                    user.userId(),
-                    user.role(),
-                    previousStatus,
-                    updated.getStatus(),
-                    evidence
-            );
+                member.setStatus(input.status());
+                // Uma unica correcao fisica pode ter muitos denunciantes. O custo
+                // fica no protocolo principal para nao inflar os gastos agregados.
+                if (isPrimary && resolutionCost != null) member.setResolutionCost(resolutionCost);
+                protocolRepository.update(member);
+
+                Map<String, Object> evidence = new LinkedHashMap<>();
+                evidence.put(
+                        "reason_hash",
+                        input.reason() == null || input.reason().isBlank()
+                                ? ""
+                                : auditService.hashValue(input.reason().trim())
+                );
+                evidence.put("location_group_size", synchronizedProtocols.size());
+                evidence.put("location_group_primary_protocol", primaryProtocolId);
+                evidence.put("status_propagated_from", id);
+                if (isPrimary && resolutionCost != null) evidence.put("resolution_cost", resolutionCost);
+
+                auditService.append(
+                        member.getId(),
+                        Objects.equals(previousStatus, input.status())
+                                ? "RESOLUTION_COST_RECORDED"
+                                : "STATUS_CHANGED",
+                        user.userId(),
+                        user.role(),
+                        previousStatus,
+                        input.status(),
+                        evidence
+                );
+            }
 
             // `save()` pode devolver uma instância mesclada cuja relação lazy
             // com o cidadão já ficou fora da sessão do repositório. Recarregar
             // pelo método com EntityGraph evita um 500 depois de a alteração e
             // o bloco de auditoria já terem sido persistidos com sucesso.
-            return ResponseEntity.ok(ProtocolOutputDto.from(findProtocol(id)));
+            return ResponseEntity.ok(locationGroupService.detailsForAdmin(findProtocol(id), allowedStates));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(new ErrorResponse(ex.getMessage()));
         }

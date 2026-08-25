@@ -25,6 +25,18 @@ interface ApiProtocol {
     correctionError?: string | null;
     correctionGeneratedAt?: string | null;
     correctionReport?: string | null;
+    locationGroupCount?: number;
+    locationGrouped?: boolean;
+    locationAlert?: boolean;
+    primaryProtocolId?: string;
+    locationReports?: Array<{
+        protocolId: string;
+        requester: string;
+        phone?: string | null;
+        createdAt: string;
+        category: string;
+        status: string;
+    }>;
 }
 
 export interface ProtocolAuditBlock {
@@ -206,6 +218,18 @@ function mapProtocol(item: ApiProtocol): Protocol {
         correction_error: item.correctionError ?? null,
         correction_generated_at: item.correctionGeneratedAt ?? null,
         correction_report: item.correctionReport ?? null,
+        location_group_count: item.locationGroupCount ?? 1,
+        location_grouped: item.locationGrouped ?? false,
+        location_alert: item.locationAlert ?? false,
+        primary_protocol_id: item.primaryProtocolId ?? item.id,
+        location_reports: (item.locationReports ?? []).map((report) => ({
+            protocol_id: report.protocolId,
+            requester: report.requester,
+            phone: report.phone,
+            created_at: report.createdAt,
+            category: report.category,
+            status: report.status,
+        })),
     };
 }
 

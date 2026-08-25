@@ -371,7 +371,7 @@ e a validação antes de virar o tráfego, está em `backend-java/DEPLOY-FLY.md`
 ## Banco e migrations
 
 O schema é versionado em dois lugares equivalentes: as migrations Flyway da API,
-em `backend-java/src/main/resources/db/migration/` (V1 a V16), e os SQLs
+em `backend-java/src/main/resources/db/migration/` (V1 a V17), e os SQLs
 correspondentes em `supabase/migrations/`, para aplicar pelo painel do Supabase.
 
 Localmente, o Flyway roda na inicialização da API

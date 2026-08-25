@@ -41,7 +41,11 @@ public record ProtocolSummaryOutputDto(
         Double longitude,
         String correctionStatus,
         String correctionError,
-        Instant correctionGeneratedAt
+        Instant correctionGeneratedAt,
+        int locationGroupCount,
+        boolean locationGrouped,
+        boolean locationAlert,
+        String primaryProtocolId
 ) {
     public static ProtocolSummaryOutputDto from(Protocol protocol) {
         return new ProtocolSummaryOutputDto(
@@ -62,7 +66,28 @@ public record ProtocolSummaryOutputDto(
                 protocol.getLongitude(),
                 protocol.getCorrectionStatus(),
                 protocol.getCorrectionError(),
-                protocol.getCorrectionGeneratedAt()
+                protocol.getCorrectionGeneratedAt(),
+                1,
+                false,
+                false,
+                protocol.getId()
+        );
+    }
+
+    public static ProtocolSummaryOutputDto from(
+            Protocol protocol,
+            int locationGroupCount,
+            boolean locationGrouped,
+            boolean locationAlert,
+            String primaryProtocolId
+    ) {
+        ProtocolSummaryOutputDto base = from(protocol);
+        return new ProtocolSummaryOutputDto(
+                base.id(), base.category(), base.description(), base.address(), base.stateCode(),
+                base.createdAt(), base.status(), base.resolutionCost(), base.userId(), base.requester(),
+                base.phone(), base.aiPriority(), base.aiStatus(), base.latitude(), base.longitude(),
+                base.correctionStatus(), base.correctionError(), base.correctionGeneratedAt(),
+                locationGroupCount, locationGrouped, locationAlert, primaryProtocolId
         );
     }
 
@@ -86,7 +111,11 @@ public record ProtocolSummaryOutputDto(
                 protocol.longitude(),
                 protocol.correctionStatus(),
                 protocol.correctionError(),
-                protocol.correctionGeneratedAt()
+                protocol.correctionGeneratedAt(),
+                protocol.locationGroupCount(),
+                protocol.locationGrouped(),
+                protocol.locationAlert(),
+                protocol.primaryProtocolId()
         );
     }
 }

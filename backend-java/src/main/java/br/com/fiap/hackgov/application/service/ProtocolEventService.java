@@ -165,7 +165,11 @@ public class ProtocolEventService {
                 protocol.getLongitude(),
                 protocol.getCorrectionStatus(),
                 protocol.getCorrectionError(),
-                protocol.getCorrectionGeneratedAt()
+                protocol.getCorrectionGeneratedAt(),
+                1,
+                false,
+                false,
+                protocol.getId()
         );
     }
 

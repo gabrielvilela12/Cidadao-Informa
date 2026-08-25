@@ -50,6 +50,13 @@ public class ProtocolRepositoryImpl implements ProtocolRepository {
     }
 
     @Override
+    public List<Protocol> getByLocationAndCause(String locationKey, String causeKey) {
+        return locationKey == null || locationKey.isBlank() || causeKey == null || causeKey.isBlank()
+                ? List.of()
+                : repository.findByLocationKeyAndCauseKeyOrderByCreatedAtAsc(locationKey, causeKey);
+    }
+
+    @Override
     public long countAll() {
         return repository.count();
     }

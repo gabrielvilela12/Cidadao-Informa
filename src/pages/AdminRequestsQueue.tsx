@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   AlertCircle,
+  BellRing,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -14,6 +15,7 @@ import {
   MessageCircle,
   Search,
   Timer,
+  Users,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Header } from '../components/Header';
@@ -69,15 +71,22 @@ export function AdminRequestsQueue() {
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
+  // A API preserva todas as linhas para mapas e indicadores. Apenas a fila
+  // condensa grupos com 2+ relatos da mesma causa no protocolo principal.
+  const queueProtocols = useMemo(() => protocols.filter((protocol) => (
+    !protocol.location_grouped || protocol.id === protocol.primary_protocol_id
+  )), [protocols]);
+
   const counts = useMemo(() => ({
     open: protocols.filter((item) => statusMatches(item.status, 'open')).length,
     analysis: protocols.filter((item) => statusMatches(item.status, 'analysis')).length,
     // Atraso vem do prazo de SLA calculado sobre created_at, nao de um status
     // 'Atrasado' que nenhum fluxo do sistema atribui.
     late: countSlaLate(protocols),
-  }), [protocols]);
+    alerts: queueProtocols.filter((item) => item.location_alert).length,
+  }), [protocols, queueProtocols]);
 
-  const filteredProtocols = useMemo(() => protocols.filter((protocol) => {
+  const filteredProtocols = useMemo(() => queueProtocols.filter((protocol) => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
     const matchesSearch = !normalizedSearch
       || protocol.id.toLowerCase().includes(normalizedSearch)
@@ -98,7 +107,7 @@ export function AdminRequestsQueue() {
       && matchesPriority
       && matchesSla
       && matchesDate;
-  }), [categoryFilter, endDate, priorityFilter, protocols, searchTerm, slaFilter, startDate, statusFilter]);
+  }), [categoryFilter, endDate, priorityFilter, queueProtocols, searchTerm, slaFilter, startDate, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProtocols.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -156,11 +165,12 @@ export function AdminRequestsQueue() {
       />
 
       <main className="mx-auto flex w-full max-w-[1500px] flex-col gap-4 px-4 pb-6 sm:px-6 lg:px-8">
-        <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <section className="grid grid-cols-2 gap-3 xl:grid-cols-5">
           <SummaryCard icon={<ClipboardList size={22} />} value={protocols.length} label="Total" tone="blue" />
           <SummaryCard icon={<FolderOpen size={22} />} value={counts.open} label="Abertas" tone="sky" />
           <SummaryCard icon={<Timer size={22} />} value={counts.analysis} label="Em análise" tone="yellow" />
           <SummaryCard icon={<AlertCircle size={22} />} value={counts.late} label="Em atraso" tone="red" />
+          <SummaryCard icon={<BellRing size={22} />} value={counts.alerts} label="Alertas de recorrência" tone="red" />
         </section>
 
         <section className="rounded-lg border border-[#CDD8E7] bg-white p-3 shadow-[0_7px_20px_rgba(15,45,85,0.035)]">
@@ -261,8 +271,15 @@ export function AdminRequestsQueue() {
                           {(protocol.requester || 'U').split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}
                         </span>
                         <div className="min-w-0">
-                          <p className="max-w-[180px] truncate text-sm font-bold">{protocol.requester || 'Cidadão'}</p>
-                          <p className="text-xs text-slate-600">Cidadão verificado</p>
+                          <p className="max-w-[180px] truncate text-sm font-bold">
+                            {protocol.location_grouped ? `${protocol.location_group_count} cidadãos` : (protocol.requester || 'Cidadão')}
+                          </p>
+                          {protocol.location_grouped ? (
+                            <p className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-black ${protocol.location_alert ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}`}>
+                              {protocol.location_alert ? <BellRing size={11} /> : <Users size={11} />}
+                              {protocol.location_alert ? 'ALERTA DA CAUSA' : 'RELATOS AGRUPADOS'}
+                            </p>
+                          ) : <p className="text-xs text-slate-600">Cidadão verificado</p>}
                         </div>
                       </div>
                     </td>

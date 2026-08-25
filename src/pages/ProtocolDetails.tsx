@@ -5,6 +5,7 @@ import {
   ChevronDown, ChevronLeft, ChevronRight, CircleDollarSign, ClipboardList, Copy, ExternalLink,
   Ear, Ellipsis, Eye, FileText, Hash, Info, Link2, Loader2, LockKeyhole, MapPin, MapPinOff, MoreHorizontal,
   Paperclip, RefreshCw, Settings, ShieldCheck, Sparkles, Tag, User, WandSparkles,
+  BellRing, Users,
 } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -215,6 +216,7 @@ export function ProtocolDetails() {
           <BlockchainAuditPanel auditTrail={auditTrail} loading={auditLoading} error={auditError} onRefresh={loadAuditTrail} />
         ) : (
           <>
+            {role !== 'citizen' && protocol.location_grouped && <LocationGroupBanner protocol={protocol} />}
             <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)]">
               <div className="flex min-w-0 flex-col gap-4">
                 <ProtocolSummary protocol={protocol} category={category} />
@@ -233,7 +235,7 @@ export function ProtocolDetails() {
               <div className="flex min-w-0 flex-col gap-4">
                 <RequesterCard protocol={protocol} />
                 {role !== 'citizen' && <>
-                  <StatusControlCard status={protocol.status} resolutionCost={protocol.resolution_cost} loading={statusUpdating} error={statusError} onSave={handleStatusChange} />
+                  <StatusControlCard status={protocol.status} resolutionCost={protocol.resolution_cost} groupCount={protocol.location_group_count} loading={statusUpdating} error={statusError} onSave={handleStatusChange} />
                   <PrioritySection protocolId={protocol.id} initialPriority={protocol.ai_priority} initialStatus={protocol.ai_status} />
                 </>}
                 <TimelineCard events={timeline} />
@@ -250,6 +252,33 @@ export function ProtocolDetails() {
         )}
       </div>
     </div>
+  );
+}
+
+function LocationGroupBanner({ protocol }: { protocol: DetailedProtocol }) {
+  const count = protocol.location_group_count ?? 1;
+  const isAlert = protocol.location_alert;
+  const isPrimary = protocol.id === protocol.primary_protocol_id;
+  return (
+    <section className={`mt-4 flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between ${isAlert ? 'border-red-300 bg-red-50 text-red-950' : 'border-amber-300 bg-amber-50 text-amber-950'}`} role={isAlert ? 'alert' : undefined}>
+      <div className="flex items-start gap-3">
+        <span className={`flex size-10 shrink-0 items-center justify-center rounded-full ${isAlert ? 'bg-red-600 text-white' : 'bg-amber-500 text-white'}`}>
+          {isAlert ? <BellRing size={20} /> : <Users size={20} />}
+        </span>
+        <div>
+          <h2 className="font-black">{isAlert ? 'Alerta de alta recorrência da causa' : 'Solicitações agrupadas por local e causa'}</h2>
+          <p className="mt-1 text-sm leading-6">
+            {count} pessoas reportaram a mesma causa neste endereço. Os protocolos compartilham o mesmo status e esta página reúne todos os solicitantes.
+          </p>
+          <p className="mt-1 text-xs font-semibold opacity-75">Protocolo principal: #{protocol.primary_protocol_id?.slice(0, 8)}</p>
+        </div>
+      </div>
+      {!isPrimary && protocol.primary_protocol_id && (
+        <Link to={`/protocolo/${protocol.primary_protocol_id}`} className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-current bg-white/80 px-4 text-sm font-black">
+          Abrir principal <ArrowRight size={16} />
+        </Link>
+      )}
+    </section>
   );
 }
 
@@ -572,6 +601,30 @@ function AttachmentsCard({
 }
 
 function RequesterCard({ protocol }: { protocol: DetailedProtocol }) {
+  if (protocol.location_grouped && protocol.location_reports?.length) {
+    return (
+      <section className="rounded-lg border border-[#CDD8E7] bg-white p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 font-black"><span className="flex size-7 items-center justify-center rounded-full bg-[#E7F0FF] text-[#0758BD]"><Users size={16} /></span>Pessoas que reportaram</h2>
+          <span className={`rounded-full px-2.5 py-1 text-xs font-black ${protocol.location_alert ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>{protocol.location_reports.length} relatos</span>
+        </div>
+        <div className="mt-3 max-h-80 space-y-2 overflow-y-auto pr-1">
+          {protocol.location_reports.map((report) => (
+            <Link key={report.protocol_id} to={`/protocolo/${report.protocol_id}`} className="flex items-center gap-3 rounded-lg border border-slate-200 p-3 transition hover:border-blue-300 hover:bg-blue-50">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-black text-slate-700">{(report.requester || 'C').trim().charAt(0).toUpperCase()}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-black">{report.requester || 'Cidadão'}</span>
+                <span className="mt-0.5 block text-xs text-slate-500">#{report.protocol_id.slice(0, 8)} · {new Date(report.created_at).toLocaleDateString('pt-BR')}</span>
+              </span>
+              <ArrowRight className="shrink-0 text-slate-400" size={15} />
+            </Link>
+          ))}
+        </div>
+        <p className="mt-3 flex items-center gap-2 rounded-lg border border-[#A9C9F5] bg-[#F1F7FF] px-3 py-2 text-xs text-slate-600"><LockKeyhole className="shrink-0 text-[#0758BD]" size={15} />Dados disponíveis somente para a equipe autorizada.</p>
+      </section>
+    );
+  }
+
   const requester = protocol.requester || 'Cidadão';
   const initial = requester.trim().charAt(0).toUpperCase() || 'C';
   return (
@@ -589,12 +642,14 @@ function RequesterCard({ protocol }: { protocol: DetailedProtocol }) {
 function StatusControlCard({
   status,
   resolutionCost,
+  groupCount,
   loading,
   error,
   onSave,
 }: {
   status: string;
   resolutionCost?: number | null;
+  groupCount?: number;
   loading: boolean;
   error: string;
   onSave: (status: string, resolutionCost?: number) => Promise<void> | void;
@@ -664,7 +719,7 @@ function StatusControlCard({
         </div>
       )}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs text-slate-500">Cada alteração gera um novo bloco de auditoria.</p>
+        <p className="text-xs text-slate-500">{groupCount && groupCount >= 2 ? `A alteração será aplicada aos ${groupCount} protocolos da mesma causa e auditada em cada um.` : 'Cada alteração gera um novo bloco de auditoria.'}</p>
         <button type="button" disabled={loading || !hasChange || (pendingStatus === 'Concluído' && !hasValidCost)} onClick={save} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white disabled:bg-slate-200 disabled:text-slate-400">
           {loading && <Loader2 size={15} className="animate-spin" />}{loading ? 'Salvando...' : 'Salvar alteração'}
         </button>

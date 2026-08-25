@@ -3,6 +3,7 @@ package br.com.fiap.hackgov.application.usecase.protocol;
 import br.com.fiap.hackgov.application.dto.protocol.ProtocolSummaryOutputDto;
 import br.com.fiap.hackgov.domain.entity.Protocol;
 import br.com.fiap.hackgov.domain.repository.ProtocolRepository;
+import br.com.fiap.hackgov.application.service.ProtocolLocationGroupService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -12,9 +13,11 @@ import java.util.Set;
 public class GetProtocolsUseCase {
 
     private final ProtocolRepository repository;
+    private final ProtocolLocationGroupService locationGroupService;
 
-    public GetProtocolsUseCase(ProtocolRepository repository) {
+    public GetProtocolsUseCase(ProtocolRepository repository, ProtocolLocationGroupService locationGroupService) {
         this.repository = repository;
+        this.locationGroupService = locationGroupService;
     }
 
     /**
@@ -33,8 +36,6 @@ public class GetProtocolsUseCase {
     }
 
     public List<ProtocolSummaryOutputDto> executeForAdmin(Set<String> allowedStates) {
-        return repository.getByStates(allowedStates).stream()
-                .map(ProtocolSummaryOutputDto::from)
-                .toList();
+        return locationGroupService.summarizeForAdmin(repository.getByStates(allowedStates));
     }
 }

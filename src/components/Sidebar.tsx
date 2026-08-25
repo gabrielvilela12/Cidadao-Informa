@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, User, LogOut, BarChart3, List, X, Sparkles, ChevronDown, ChevronLeft, Users, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, User, LogOut, BarChart3, List, X, Sparkles, ChevronDown, ChevronLeft, Users, ShieldCheck, BellRing } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { CidadaoBrand } from './CidadaoBrand';
 import { AccessibilityIcon as A11yIcon } from './AccessibilityIcon';
@@ -29,6 +29,7 @@ export function Sidebar() {
       label: 'Atendimento',
       links: [
         { to: '/admin/solicitacoes', icon: List, label: 'Fila de Solicitações', permission: undefined },
+        { to: '/admin/alertas', icon: BellRing, label: 'Alertas de recorrência', permission: undefined },
         { to: '/admin/cidadaos', icon: Users, label: 'Cidadãos', permission: 'CITIZENS' as AdminScreenPermission },
       ],
     },
