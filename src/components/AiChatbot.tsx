@@ -292,12 +292,9 @@ export function AiChatbot() {
                 <Bot className="size-6 text-white" />
               </div>
               <div>
-                <h2 className="font-bold text-sm md:text-base leading-none text-white tracking-tight">
+                <h2 className="font-bold text-base leading-none text-white tracking-tight">
                   Assistente Cidadão
                 </h2>
-                <p className="text-xs text-blue-100 font-medium mt-1">
-                  Tire dúvidas sobre os serviços da sua cidade
-                </p>
               </div>
             </div>
 
