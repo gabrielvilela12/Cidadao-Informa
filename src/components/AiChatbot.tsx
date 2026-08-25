@@ -285,14 +285,14 @@ export function AiChatbot() {
               : 'bottom-4 right-4 left-4 sm:left-auto sm:w-[420px] sm:h-[620px] max-h-[85vh] rounded-2xl'
           }`}
         >
-          {/* Header do Chat - Alto Contraste e Legibilidade Perfeita */}
-          <div className="flex items-center justify-between px-4 py-3.5 bg-[#0c326f] text-white rounded-t-2xl shadow-md border-b border-blue-900 select-none">
+          {/* Header do Chat - Tema Branco / Light Theme */}
+          <div className="flex items-center justify-between px-4 py-3.5 bg-white text-slate-900 rounded-t-2xl border-b border-slate-200 select-none">
             <div className="flex items-center gap-3">
-              <div className="relative flex items-center justify-center size-10 rounded-xl bg-white/15 backdrop-blur-md border border-white/25 shadow-inner">
-                <Bot className="size-6 text-white" />
+              <div className="relative flex items-center justify-center size-10 rounded-xl bg-blue-50 border border-blue-100 text-[#1351b4] shadow-xs">
+                <Bot className="size-6 text-[#1351b4]" />
               </div>
               <div>
-                <h2 className="font-bold text-base leading-none text-white tracking-tight">
+                <h2 className="font-bold text-base leading-none text-slate-900 tracking-tight">
                   Assistente Cidadão
                 </h2>
               </div>
@@ -304,7 +304,7 @@ export function AiChatbot() {
                 onClick={handleClearChat}
                 title="Reiniciar conversa"
                 aria-label="Reiniciar conversa"
-                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/15 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <RotateCcw size={16} />
               </button>
@@ -313,7 +313,7 @@ export function AiChatbot() {
                 onClick={() => setIsExpanded(!isExpanded)}
                 title={isExpanded ? 'Restaurar tamanho' : 'Expandir'}
                 aria-label={isExpanded ? 'Restaurar tamanho' : 'Expandir'}
-                className="hidden sm:block p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/15 transition-colors cursor-pointer"
+                className="hidden sm:block p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
               </button>
@@ -322,7 +322,7 @@ export function AiChatbot() {
                 onClick={() => setIsOpen(false)}
                 title="Fechar chat"
                 aria-label="Fechar chat"
-                className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/15 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
