@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, Type, Check, Menu, Keyboard } from 'lucide-react';
-import { useA11y } from '../context/A11yContext';
+import { Menu, Keyboard } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import { CITIZEN_SHORTCUTS, ADMIN_SHORTCUTS, SHARED_SHORTCUTS } from '../hooks/useKeyboardShortcuts';
@@ -14,15 +13,9 @@ interface HeaderProps {
 }
 
 export function Header({ title, subtitle, description, action }: HeaderProps) {
-  const { fontSize, setFontSize } = useA11y();
   const { role, toggleMobileMenu } = useApp();
   const navigate = useNavigate();
 
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const [showFontSize, setShowFontSize] = useState(false);
-  const fontSizeRef = useRef<HTMLDivElement>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const shortcutsRef = useRef<HTMLDivElement>(null);
 
@@ -30,16 +23,11 @@ export function Header({ title, subtitle, description, action }: HeaderProps) {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) setShowNotifications(false);
-      if (fontSizeRef.current && !fontSizeRef.current.contains(event.target as Node)) setShowFontSize(false);
       if (shortcutsRef.current && !shortcutsRef.current.contains(event.target as Node)) setShowShortcuts(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const unreadCount = notifications.filter(n => !n.read).length;
-  const markAllAsRead = () => { setNotifications(prev => prev.map(n => ({ ...n, read: true }))); setShowNotifications(false); };
 
   const iconBtnClass = "header-icon-btn flex size-11 items-center justify-center rounded-lg border border-[#CDD8E7] bg-white text-slate-600 shadow-sm transition-all";
 
@@ -109,66 +97,7 @@ export function Header({ title, subtitle, description, action }: HeaderProps) {
           )}
         </div>
 
-        {/* Font size */}
-        <div className="relative hidden sm:block" ref={fontSizeRef}>
-          <button onClick={() => setShowFontSize(!showFontSize)} className={iconBtnClass} title="Tamanho da Fonte">
-            <Type size={16} />
-          </button>
-          {showFontSize && (
-            <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1rem)] bg-white border border-[#CDD8E7] rounded-lg shadow-2xl z-50 p-5">
-              <h3 className="font-bold text-white mb-1 text-sm">Tamanho do Texto</h3>
-              <p className="text-xs text-slate-500 mb-4">Ajuste: <span className="text-white font-bold">{fontSize}%</span></p>
-              <div className="flex items-center gap-4">
-                <span className="text-slate-400 text-sm font-medium">A</span>
-                <input type="range" min="100" max="200" step="5" value={fontSize}
-                  onChange={(e) => setFontSize(Number(e.target.value))}
-                  className="flex-1 accent-blue-500 h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer" />
-                <span className="text-slate-200 text-xl font-bold">A</span>
-              </div>
-              <div className="flex justify-between mt-2 text-[10px] text-slate-600 font-medium">
-                <span>100%</span><span>200%</span>
-              </div>
-            </div>
-          )}
-        </div>
-
         <ThemeSwitch />
-
-        <div className="mx-1 hidden h-6 w-px bg-slate-300 sm:block" />
-
-        {/* Notifications */}
-        <div className="relative" ref={dropdownRef}>
-          <button onClick={() => setShowNotifications(!showNotifications)} className={`${iconBtnClass} relative`}>
-            <Bell size={16} />
-            {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 size-1.5 bg-red-500 rounded-full" />
-            )}
-          </button>
-          {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1rem)] bg-white border border-[#CDD8E7] rounded-lg shadow-2xl overflow-hidden z-50">
-              <div className="px-4 py-3 border-b border-white/8 flex justify-between items-center">
-                <h3 className="font-bold text-white text-sm">Notificações</h3>
-                {unreadCount > 0 && (
-                  <button onClick={markAllAsRead} className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
-                    <Check size={12} /> Marcar lidas
-                  </button>
-                )}
-              </div>
-              <div className="max-h-80 overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <div className="p-6 text-center text-slate-500 text-sm">Nenhuma notificação.</div>
-                ) : (
-                  notifications.map(notif => (
-                    <div key={notif.id} className={`p-4 border-b border-white/5 hover:bg-white/5 transition-colors ${!notif.read ? 'bg-blue-600/5' : ''}`}>
-                      <p className={`text-sm ${!notif.read ? 'text-white font-medium' : 'text-slate-400'}`}>{notif.message}</p>
-                      <p className="text-xs text-slate-600 mt-1">{new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-        </div>
       </div>
     </header>
   );

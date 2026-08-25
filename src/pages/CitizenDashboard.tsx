@@ -5,9 +5,7 @@ import {
   Clock,
   Ear,
   Eye,
-  FileText,
   HelpCircle,
-  Map as MapIcon,
   Plus,
   TrendingUp,
 } from 'lucide-react';
@@ -81,11 +79,6 @@ export function CitizenDashboard() {
       percentageClass: 'text-[#168821]',
       barClass: 'bg-[#168821]',
     },
-  ];
-
-  const quickLinks = [
-    { label: 'Protocolos', icon: FileText, to: '/meus-protocolos' },
-    { label: 'Mapa', icon: MapIcon, to: '/mapa' },
   ];
 
   return (
@@ -269,24 +262,6 @@ export function CitizenDashboard() {
               </div>
             </section>
 
-            <section className="rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-[0_6px_18px_rgba(35,65,110,0.05)] sm:p-6">
-              <h2 className="text-xl font-black text-[#111827]">Acesso rápido</h2>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {quickLinks.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      className="quick-tile flex min-h-20 items-center justify-center gap-3 rounded-lg border border-[#1351B4] bg-white px-3 text-sm font-bold text-[#1351B4]"
-                    >
-                      <Icon size={23} aria-hidden="true" />
-                      <span>{item.label}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </section>
           </aside>
         </section>
       </main>
