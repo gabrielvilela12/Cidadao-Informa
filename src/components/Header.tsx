@@ -13,13 +13,14 @@ interface HeaderProps {
 }
 
 export function Header({ title, subtitle, description, action }: HeaderProps) {
-  const { role, toggleMobileMenu } = useApp();
+  const { role, hasAdminScreen, toggleMobileMenu } = useApp();
   const navigate = useNavigate();
 
   const [showShortcuts, setShowShortcuts] = useState(false);
   const shortcutsRef = useRef<HTMLDivElement>(null);
 
-  const mainShortcuts = role === 'citizen' ? CITIZEN_SHORTCUTS : ADMIN_SHORTCUTS;
+  const mainShortcuts = (role === 'citizen' ? CITIZEN_SHORTCUTS : ADMIN_SHORTCUTS)
+    .filter((shortcut) => !shortcut.permission || hasAdminScreen(shortcut.permission));
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

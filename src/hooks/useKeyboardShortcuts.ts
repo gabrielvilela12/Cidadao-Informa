@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useApp } from '../context/AppContext';
+import type { AdminScreenPermission } from '../services/serverPermissionService';
 
 export interface ShortcutDefinition {
   key: string;
@@ -7,6 +9,7 @@ export interface ShortcutDefinition {
   description: string;
   path: string;
   roles: ('citizen' | 'admin')[];
+  permission?: AdminScreenPermission;
 }
 
 export const CITIZEN_SHORTCUTS: ShortcutDefinition[] = [
@@ -20,7 +23,7 @@ export const ADMIN_SHORTCUTS: ShortcutDefinition[] = [
   { key: 'Alt+1', label: 'Alt + 1', description: 'Dashboard', path: '/admin', roles: ['admin'] },
   { key: 'Alt+2', label: 'Alt + 2', description: 'Solicitações', path: '/admin/solicitacoes', roles: ['admin'] },
   { key: 'Alt+3', label: 'Alt + 3', description: 'Mapa', path: '/admin/mapa', roles: ['admin'] },
-  { key: 'Alt+4', label: 'Alt + 4', description: 'Relatórios', path: '/admin/relatorios', roles: ['admin'] },
+  { key: 'Alt+4', label: 'Alt + 4', description: 'Relatórios', path: '/admin/relatorios', roles: ['admin'], permission: 'REPORTS' },
 ];
 
 export const SHARED_SHORTCUTS: ShortcutDefinition[] = [
@@ -30,12 +33,13 @@ export const SHARED_SHORTCUTS: ShortcutDefinition[] = [
 
 export function useKeyboardShortcuts(role: 'citizen' | 'admin') {
   const navigate = useNavigate();
+  const { hasAdminScreen } = useApp();
 
   useEffect(() => {
     const shortcuts = [
       ...(role === 'citizen' ? CITIZEN_SHORTCUTS : ADMIN_SHORTCUTS),
       ...SHARED_SHORTCUTS,
-    ];
+    ].filter((shortcut) => !shortcut.permission || hasAdminScreen(shortcut.permission));
 
     const handler = (e: KeyboardEvent) => {
       if (!e.altKey) return;
@@ -57,5 +61,5 @@ export function useKeyboardShortcuts(role: 'citizen' | 'admin') {
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [role, navigate]);
+  }, [role, navigate, hasAdminScreen]);
 }

@@ -1,6 +1,7 @@
 package br.com.fiap.hackgov.api.controller;
 
 import br.com.fiap.hackgov.application.service.AiPromptService;
+import br.com.fiap.hackgov.application.service.AdminAccessService;
 import br.com.fiap.hackgov.infrastructure.security.AuthenticatedUser;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -18,15 +19,18 @@ class AdminAiPromptsControllerTest {
     void allowsAdminToListPrompts() {
         AiPromptService service = mock(AiPromptService.class);
         when(service.list()).thenReturn(List.of());
-        AdminAiPromptsController controller = new AdminAiPromptsController(service);
+        AdminAccessService access = mock(AdminAccessService.class);
+        AdminAiPromptsController controller = new AdminAiPromptsController(service, access);
 
         assertEquals(HttpStatus.OK, controller.list(authentication("admin")).getStatusCode());
         verify(service).list();
+        verify(access).requireScreen("user-id", AdminAccessService.AI);
     }
 
     @Test
     void blocksCitizensFromPromptManagement() {
-        AdminAiPromptsController controller = new AdminAiPromptsController(mock(AiPromptService.class));
+        AdminAiPromptsController controller = new AdminAiPromptsController(
+                mock(AiPromptService.class), mock(AdminAccessService.class));
         assertEquals(HttpStatus.FORBIDDEN, controller.list(authentication("citizen")).getStatusCode());
     }
 

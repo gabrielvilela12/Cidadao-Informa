@@ -7,6 +7,7 @@ import {
     SHARED_SHORTCUTS,
     ShortcutDefinition,
 } from '../hooks/useKeyboardShortcuts';
+import { useApp } from '../context/AppContext';
 
 interface ShortcutsBarProps {
     role: 'citizen' | 'admin';
@@ -31,11 +32,13 @@ export function ShortcutsBar({ role }: ShortcutsBarProps) {
     const [open, setOpen] = useState(false);
     const [dismissed, setDismissed] = useState(false);
     const navigate = useNavigate();
+    const { hasAdminScreen } = useApp();
 
     if (dismissed) return null;
 
     const mainShortcuts: ShortcutDefinition[] =
-        role === 'citizen' ? CITIZEN_SHORTCUTS : ADMIN_SHORTCUTS;
+        (role === 'citizen' ? CITIZEN_SHORTCUTS : ADMIN_SHORTCUTS)
+            .filter((shortcut) => !shortcut.permission || hasAdminScreen(shortcut.permission));
 
     return (
         <div className="w-full z-40 sticky top-0">

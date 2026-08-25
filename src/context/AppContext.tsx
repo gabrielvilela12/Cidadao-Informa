@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { AdminAccessProfile, AdminScreenPermission } from '../services/serverPermissionService';
 
 /**
  * Definição dos papéis (roles) suportados pela aplicação.
@@ -25,6 +26,10 @@ interface AppContextType {
   role: UserRole;
   isAuthenticated: boolean;
   user: AppUser | null;
+  adminAccess: AdminAccessProfile | null;
+  adminAccessLoading: boolean;
+  hasAdminScreen: (screen: AdminScreenPermission) => boolean;
+  refreshAdminAccess: () => Promise<void>;
   loginSuccess: (token: string, user: AppUser, role: UserRole) => void;
   logout: () => void;
   isMobileMenuOpen: boolean;
@@ -83,6 +88,18 @@ function readCachedSession(): { user: AppUser; role: UserRole } | null {
   }
 }
 
+function readCachedAdminAccess(): AdminAccessProfile | null {
+  try {
+    const raw = localStorage.getItem('cidadaoinforma_admin_access');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<AdminAccessProfile>;
+    if (!Array.isArray(parsed.states) || !Array.isArray(parsed.screens)) return null;
+    return { states: parsed.states, screens: parsed.screens };
+  } catch {
+    return null;
+  }
+}
+
 function isSameUser(a: AppUser | null, b: AppUser): boolean {
   return a !== null
     && a.id === b.id
@@ -108,6 +125,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [role, setRoleState] = useState<UserRole>(cachedSession?.role ?? 'citizen');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(Boolean(cachedSession));
   const [user, setUser] = useState<AppUser | null>(cachedSession?.user ?? null);
+  const [adminAccess, setAdminAccess] = useState<AdminAccessProfile | null>(() =>
+    cachedSession?.role === 'admin' ? readCachedAdminAccess() : null,
+  );
+  const [adminAccessLoading, setAdminAccessLoading] = useState(cachedSession?.role === 'admin');
   // Só bloqueia a árvore quando há token sem usuário em cache: aí não há o que
   // desenhar antes da resposta. Visitante anônimo e sessão em cache renderizam
   // no primeiro frame.
@@ -164,8 +185,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('cidadaoinforma_token');
         localStorage.removeItem('cidadaoinforma_user');
         localStorage.removeItem('cidadaoinforma_role');
+        localStorage.removeItem('cidadaoinforma_admin_access');
         setIsAuthenticated(false);
         setUser(null);
+        setAdminAccess(null);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -178,11 +201,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  const refreshAdminAccess = async () => {
+    if (!localStorage.getItem('cidadaoinforma_token')) return;
+    setAdminAccessLoading(true);
+    try {
+      const { serverPermissionService } = await import('../services/serverPermissionService');
+      const access = await serverPermissionService.myAccess();
+      localStorage.setItem('cidadaoinforma_admin_access', JSON.stringify(access));
+      setAdminAccess(access);
+    } catch (error) {
+      console.warn('Não foi possível atualizar as permissões administrativas.', error);
+      setAdminAccess(null);
+      localStorage.removeItem('cidadaoinforma_admin_access');
+    } finally {
+      setAdminAccessLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isAuthenticated || role !== 'admin' || !user?.id) {
+      setAdminAccess(null);
+      setAdminAccessLoading(false);
+      localStorage.removeItem('cidadaoinforma_admin_access');
+      return;
+    }
+    void refreshAdminAccess();
+  }, [isAuthenticated, role, user?.id]);
+
   const loginSuccess = (token: string, user: AppUser, role: UserRole) => {
     const validatedRole = normalizeRole(role);
     localStorage.setItem('cidadaoinforma_token', token);
     localStorage.setItem('cidadaoinforma_user', JSON.stringify(user));
     localStorage.setItem('cidadaoinforma_role', validatedRole);
+    localStorage.removeItem('cidadaoinforma_admin_access');
+    setAdminAccess(null);
+    setAdminAccessLoading(validatedRole === 'admin');
     setUser(user);
     setRoleState(validatedRole);
     setIsAuthenticated(true);
@@ -192,9 +245,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('cidadaoinforma_token');
     localStorage.removeItem('cidadaoinforma_user');
     localStorage.removeItem('cidadaoinforma_role');
+    localStorage.removeItem('cidadaoinforma_admin_access');
     setIsAuthenticated(false);
     setUser(null);
+    setAdminAccess(null);
+    setAdminAccessLoading(false);
   };
+
+  const hasAdminScreen = (screen: AdminScreenPermission) =>
+    role === 'admin' && Boolean(adminAccess?.screens.includes(screen));
 
   if (loading) {
     return (
@@ -205,7 +264,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AppContext.Provider value={{ role, isAuthenticated, user, loginSuccess, logout, isMobileMenuOpen, toggleMobileMenu, isSidebarCollapsed, toggleSidebarCollapsed }}>
+    <AppContext.Provider value={{ role, isAuthenticated, user, adminAccess, adminAccessLoading, hasAdminScreen, refreshAdminAccess, loginSuccess, logout, isMobileMenuOpen, toggleMobileMenu, isSidebarCollapsed, toggleSidebarCollapsed }}>
       {children}
     </AppContext.Provider>
   );

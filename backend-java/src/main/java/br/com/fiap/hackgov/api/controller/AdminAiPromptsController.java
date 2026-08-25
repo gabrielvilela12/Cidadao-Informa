@@ -2,6 +2,7 @@ package br.com.fiap.hackgov.api.controller;
 
 import br.com.fiap.hackgov.api.response.ErrorResponse;
 import br.com.fiap.hackgov.application.service.AiPromptService;
+import br.com.fiap.hackgov.application.service.AdminAccessService;
 import br.com.fiap.hackgov.infrastructure.security.AuthenticatedUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,15 +18,18 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/admin/ai-prompts")
 public class AdminAiPromptsController {
     private final AiPromptService service;
+    private final AdminAccessService accessService;
 
-    public AdminAiPromptsController(AiPromptService service) {
+    public AdminAiPromptsController(AiPromptService service, AdminAccessService accessService) {
         this.service = service;
+        this.accessService = accessService;
     }
 
     @GetMapping
     public ResponseEntity<?> list(Authentication authentication) {
         try {
-            requireAdmin(authentication);
+            AuthenticatedUser admin = requireAdmin(authentication);
+            accessService.requireScreen(admin.userId(), AdminAccessService.AI);
         } catch (Exception exception) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(exception.getMessage()));
         }
@@ -41,6 +45,7 @@ public class AdminAiPromptsController {
         AuthenticatedUser admin;
         try {
             admin = requireAdmin(authentication);
+            accessService.requireScreen(admin.userId(), AdminAccessService.AI);
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(exception.getMessage()));
         }

@@ -3,6 +3,7 @@ package br.com.fiap.hackgov.api.controller;
 import br.com.fiap.hackgov.application.usecase.admin.GetAdminCitizensUseCase;
 import br.com.fiap.hackgov.infrastructure.security.AuthenticatedUser;
 import br.com.fiap.hackgov.application.service.ServerStatePermissionService;
+import br.com.fiap.hackgov.application.service.AdminAccessService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -17,22 +18,27 @@ import org.springframework.web.server.ResponseStatusException;
 public class AdminCitizensController {
     private final GetAdminCitizensUseCase useCase;
     private final ServerStatePermissionService permissionService;
+    private final AdminAccessService accessService;
 
     public AdminCitizensController(GetAdminCitizensUseCase useCase,
-                                   ServerStatePermissionService permissionService) {
+                                   ServerStatePermissionService permissionService,
+                                   AdminAccessService accessService) {
         this.useCase = useCase;
         this.permissionService = permissionService;
+        this.accessService = accessService;
     }
 
     @GetMapping
     public ResponseEntity<?> list(Authentication authentication) {
         AuthenticatedUser admin = requireAdmin(authentication);
+        accessService.requireScreen(admin.userId(), AdminAccessService.CITIZENS);
         return ResponseEntity.ok(useCase.list(permissionService.allowedStates(admin.userId())));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> detail(@PathVariable String id, Authentication authentication) {
         AuthenticatedUser admin = requireAdmin(authentication);
+        accessService.requireScreen(admin.userId(), AdminAccessService.CITIZENS);
         try {
             return ResponseEntity.ok(useCase.detail(id, permissionService.allowedStates(admin.userId())));
         } catch (GetAdminCitizensUseCase.CitizenNotFoundException exception) {

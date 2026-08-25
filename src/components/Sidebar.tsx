@@ -4,9 +4,10 @@ import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, User, LogOut, Ba
 import { useApp } from '../context/AppContext';
 import { CidadaoBrand } from './CidadaoBrand';
 import { AccessibilityIcon as A11yIcon } from './AccessibilityIcon';
+import type { AdminScreenPermission } from '../services/serverPermissionService';
 
 export function Sidebar() {
-  const { role, logout, user, isMobileMenuOpen, toggleMobileMenu, isSidebarCollapsed, toggleSidebarCollapsed } = useApp();
+  const { role, logout, user, hasAdminScreen, isMobileMenuOpen, toggleMobileMenu, isSidebarCollapsed, toggleSidebarCollapsed } = useApp();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -27,24 +28,24 @@ export function Sidebar() {
       id: 'atendimento',
       label: 'Atendimento',
       links: [
-        { to: '/admin/solicitacoes', icon: List, label: 'Fila de Solicitações' },
-        { to: '/admin/cidadaos', icon: Users, label: 'Cidadãos' },
+        { to: '/admin/solicitacoes', icon: List, label: 'Fila de Solicitações', permission: undefined },
+        { to: '/admin/cidadaos', icon: Users, label: 'Cidadãos', permission: 'CITIZENS' as AdminScreenPermission },
       ],
     },
     {
       id: 'gestao',
       label: 'Gestão',
       links: [
-        { to: '/admin/permissoes', icon: ShieldCheck, label: 'Permissões' },
-        { to: '/admin/relatorios', icon: FileText, label: 'Relatórios' },
+        { to: '/admin/usuarios', icon: ShieldCheck, label: 'Usuários e permissões', permission: 'USER_MANAGEMENT' as AdminScreenPermission },
+        { to: '/admin/relatorios', icon: FileText, label: 'Relatórios', permission: 'REPORTS' as AdminScreenPermission },
       ],
     },
     {
       id: 'inteligencia',
       label: 'Inteligência',
       links: [
-        { to: '/admin/mapa', icon: MapIcon, label: 'Mapa Estratégico' },
-        { to: '/admin/ia', icon: Sparkles, label: 'IA' },
+        { to: '/admin/mapa', icon: MapIcon, label: 'Mapa Estratégico', permission: undefined },
+        { to: '/admin/ia', icon: Sparkles, label: 'IA', permission: 'AI' as AdminScreenPermission },
       ],
     },
   ];
@@ -144,6 +145,8 @@ export function Sidebar() {
 
                 {adminLinks.map((group) => {
                   const isExpanded = expandedGroups[group.id];
+                  const visibleLinks = group.links.filter((link) => !link.permission || hasAdminScreen(link.permission));
+                  if (visibleLinks.length === 0) return null;
 
                   return (
                     <section key={group.id} className="pt-2">
@@ -169,7 +172,7 @@ export function Sidebar() {
                         id={`sidebar-group-${group.id}`}
                         className={`mt-0.5 space-y-1 ${isExpanded ? '' : 'hidden'}`}
                       >
-                        {group.links.map((link) => (
+                        {visibleLinks.map((link) => (
                           <NavLink
                             key={link.to}
                             to={link.to}

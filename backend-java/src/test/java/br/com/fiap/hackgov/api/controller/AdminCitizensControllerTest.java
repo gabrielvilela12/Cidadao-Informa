@@ -2,6 +2,7 @@ package br.com.fiap.hackgov.api.controller;
 
 import br.com.fiap.hackgov.application.usecase.admin.GetAdminCitizensUseCase;
 import br.com.fiap.hackgov.application.service.ServerStatePermissionService;
+import br.com.fiap.hackgov.application.service.AdminAccessService;
 import br.com.fiap.hackgov.infrastructure.security.AuthenticatedUser;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -24,16 +25,19 @@ class AdminCitizensControllerTest {
         ServerStatePermissionService permissions = mock(ServerStatePermissionService.class);
         when(permissions.allowedStates("user-id")).thenReturn(Set.of("SP"));
         when(useCase.list(Set.of("SP"))).thenReturn(List.of());
-        AdminCitizensController controller = new AdminCitizensController(useCase, permissions);
+        AdminAccessService access = mock(AdminAccessService.class);
+        AdminCitizensController controller = new AdminCitizensController(useCase, permissions, access);
 
         assertEquals(HttpStatus.OK, controller.list(authentication("admin")).getStatusCode());
         verify(useCase).list(Set.of("SP"));
+        verify(access).requireScreen("user-id", AdminAccessService.CITIZENS);
     }
 
     @Test
     void blocksCitizenFromAdminCitizenData() {
         AdminCitizensController controller = new AdminCitizensController(
-                mock(GetAdminCitizensUseCase.class), mock(ServerStatePermissionService.class));
+                mock(GetAdminCitizensUseCase.class), mock(ServerStatePermissionService.class),
+                mock(AdminAccessService.class));
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { AppProvider, useApp } from './context/AppContext';
@@ -29,10 +29,20 @@ import { ChevronRight } from 'lucide-react';
 import { TermsOfUse } from './pages/TermsOfUse';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { AiChatbot } from './components/AiChatbot';
+import type { AdminScreenPermission } from './services/serverPermissionService';
 
 const Transparency = lazy(() =>
   import('./pages/Transparency').then((module) => ({ default: module.Transparency })),
 );
+
+function AdminScreenRoute({ permission, children }: { permission: AdminScreenPermission; children: ReactNode }) {
+  const { role, adminAccessLoading, hasAdminScreen } = useApp();
+  if (role !== 'admin') return <Navigate to="/" replace />;
+  if (adminAccessLoading) {
+    return <div className="flex h-full items-center justify-center bg-[#F4F8FC] font-semibold text-slate-600">Carregando permissões…</div>;
+  }
+  return hasAdminScreen(permission) ? children : <Navigate to="/admin" replace />;
+}
 
 function getHashRoutePath() {
   const hashPath = window.location.hash.replace(/^#/, '');
@@ -129,14 +139,15 @@ function AppContent() {
 
           <Route path="/admin" element={role === 'admin' ? <AdminDashboard /> : <Navigate to="/" replace />} />
           <Route path="/admin/solicitacoes" element={role === 'admin' ? <AdminRequestsQueue /> : <Navigate to="/" replace />} />
-          <Route path="/admin/cidadaos" element={role === 'admin' ? <AdminCitizens /> : <Navigate to="/" replace />} />
-          <Route path="/admin/cidadaos/:id" element={role === 'admin' ? <AdminCitizenDetails /> : <Navigate to="/" replace />} />
-          <Route path="/admin/permissoes" element={role === 'admin' ? <AdminPermissions /> : <Navigate to="/" replace />} />
+          <Route path="/admin/cidadaos" element={<AdminScreenRoute permission="CITIZENS"><AdminCitizens /></AdminScreenRoute>} />
+          <Route path="/admin/cidadaos/:id" element={<AdminScreenRoute permission="CITIZENS"><AdminCitizenDetails /></AdminScreenRoute>} />
+          <Route path="/admin/usuarios" element={<AdminScreenRoute permission="USER_MANAGEMENT"><AdminPermissions /></AdminScreenRoute>} />
+          <Route path="/admin/permissoes" element={<AdminScreenRoute permission="USER_MANAGEMENT"><Navigate to="/admin/usuarios" replace /></AdminScreenRoute>} />
           <Route path="/admin/mapa" element={role === 'admin' ? <AdminMap /> : <Navigate to="/" replace />} />
-          <Route path="/admin/relatorios" element={role === 'admin' ? <AdminReports /> : <Navigate to="/" replace />} />
-          <Route path="/admin/relatorios/:id" element={role === 'admin' ? <AdminReportDetails /> : <Navigate to="/" replace />} />
-          <Route path="/admin/ia" element={role === 'admin' ? <AiLogsPage /> : <Navigate to="/" replace />} />
-          <Route path="/admin/ai-logs" element={role === 'admin' ? <Navigate to="/admin/ia" replace /> : <Navigate to="/" replace />} />
+          <Route path="/admin/relatorios" element={<AdminScreenRoute permission="REPORTS"><AdminReports /></AdminScreenRoute>} />
+          <Route path="/admin/relatorios/:id" element={<AdminScreenRoute permission="REPORTS"><AdminReportDetails /></AdminScreenRoute>} />
+          <Route path="/admin/ia" element={<AdminScreenRoute permission="AI"><AiLogsPage /></AdminScreenRoute>} />
+          <Route path="/admin/ai-logs" element={<AdminScreenRoute permission="AI"><Navigate to="/admin/ia" replace /></AdminScreenRoute>} />
 
           {/* Shared Routes */}
           <Route path="/perfil" element={<Profile />} />

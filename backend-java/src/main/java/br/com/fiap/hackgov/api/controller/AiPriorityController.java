@@ -2,6 +2,7 @@ package br.com.fiap.hackgov.api.controller;
 
 import br.com.fiap.hackgov.api.response.ErrorResponse;
 import br.com.fiap.hackgov.application.service.AiPriorityService;
+import br.com.fiap.hackgov.application.service.AdminAccessService;
 import br.com.fiap.hackgov.application.service.ServerStatePermissionService;
 import br.com.fiap.hackgov.domain.entity.Protocol;
 import br.com.fiap.hackgov.domain.repository.ProtocolRepository;
@@ -25,13 +26,16 @@ public class AiPriorityController {
     private final AiPriorityService aiPriorityService;
     private final ProtocolRepository protocolRepository;
     private final ServerStatePermissionService permissionService;
+    private final AdminAccessService accessService;
 
     public AiPriorityController(AiPriorityService aiPriorityService,
                                 ProtocolRepository protocolRepository,
-                                ServerStatePermissionService permissionService) {
+                                ServerStatePermissionService permissionService,
+                                AdminAccessService accessService) {
         this.aiPriorityService = aiPriorityService;
         this.protocolRepository = protocolRepository;
         this.permissionService = permissionService;
+        this.accessService = accessService;
     }
 
     @GetMapping("/{protocolId}")
@@ -91,6 +95,7 @@ public class AiPriorityController {
     ) {
         try {
             AuthenticatedUser admin = requireAdmin(authentication);
+            accessService.requireScreen(admin.userId(), AdminAccessService.AI);
             return ResponseEntity.ok(aiPriorityService.getAuditLogs(
                     days, permissionService.allowedStates(admin.userId())));
         } catch (Exception exception) {
@@ -103,6 +108,7 @@ public class AiPriorityController {
     public ResponseEntity<?> getFailedJobs(Authentication authentication) {
         try {
             AuthenticatedUser admin = requireAdmin(authentication);
+            accessService.requireScreen(admin.userId(), AdminAccessService.AI);
             return ResponseEntity.ok(aiPriorityService.getFailedJobs(
                     permissionService.allowedStates(admin.userId())));
         } catch (Exception exception) {

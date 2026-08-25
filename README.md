@@ -243,7 +243,7 @@ minutos, desligável por `APP_SCHEDULING_ENABLED=false`.
 | `/admin` | Dashboard executivo (admin) |
 | `/admin/solicitacoes` | Fila de solicitações (admin) |
 | `/admin/cidadaos`, `/admin/cidadaos/:id` | Cidadãos cadastrados e histórico individual (admin) |
-| `/admin/permissoes` | Permissões territoriais dos servidores por UF (admin) |
+| `/admin/usuarios` | Cadastro de administradores e permissões por UF e tela (admin autorizado) |
 | `/admin/mapa` | Mapa estratégico (admin) |
 | `/admin/relatorios` | Relatórios (admin) |
 | `/admin/ia` | Prompts dos agentes e logs da triagem por IA (admin) |
@@ -367,7 +367,7 @@ e a validação antes de virar o tráfego, está em `backend-java/DEPLOY-FLY.md`
 ## Banco e migrations
 
 O schema é versionado em dois lugares equivalentes: as migrations Flyway da API,
-em `backend-java/src/main/resources/db/migration/` (V1 a V14), e os SQLs
+em `backend-java/src/main/resources/db/migration/` (V1 a V15), e os SQLs
 correspondentes em `supabase/migrations/`, para aplicar pelo painel do Supabase.
 
 Localmente, o Flyway roda na inicialização da API
