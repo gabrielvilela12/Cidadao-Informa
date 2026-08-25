@@ -26,6 +26,7 @@ import { NotFound } from './pages/NotFound';
 import { PanelLeftOpen } from 'lucide-react';
 import { TermsOfUse } from './pages/TermsOfUse';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
+import { AiChatbot } from './components/AiChatbot';
 
 const Transparency = lazy(() =>
   import('./pages/Transparency').then((module) => ({ default: module.Transparency })),
@@ -71,24 +72,30 @@ function AppContent() {
   // quando o visitante já possui uma sessão autenticada no navegador.
   if (routeLocation.pathname === '/transparencia') {
     return (
-      <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#F5F8FC] font-semibold text-slate-600">Carregando transparência…</div>}>
-        <Transparency />
-      </Suspense>
+      <>
+        <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#F5F8FC] font-semibold text-slate-600">Carregando transparência…</div>}>
+          <Transparency />
+        </Suspense>
+        <AiChatbot />
+      </>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <Routes location={routeLocation}>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<Login initialMode={false} />} />
-        <Route path="/cadastro" element={<Login initialMode={true} />} />
-        <Route path="/termos-de-uso" element={<TermsOfUse />} />
-        <Route path="/privacidade" element={<PrivacyPolicy />} />
-        <Route path="/acessibilidade" element={<Accessibility />} />
-        <Route path="/p/:id" element={<PublicProtocol />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <>
+        <Routes location={routeLocation}>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<Login initialMode={false} />} />
+          <Route path="/cadastro" element={<Login initialMode={true} />} />
+          <Route path="/termos-de-uso" element={<TermsOfUse />} />
+          <Route path="/privacidade" element={<PrivacyPolicy />} />
+          <Route path="/acessibilidade" element={<Accessibility />} />
+          <Route path="/p/:id" element={<PublicProtocol />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        <AiChatbot />
+      </>
     );
   }
 
@@ -136,6 +143,7 @@ function AppContent() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
+      <AiChatbot />
     </div>
   );
 }
