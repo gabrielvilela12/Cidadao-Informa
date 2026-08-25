@@ -382,16 +382,23 @@ function FilterSelect({ label, value, onChange, options }: { label: string; valu
 
 function DateFilter({ label, value, onChange, min, max }: { label: string; value: string; onChange: (value: string) => void; min?: string; max?: string }) {
   return (
-    <label className="flex h-11 min-w-0 w-full items-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-3 focus-within:border-[#0758BD] focus-within:ring-2 focus-within:ring-blue-100">
+    <label className="flex h-11 min-w-0 w-full cursor-pointer items-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-3 focus-within:border-[#0758BD] focus-within:ring-2 focus-within:ring-blue-100">
       <span className="shrink-0 text-xs font-bold text-slate-500">{label === 'Data inicial' ? 'Início' : 'Fim'}</span>
       <input
         type="date"
         value={value}
         min={min}
         max={max}
+        onClick={(event) => {
+          try {
+            event.currentTarget.showPicker?.();
+          } catch {
+            // O navegador mantém o seletor nativo quando showPicker não está disponível.
+          }
+        }}
         onChange={(event) => onChange(event.target.value)}
         aria-label={label}
-        className="h-full min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-700 outline-none"
+        className="h-full min-w-0 flex-1 cursor-pointer bg-transparent text-sm font-semibold text-slate-700 outline-none"
       />
     </label>
   );
