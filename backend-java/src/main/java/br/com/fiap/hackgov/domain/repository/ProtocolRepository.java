@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface ProtocolRepository {
 
@@ -15,11 +16,20 @@ public interface ProtocolRepository {
 
     List<Protocol> getAll();
 
+    List<Protocol> getByStates(Set<String> states);
+
     List<Protocol> getByUserId(String userId);
+
+    List<Protocol> getByUserIdAndStates(String userId, Set<String> states);
 
     long countAll();
 
     long countByStatuses(List<String> statuses);
+
+    /** Contagens leves por cidadão para a listagem administrativa. */
+    List<CitizenProtocolStats> getCitizenStats();
+
+    List<CitizenProtocolStats> getCitizenStatsByStates(Set<String> states);
 
     /**
      * Recorte leve e sem dados pessoais usado exclusivamente pelas estatísticas
@@ -46,6 +56,14 @@ public interface ProtocolRepository {
             String aiStatus,
             Double latitude,
             Double longitude
+    ) {
+    }
+
+    record CitizenProtocolStats(
+            String userId,
+            long protocolCount,
+            long openProtocolCount,
+            Instant lastProtocolAt
     ) {
     }
 }

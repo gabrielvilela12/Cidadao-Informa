@@ -7,6 +7,7 @@ import br.com.fiap.hackgov.application.service.AiPriorityService;
 import br.com.fiap.hackgov.application.service.GeocodingService;
 import br.com.fiap.hackgov.application.service.ProtocolAuditService;
 import br.com.fiap.hackgov.application.service.ProtocolEventService;
+import br.com.fiap.hackgov.application.service.ServerStatePermissionService;
 import br.com.fiap.hackgov.application.usecase.protocol.CreateProtocolUseCase;
 import br.com.fiap.hackgov.application.usecase.protocol.GetProtocolsUseCase;
 import br.com.fiap.hackgov.application.usecase.protocol.GetPublicStatsUseCase;
@@ -24,6 +25,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -40,6 +42,7 @@ class ProtocolsControllerTest {
         BigDecimal cost = new BigDecimal("4500.00");
         ProtocolRepository repository = mock(ProtocolRepository.class);
         ProtocolAuditService auditService = mock(ProtocolAuditService.class);
+        ServerStatePermissionService permissions = mock(ServerStatePermissionService.class);
         ProtocolsController controller = new ProtocolsController(
                 mock(CreateProtocolUseCase.class),
                 mock(GetProtocolsUseCase.class),
@@ -49,10 +52,13 @@ class ProtocolsControllerTest {
                 mock(AiPriorityService.class),
                 mock(AiImageCorrectionService.class),
                 mock(GeocodingService.class),
-                mock(ProtocolEventService.class)
+                mock(ProtocolEventService.class),
+                permissions
         );
 
         Protocol original = protocol(protocolId, "Aberto", null);
+        when(permissions.allowedStates("admin-id")).thenReturn(Set.of("SP"));
+        when(permissions.canAccess(original, Set.of("SP"))).thenReturn(true);
         Protocol detachedAfterSave = mock(Protocol.class);
         when(detachedAfterSave.getStatus()).thenReturn("Concluído");
         when(detachedAfterSave.getUser()).thenThrow(new LazyInitializationException("session closed"));
@@ -90,6 +96,7 @@ class ProtocolsControllerTest {
         protocol.setCategory("Física");
         protocol.setDescription("Semáforo apagado");
         protocol.setAddress("Ribeirão Preto - SP");
+        protocol.setStateCode("SP");
         protocol.setCreatedAt(Instant.parse("2026-08-24T12:59:28Z"));
         protocol.setStatus(status);
         protocol.setResolutionCost(resolutionCost);

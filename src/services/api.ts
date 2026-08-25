@@ -6,6 +6,7 @@ interface ApiProtocol {
     category: string;
     description: string;
     address: string;
+    stateCode?: string | null;
     status: string;
     resolutionCost?: number | null;
     userId?: string;
@@ -133,6 +134,26 @@ export interface DailyReportDetail extends DailyReportSummary {
     protocols: Array<{ protocolId: string; category: string; address: string; region: string; currentStatus: string; protocolCreatedAt: string; createdDuringPeriod: boolean; resolutionCost: number | null; spentDuringPeriod: number; statusChanges: Array<{ fromStatus: string; toStatus: string; occurredAt: string }> }>;
 }
 
+export interface AdminCitizenSummary {
+    id: string;
+    name: string;
+    email: string;
+    cpf: string;
+    phone?: string | null;
+    createdAt: string;
+    protocolCount: number;
+    openProtocolCount: number;
+    lastProtocolAt?: string | null;
+}
+
+export interface AdminCitizenDetail extends AdminCitizenSummary {
+    protocols: Protocol[];
+}
+
+interface ApiAdminCitizenDetail extends AdminCitizenSummary {
+    protocols: ApiProtocol[];
+}
+
 interface ApiAuditBlock {
     id: string;
     blockIndex: number | string;
@@ -164,6 +185,7 @@ function mapProtocol(item: ApiProtocol): Protocol {
     return {
         ...item,
         created_at: item.createdAt,
+        state_code: item.stateCode ?? null,
         ai_priority: item.aiPriority,
         ai_status: item.aiStatus,
         service: item.category || 'Outros',
@@ -305,6 +327,20 @@ export const api = {
         return apiRequest<DailyReportDetail>(`/api/admin/reports/${encodeURIComponent(id)}`);
     },
 
+    getAdminCitizens() {
+        return apiRequest<AdminCitizenSummary[]>('/api/admin/citizens');
+    },
+
+    async getAdminCitizen(id: string): Promise<AdminCitizenDetail> {
+        const data = await apiRequest<ApiAdminCitizenDetail>(
+            `/api/admin/citizens/${encodeURIComponent(id)}`,
+        );
+        return {
+            ...data,
+            protocols: data.protocols.map(mapProtocol),
+        };
+    },
+
     async createProtocol(data: any) {
         return apiRequest<ApiProtocol>('/api/protocols', {
             method: 'POST',
@@ -312,6 +348,7 @@ export const api = {
                 category: data.category,
                 description: data.description,
                 address: data.address,
+                stateCode: data.stateCode ?? data.state ?? null,
                 // Posição que o solicitante confirmou no mapa. É o que a equipe
                 // usa para chegar ao local, então precisa ser persistida.
                 latitude: data.latitude ?? null,

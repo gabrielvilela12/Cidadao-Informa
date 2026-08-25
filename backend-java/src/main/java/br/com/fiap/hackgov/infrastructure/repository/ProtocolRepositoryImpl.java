@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public class ProtocolRepositoryImpl implements ProtocolRepository {
@@ -34,8 +35,18 @@ public class ProtocolRepositoryImpl implements ProtocolRepository {
     }
 
     @Override
+    public List<Protocol> getByStates(Set<String> states) {
+        return states.isEmpty() ? List.of() : repository.findByStateCodeInOrderByCreatedAtDesc(states);
+    }
+
+    @Override
     public List<Protocol> getByUserId(String userId) {
         return repository.findByUserIdOrderByCreatedAtDesc(userId);
+    }
+
+    @Override
+    public List<Protocol> getByUserIdAndStates(String userId, Set<String> states) {
+        return states.isEmpty() ? List.of() : repository.findByUserIdAndStateCodeInOrderByCreatedAtDesc(userId, states);
     }
 
     @Override
@@ -46,6 +57,28 @@ public class ProtocolRepositoryImpl implements ProtocolRepository {
     @Override
     public long countByStatuses(List<String> statuses) {
         return repository.countByStatusIn(statuses);
+    }
+
+    @Override
+    public List<CitizenProtocolStats> getCitizenStats() {
+        return repository.findCitizenProtocolStats().stream()
+                .map(item -> new CitizenProtocolStats(
+                        item.getUserId(),
+                        item.getProtocolCount(),
+                        item.getOpenProtocolCount(),
+                        item.getLastProtocolAt()
+                ))
+                .toList();
+    }
+
+    @Override
+    public List<CitizenProtocolStats> getCitizenStatsByStates(Set<String> states) {
+        if (states.isEmpty()) return List.of();
+        return repository.findCitizenProtocolStatsByStateCodeIn(states).stream()
+                .map(item -> new CitizenProtocolStats(
+                        item.getUserId(), item.getProtocolCount(), item.getOpenProtocolCount(), item.getLastProtocolAt()
+                ))
+                .toList();
     }
 
     @Override

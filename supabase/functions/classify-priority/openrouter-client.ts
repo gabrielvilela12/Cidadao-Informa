@@ -15,13 +15,14 @@ export interface ClassifyResponse {
 }
 
 export async function classifyPriority(
-  request: ClassifyRequest
+  request: ClassifyRequest,
+  promptTemplate?: string,
 ): Promise<ClassifyResponse> {
   if (!OPENROUTER_API_KEY) {
     throw new Error("OPENROUTER_API_KEY is not configured");
   }
 
-  const prompt = buildPrompt(request.category, request.description);
+  const prompt = buildPrompt(request.category, request.description, promptTemplate);
 
   const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
     method: "POST",
@@ -77,8 +78,8 @@ function extractLabeledValue(text: string, label: string): string | null {
   return value ? value : null;
 }
 
-function buildPrompt(category: string, description: string): string {
-  return `Você é um classificador de prioridade de solicitações de zeladoria urbana.
+function buildPrompt(category: string, description: string, promptTemplate?: string): string {
+  const template = promptTemplate || `Você é um classificador de prioridade de solicitações de zeladoria urbana.
 
 CATEGORIAS E CRITÉRIOS DE PRIORIDADE:
 
@@ -119,6 +120,10 @@ MOTIVO: <uma frase curta, no máximo 200 caracteres, explicando o critério apli
 Exemplo:
 PRIORIDADE: ALTA
 MOTIVO: Vários buracos em via principal, com impacto operacional em muitos usuários.`;
+
+  return template
+    .replaceAll("{{category}}", category)
+    .replaceAll("{{description}}", description);
 }
 
 function parsePriority(

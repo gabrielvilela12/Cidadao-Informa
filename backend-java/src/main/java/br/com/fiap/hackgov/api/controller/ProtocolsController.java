@@ -12,6 +12,7 @@ import br.com.fiap.hackgov.application.service.AiImageCorrectionService;
 import br.com.fiap.hackgov.application.service.GeocodingService;
 import br.com.fiap.hackgov.application.service.ProtocolAuditService;
 import br.com.fiap.hackgov.application.service.ProtocolEventService;
+import br.com.fiap.hackgov.application.service.ServerStatePermissionService;
 import br.com.fiap.hackgov.application.usecase.protocol.CreateProtocolUseCase;
 import br.com.fiap.hackgov.application.usecase.protocol.GetPublicStatsUseCase;
 import br.com.fiap.hackgov.application.usecase.protocol.GetProtocolsUseCase;
@@ -59,6 +60,7 @@ public class ProtocolsController {
     private final AiImageCorrectionService aiImageCorrectionService;
     private final GeocodingService geocodingService;
     private final ProtocolEventService protocolEventService;
+    private final ServerStatePermissionService permissionService;
 
     public ProtocolsController(
             CreateProtocolUseCase createProtocolUseCase,
@@ -69,7 +71,8 @@ public class ProtocolsController {
             AiPriorityService aiPriorityService,
             AiImageCorrectionService aiImageCorrectionService,
             GeocodingService geocodingService,
-            ProtocolEventService protocolEventService
+            ProtocolEventService protocolEventService,
+            ServerStatePermissionService permissionService
     ) {
         this.createProtocolUseCase = createProtocolUseCase;
         this.getProtocolsUseCase = getProtocolsUseCase;
@@ -80,6 +83,7 @@ public class ProtocolsController {
         this.aiImageCorrectionService = aiImageCorrectionService;
         this.geocodingService = geocodingService;
         this.protocolEventService = protocolEventService;
+        this.permissionService = permissionService;
     }
 
     @PostMapping
@@ -130,8 +134,9 @@ public class ProtocolsController {
     public ResponseEntity<?> getProtocols(Authentication authentication) {
         try {
             AuthenticatedUser user = requireUser(authentication);
-            String userId = isAdmin(user) ? null : user.userId();
-            return ResponseEntity.ok(getProtocolsUseCase.execute(userId));
+            return ResponseEntity.ok(isAdmin(user)
+                    ? getProtocolsUseCase.executeForAdmin(permissionService.allowedStates(user.userId()))
+                    : getProtocolsUseCase.execute(user.userId()));
         } catch (Exception ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse(ex.getMessage()));
@@ -141,11 +146,11 @@ public class ProtocolsController {
     @GetMapping(value = "/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public ResponseEntity<SseEmitter> streamProtocolEvents(Authentication authentication) {
         try {
-            requireAdmin(authentication);
+            AuthenticatedUser admin = requireAdmin(authentication);
             return ResponseEntity.ok()
                     .header("Cache-Control", "no-cache, no-transform")
                     .header("X-Accel-Buffering", "no")
-                    .body(protocolEventService.subscribe());
+                    .body(protocolEventService.subscribe(permissionService.allowedStates(admin.userId())));
         } catch (IllegalArgumentException exception) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, exception.getMessage());
         }
@@ -164,6 +169,10 @@ public class ProtocolsController {
         try {
             AuthenticatedUser user = requireUser(authentication);
             Protocol protocol = findProtocol(id);
+            if (isAdmin(user) && !permissionService.canAccess(protocol, permissionService.allowedStates(user.userId()))) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ErrorResponse("Você não tem permissão para acessar protocolos desta UF."));
+            }
             if (!isAdmin(user) && !protocol.getUserId().equals(user.userId())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new ErrorResponse("Você não tem acesso a este protocolo."));
@@ -199,6 +208,7 @@ public class ProtocolsController {
             }
 
             Protocol protocol = findProtocol(id);
+            permissionService.requireAccess(protocol, user.userId());
             String previousStatus = protocol.getStatus();
             BigDecimal resolutionCost = ProtocolCompletionCostPolicy.validate(
                     input.status(),
@@ -250,6 +260,7 @@ public class ProtocolsController {
     ) {
         try {
             AuthenticatedUser user = requireAdmin(authentication);
+            permissionService.requireAccess(findProtocol(id), user.userId());
             Protocol updated = aiImageCorrectionService.generate(id);
 
             auditService.append(
@@ -289,7 +300,8 @@ public class ProtocolsController {
             Authentication authentication
     ) {
         try {
-            requireAdmin(authentication);
+            AuthenticatedUser admin = requireAdmin(authentication);
+            requireAllStates(admin);
             return ResponseEntity.ok(
                     geocodingService.backfill(input == null ? null : input.limit())
             );
@@ -307,6 +319,10 @@ public class ProtocolsController {
         try {
             AuthenticatedUser user = requireUser(authentication);
             Protocol protocol = findProtocol(id);
+            if (isAdmin(user) && !permissionService.canAccess(protocol, permissionService.allowedStates(user.userId()))) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ErrorResponse("Você não tem permissão para acessar a auditoria desta UF."));
+            }
             if (!isAdmin(user) && !protocol.getUserId().equals(user.userId())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new ErrorResponse("Você não tem acesso à auditoria deste protocolo."));
@@ -320,7 +336,8 @@ public class ProtocolsController {
     @GetMapping("/audit/verify")
     public ResponseEntity<?> verifyAuditChain(Authentication authentication) {
         try {
-            requireAdmin(authentication);
+            AuthenticatedUser admin = requireAdmin(authentication);
+            requireAllStates(admin);
             return ResponseEntity.ok(auditService.verifyAll());
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -351,5 +368,11 @@ public class ProtocolsController {
 
     private boolean isAdmin(AuthenticatedUser user) {
         return "admin".equalsIgnoreCase(user.role());
+    }
+
+    private void requireAllStates(AuthenticatedUser admin) {
+        if (!permissionService.allowedStates(admin.userId()).containsAll(ServerStatePermissionService.ALL_STATES)) {
+            throw new IllegalArgumentException("Esta operação global exige permissão para todas as UFs.");
+        }
     }
 }

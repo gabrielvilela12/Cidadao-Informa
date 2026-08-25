@@ -38,7 +38,7 @@ public class ProtocolEventService {
     private static final long DELIVERED_ID_RETENTION_MINUTES = 5L;
     private static final int MAX_EVENTS_PER_POLL = 1_000;
 
-    private final Set<SseEmitter> emitters = ConcurrentHashMap.newKeySet();
+    private final Map<SseEmitter, Set<String>> emitters = new ConcurrentHashMap<>();
     private final Map<String, Instant> deliveredEventIds = new ConcurrentHashMap<>();
     private final JpaProtocolRepository protocolRepository;
     private final LongFunction<SseEmitter> emitterFactory;
@@ -57,14 +57,14 @@ public class ProtocolEventService {
         this.emitterFactory = emitterFactory;
     }
 
-    public SseEmitter subscribe() {
+    public SseEmitter subscribe(Set<String> allowedStates) {
         if (emitters.isEmpty()) {
             trackingStartedAt = Instant.now();
             deliveredEventIds.clear();
         }
 
         SseEmitter emitter = emitterFactory.apply(EMITTER_TIMEOUT_MS);
-        emitters.add(emitter);
+        emitters.put(emitter, Set.copyOf(allowedStates));
 
         Runnable remove = () -> emitters.remove(emitter);
         emitter.onCompletion(remove);
@@ -136,10 +136,7 @@ public class ProtocolEventService {
             return;
         }
 
-        broadcast(() -> SseEmitter.event()
-                .id(protocol.id())
-                .name("protocol-created")
-                .data(protocol));
+        broadcastProtocol(protocol);
     }
 
     private void pruneDeliveredIds(Instant now) {
@@ -155,6 +152,7 @@ public class ProtocolEventService {
                 protocol.getCategory(),
                 protocol.getDescription(),
                 protocol.getAddress(),
+                protocol.getStateCode(),
                 protocol.getCreatedAt(),
                 protocol.getStatus(),
                 protocol.getResolutionCost(),
@@ -172,9 +170,25 @@ public class ProtocolEventService {
     }
 
     private void broadcast(Supplier<SseEmitter.SseEventBuilder> event) {
-        emitters.forEach(emitter -> {
+        emitters.keySet().forEach(emitter -> {
             try {
                 emitter.send(event.get());
+            } catch (Exception exception) {
+                emitters.remove(emitter);
+                emitter.complete();
+                LOGGER.debug("Removed disconnected protocol event subscriber: {}", exception.getMessage());
+            }
+        });
+    }
+
+    private void broadcastProtocol(ProtocolSummaryOutputDto protocol) {
+        emitters.forEach((emitter, states) -> {
+            if (protocol.stateCode() == null || !states.contains(protocol.stateCode())) return;
+            try {
+                emitter.send(SseEmitter.event()
+                        .id(protocol.id())
+                        .name("protocol-created")
+                        .data(protocol));
             } catch (Exception exception) {
                 emitters.remove(emitter);
                 emitter.complete();

@@ -17,6 +17,7 @@ import org.springframework.web.client.RestClient;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class AiPriorityService {
@@ -154,8 +155,24 @@ public class AiPriorityService {
         return logRepository.findRecent(LocalDateTime.now().minusDays(safeDays));
     }
 
+    public List<AiJobLog> getAuditLogs(int days, Set<String> allowedStates) {
+        Set<String> protocolIds = protocolRepository.getByStates(allowedStates).stream()
+                .map(Protocol::getId).collect(java.util.stream.Collectors.toSet());
+        return getAuditLogs(days).stream()
+                .filter(log -> protocolIds.contains(log.getProtocolId()))
+                .toList();
+    }
+
     public List<AiPriorityJob> getFailedJobs() {
         return jobRepository.findFailedJobsForRetry(LocalDateTime.now().minusHours(24));
+    }
+
+    public List<AiPriorityJob> getFailedJobs(Set<String> allowedStates) {
+        Set<String> protocolIds = protocolRepository.getByStates(allowedStates).stream()
+                .map(Protocol::getId).collect(java.util.stream.Collectors.toSet());
+        return getFailedJobs().stream()
+                .filter(job -> protocolIds.contains(job.getProtocolId()))
+                .toList();
     }
 
     private Protocol getProtocol(String protocolId) {

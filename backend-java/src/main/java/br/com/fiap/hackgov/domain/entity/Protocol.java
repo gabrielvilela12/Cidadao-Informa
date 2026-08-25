@@ -34,6 +34,9 @@ public class Protocol {
     @Column(name = "address", nullable = false)
     private String address;
 
+    @Column(name = "state_code", length = 2)
+    private String stateCode;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -142,6 +145,14 @@ public class Protocol {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public String getStateCode() {
+        return stateCode;
+    }
+
+    public void setStateCode(String stateCode) {
+        this.stateCode = stateCode;
     }
 
     public Instant getCreatedAt() {

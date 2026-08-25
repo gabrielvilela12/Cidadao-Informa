@@ -2,6 +2,9 @@ package br.com.fiap.hackgov.api.controller;
 
 import br.com.fiap.hackgov.api.response.ErrorResponse;
 import br.com.fiap.hackgov.application.service.AiPriorityService;
+import br.com.fiap.hackgov.application.service.ServerStatePermissionService;
+import br.com.fiap.hackgov.domain.entity.Protocol;
+import br.com.fiap.hackgov.domain.repository.ProtocolRepository;
 import br.com.fiap.hackgov.infrastructure.security.AuthenticatedUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,9 +23,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class AiPriorityController {
 
     private final AiPriorityService aiPriorityService;
+    private final ProtocolRepository protocolRepository;
+    private final ServerStatePermissionService permissionService;
 
-    public AiPriorityController(AiPriorityService aiPriorityService) {
+    public AiPriorityController(AiPriorityService aiPriorityService,
+                                ProtocolRepository protocolRepository,
+                                ServerStatePermissionService permissionService) {
         this.aiPriorityService = aiPriorityService;
+        this.protocolRepository = protocolRepository;
+        this.permissionService = permissionService;
     }
 
     @GetMapping("/{protocolId}")
@@ -31,7 +40,8 @@ public class AiPriorityController {
             Authentication authentication
     ) {
         try {
-            requireUser(authentication);
+            AuthenticatedUser user = requireUser(authentication);
+            requireProtocolAccess(protocolId, user);
             return ResponseEntity.ok(aiPriorityService.getPriority(protocolId));
         } catch (Exception exception) {
             return ResponseEntity.badRequest().body(new ErrorResponse(exception.getMessage()));
@@ -46,6 +56,7 @@ public class AiPriorityController {
     ) {
         try {
             AuthenticatedUser admin = requireAdmin(authentication);
+            requireProtocolAccess(protocolId, admin);
             aiPriorityService.updatePriorityManual(
                     protocolId,
                     request.priority(),
@@ -64,7 +75,8 @@ public class AiPriorityController {
             Authentication authentication
     ) {
         try {
-            requireAdmin(authentication);
+            AuthenticatedUser admin = requireAdmin(authentication);
+            requireProtocolAccess(protocolId, admin);
             aiPriorityService.regeneratePriority(protocolId);
             return ResponseEntity.noContent().build();
         } catch (Exception exception) {
@@ -78,8 +90,9 @@ public class AiPriorityController {
             Authentication authentication
     ) {
         try {
-            requireAdmin(authentication);
-            return ResponseEntity.ok(aiPriorityService.getAuditLogs(days));
+            AuthenticatedUser admin = requireAdmin(authentication);
+            return ResponseEntity.ok(aiPriorityService.getAuditLogs(
+                    days, permissionService.allowedStates(admin.userId())));
         } catch (Exception exception) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse(exception.getMessage()));
@@ -89,8 +102,9 @@ public class AiPriorityController {
     @GetMapping("/jobs/failed")
     public ResponseEntity<?> getFailedJobs(Authentication authentication) {
         try {
-            requireAdmin(authentication);
-            return ResponseEntity.ok(aiPriorityService.getFailedJobs());
+            AuthenticatedUser admin = requireAdmin(authentication);
+            return ResponseEntity.ok(aiPriorityService.getFailedJobs(
+                    permissionService.allowedStates(admin.userId())));
         } catch (Exception exception) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse(exception.getMessage()));
@@ -111,6 +125,16 @@ public class AiPriorityController {
             throw new IllegalArgumentException("Acesso restrito a administradores.");
         }
         return user;
+    }
+
+    private void requireProtocolAccess(String protocolId, AuthenticatedUser user) {
+        Protocol protocol = protocolRepository.getById(protocolId)
+                .orElseThrow(() -> new IllegalArgumentException("Protocolo não encontrado."));
+        if ("admin".equalsIgnoreCase(user.role())) {
+            permissionService.requireAccess(protocol, user.userId());
+        } else if (!protocol.getUserId().equals(user.userId())) {
+            throw new IllegalArgumentException("Você não tem acesso a este protocolo.");
+        }
     }
 
     record ManualPriorityRequest(String priority, String reason) {

@@ -6,6 +6,7 @@ import br.com.fiap.hackgov.domain.repository.ProtocolRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class GetProtocolsUseCase {
@@ -27,6 +28,12 @@ public class GetProtocolsUseCase {
                 : repository.getAll();
 
         return protocols.stream()
+                .map(ProtocolSummaryOutputDto::from)
+                .toList();
+    }
+
+    public List<ProtocolSummaryOutputDto> executeForAdmin(Set<String> allowedStates) {
+        return repository.getByStates(allowedStates).stream()
                 .map(ProtocolSummaryOutputDto::from)
                 .toList();
     }

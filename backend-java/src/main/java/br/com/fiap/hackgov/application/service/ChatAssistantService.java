@@ -19,23 +19,31 @@ public class ChatAssistantService {
     private static final Logger LOGGER = LoggerFactory.getLogger(ChatAssistantService.class);
     private static final String MODEL = "google/gemini-3.7-flash";
     private static final String OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+    private static final String DEFAULT_SYSTEM_PROMPT = "Você é o Assistente Virtual Oficial do Cidadão Informa, uma IA prestativa, acolhedora e inteligente especializada em orientar moradores sobre zeladoria urbana e serviços da cidade (como buracos no asfalto, iluminação pública, poda de árvores, descarte de lixo, calçadas, bueiros, acompanhamento de protocolos e transparência pública).\n\n"
+            + "REGRAS:\n"
+            + "1. Responda em Português do Brasil com linguagem simples, acolhedora e didática para moradores leigos.\n"
+            + "2. Quando perguntarem sobre problemas da cidade ou pedidos, explique os passos de forma clara (rotas como /nova-solicitacao, /meus-protocolos, /mapa, /transparencia).\n"
+            + "3. Quando perguntarem sobre assuntos alheios, recuse educadamente e convide o morador a tirar dúvidas sobre os problemas da sua rua ou bairro.";
 
     private final RestClient restClient;
     private final String chatFunctionUrl;
     private final String supabaseAnonKey;
     private final String openRouterApiKey;
+    private final AiPromptService aiPromptService;
 
     public ChatAssistantService(
             RestClient restClient,
             @Value("${app.supabase.edge-function-url}") String priorityFunctionUrl,
             @Value("${app.supabase.chat-function-url:}") String configuredChatFunctionUrl,
             @Value("${app.supabase.anon-key}") String supabaseAnonKey,
-            @Value("${OPENROUTER_API_KEY:}") String openRouterApiKey
+            @Value("${OPENROUTER_API_KEY:}") String openRouterApiKey,
+            AiPromptService aiPromptService
     ) {
         this.restClient = restClient;
         this.chatFunctionUrl = resolveChatFunctionUrl(priorityFunctionUrl, configuredChatFunctionUrl);
         this.supabaseAnonKey = supabaseAnonKey;
         this.openRouterApiKey = openRouterApiKey;
+        this.aiPromptService = aiPromptService;
     }
 
     public ChatResponse sendChatMessage(ChatRequest request) {
@@ -80,11 +88,7 @@ public class ChatAssistantService {
     }
 
     private String callOpenRouterDirect(ChatRequest request) {
-        String systemPrompt = "Você é o Assistente Virtual Oficial do Cidadão Informa, uma IA prestativa, acolhedora e inteligente especializada em orientar moradores sobre zeladoria urbana e serviços da cidade (como buracos no asfalto, iluminação pública, poda de árvores, descarte de lixo, calçadas, bueiros, acompanhamento de protocolos e transparência pública).\n\n"
-                + "REGRAS:\n"
-                + "1. Responda em Português do Brasil com linguagem simples, acolhedora e didática para moradores leigos.\n"
-                + "2. Quando perguntarem sobre problemas da cidade ou pedidos, explique os passos de forma clara (rotas como /nova-solicitacao, /meus-protocolos, /mapa, /transparencia).\n"
-                + "3. Quando perguntarem sobre assuntos alheios (receitas, piadas, futebol, programação, etc.), recuse educadamente com simpatia e convide o morador a tirar dúvidas sobre os problemas da sua rua ou bairro.";
+        String systemPrompt = aiPromptService.getPromptOrDefault("chatbot", DEFAULT_SYSTEM_PROMPT);
 
         List<Map<String, String>> messages = new ArrayList<>();
         messages.add(Map.of("role", "system", "content", systemPrompt));

@@ -204,9 +204,9 @@ interface:
 | `GET /api/auth/me` | Qualquer sessão válida |
 | `PATCH /api/auth/me/phone` | O próprio usuário |
 | `POST /api/protocols` | Cidadão; a criação dispara a triagem de prioridade |
-| `GET /api/protocols` | Cidadão vê os próprios; admin vê a base inteira |
-| `GET /api/protocols/{id}` | Dono do protocolo ou admin |
-| `PATCH /api/protocols/{id}/status` | Admin |
+| `GET /api/protocols` | Cidadão vê os próprios; servidor vê somente as UFs permitidas |
+| `GET /api/protocols/{id}` | Dono do protocolo ou servidor autorizado para a UF |
+| `PATCH /api/protocols/{id}/status` | Servidor autorizado para a UF |
 | `POST /api/protocols/{id}/ai-correction` | Admin; simulação de correção por IA |
 | `POST /api/protocols/geocode/backfill` | Admin; preenche coordenada faltante |
 | `GET /api/protocols/events` | Admin; stream SSE de novas solicitações |
@@ -214,8 +214,14 @@ interface:
 | `GET /api/protocols/audit/verify` | Admin; revalida a cadeia de hashes |
 | `GET /api/ai-priority/{protocolId}` | Qualquer sessão válida |
 | `POST /api/ai-priority/regenerate/{protocolId}` | Admin |
-| `GET /api/ai-priority/logs` | Admin (tela `/admin/ai-logs`) |
+| `GET /api/ai-priority/logs` | Admin (aba Logs de IA em `/admin/ia`) |
 | `GET /api/ai-priority/jobs/failed` | Admin |
+| `GET /api/admin/ai-prompts` | Admin; lista os prompts ativos dos agentes de IA |
+| `PUT /api/admin/ai-prompts/{agentKey}` | Admin; atualiza e versiona o prompt de um agente |
+| `GET /api/admin/citizens` | Admin; cidadãos com contagem de protocolos e disponibilidade de WhatsApp |
+| `GET /api/admin/citizens/{id}` | Admin; cadastro do cidadão e histórico completo de protocolos |
+| `GET /api/admin/server-permissions` | Admin; lista servidores e suas UFs autorizadas |
+| `PUT /api/admin/server-permissions/{userId}` | Admin; substitui as UFs autorizadas do servidor |
 
 O limite de login conta falhas em janela deslizante, por IP e por CPF em
 separado, com os padrões 30 falhas por IP, 10 por CPF e janela de 15 minutos. É
@@ -236,9 +242,12 @@ minutos, desligável por `APP_SCHEDULING_ENABLED=false`.
 | `/perfil`, `/protocolo/:id` | Autenticado |
 | `/admin` | Dashboard executivo (admin) |
 | `/admin/solicitacoes` | Fila de solicitações (admin) |
+| `/admin/cidadaos`, `/admin/cidadaos/:id` | Cidadãos cadastrados e histórico individual (admin) |
+| `/admin/permissoes` | Permissões territoriais dos servidores por UF (admin) |
 | `/admin/mapa` | Mapa estratégico (admin) |
 | `/admin/relatorios` | Relatórios (admin) |
-| `/admin/ai-logs` | Logs da triagem por IA (admin) |
+| `/admin/ia` | Prompts dos agentes e logs da triagem por IA (admin) |
+| `/admin/ai-logs` | Redirecionamento legado para `/admin/ia` |
 
 Rota de admin acessada por cidadão redireciona para `/`. A verificação vale como
 navegação; a autorização de verdade é a do backend.
@@ -358,7 +367,7 @@ e a validação antes de virar o tráfego, está em `backend-java/DEPLOY-FLY.md`
 ## Banco e migrations
 
 O schema é versionado em dois lugares equivalentes: as migrations Flyway da API,
-em `backend-java/src/main/resources/db/migration/` (V1 a V9), e os SQLs
+em `backend-java/src/main/resources/db/migration/` (V1 a V14), e os SQLs
 correspondentes em `supabase/migrations/`, para aplicar pelo painel do Supabase.
 
 Localmente, o Flyway roda na inicialização da API
@@ -368,7 +377,8 @@ schema, nunca o altera). O perfil `vercel` usa `SPRING_FLYWAY_ENABLED=false` e
 uma migration nova deve ser aplicada primeiro pelos SQLs em
 `supabase/migrations/`; só depois a nova imagem deve ser publicada.
 
-Além do schema base, as migrations cobrem prioridade por IA e seus logs, a cadeia
+Além do schema base, as migrations cobrem prioridade por IA e seus logs, os prompts
+configuráveis dos agentes, a cadeia
 de auditoria dos protocolos, coordenadas, imagens, imagens corrigidas por IA,
 unicidade de identidade dos usuários e o fechamento de permissões/RLS do schema
 `public`.
@@ -389,8 +399,10 @@ public/                 arquivos públicos
 entrega-fase-4/         documentos da entrega acadêmica da Fase 4
 ```
 
-Em `supabase/functions/`, `classify-priority` (com `openrouter-client.ts`) e
-`generate-corrected-image` são as funções em uso, chamadas pela API Java.
+Em `supabase/functions/`, `chat-assistant`, `classify-priority` (com
+`openrouter-client.ts`) e `generate-corrected-image` são as funções em uso,
+chamadas pela API Java. As três consultam `ai_prompts` e mantêm seus textos
+embutidos apenas como fallback caso a configuração não possa ser lida.
 `app-auth` e `app-protocols` são legado da fase em que o navegador falava com o
 Supabase direto: nada no código atual as invoca.
 

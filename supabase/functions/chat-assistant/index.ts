@@ -1,6 +1,10 @@
+import { createClient } from "supabase";
+
 const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") ?? "";
 const MODEL = "google/gemini-3.7-flash";
 const OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -158,6 +162,23 @@ REGRAS DE ESCOPO:
    "Desculpe! Eu sou o assistente do Cidadão Informa e posso ajudar você apenas com dúvidas sobre os serviços da sua cidade (como buracos na rua, iluminação, poda de árvores, bueiros e acompanhamento de protocolos). Como posso ajudar você hoje?"
 4. Responda em Português do Brasil (pt-BR) com frases curtas e formatação amigável em tópicos.`;
 
+async function getManagedPrompt(agentKey: string, fallback: string): Promise<string> {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return fallback;
+  try {
+    const client = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const { data, error } = await client
+      .from("ai_prompts")
+      .select("prompt_text")
+      .eq("agent_key", agentKey)
+      .maybeSingle();
+    if (error) throw error;
+    return data?.prompt_text?.trim() || fallback;
+  } catch (error) {
+    console.warn(`Unable to load managed prompt for ${agentKey}`, error);
+    return fallback;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -176,6 +197,7 @@ Deno.serve(async (req) => {
     }
 
     const { contextText, topics } = retrieveKnowledge(userMessage);
+    const managedSystemPrompt = await getManagedPrompt("chatbot", SYSTEM_PROMPT);
 
     // Se a chave não estiver configurada no Edge Function, retorna resposta local RAG com alto padrão
     if (!OPENROUTER_API_KEY) {
@@ -192,7 +214,7 @@ Deno.serve(async (req) => {
     const messages = [
       {
         role: "system",
-        content: `${SYSTEM_PROMPT}\n\n--- INFORMAÇÕES DA PLATAFORMA (RAG) ---\n${contextText}\n\nContexto da sessão: Rota atual: ${payload.context?.currentRoute || "/"}`,
+        content: `${managedSystemPrompt}\n\n--- INFORMAÇÕES DA PLATAFORMA (RAG) ---\n${contextText}\n\nContexto da sessão: Rota atual: ${payload.context?.currentRoute || "/"}`,
       },
     ];
 

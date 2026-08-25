@@ -4,6 +4,7 @@ import br.com.fiap.hackgov.application.dto.protocol.ProtocolInputDto;
 import br.com.fiap.hackgov.application.dto.protocol.ProtocolOutputDto;
 import br.com.fiap.hackgov.domain.entity.Protocol;
 import br.com.fiap.hackgov.domain.repository.ProtocolRepository;
+import br.com.fiap.hackgov.application.service.ServerStatePermissionService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,9 +16,12 @@ public class CreateProtocolUseCase {
     private static final int MAX_IMAGE_DATA_URL_LENGTH = 2_800_000;
 
     private final ProtocolRepository repository;
+    private final ServerStatePermissionService permissionService;
 
-    public CreateProtocolUseCase(ProtocolRepository repository) {
+    public CreateProtocolUseCase(ProtocolRepository repository,
+                                 ServerStatePermissionService permissionService) {
         this.repository = repository;
+        this.permissionService = permissionService;
     }
 
     public ProtocolOutputDto execute(ProtocolInputDto input, String userId, String requester) {
@@ -34,6 +38,7 @@ public class CreateProtocolUseCase {
         protocol.setCategory(input.category().trim());
         protocol.setDescription(input.description().trim());
         protocol.setAddress(input.address().trim());
+        protocol.setStateCode(permissionService.resolveState(input.stateCode(), input.address()));
         protocol.setUserId(userId);
         protocol.setRequester(requester);
         protocol.setStatus("Aberto");

@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, User, LogOut, BarChart3, List, X, Database, ChevronLeft } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, User, LogOut, BarChart3, List, X, Sparkles, ChevronLeft, Users, ShieldCheck } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { CidadaoBrand } from './CidadaoBrand';
 import { AccessibilityIcon as A11yIcon } from './AccessibilityIcon';
@@ -24,9 +24,11 @@ export function Sidebar() {
   const adminLinks = [
     { to: '/admin', icon: BarChart3, label: 'Dashboard Executivo' },
     { to: '/admin/solicitacoes', icon: List, label: 'Fila de Solicitações' },
+    { to: '/admin/cidadaos', icon: Users, label: 'Cidadãos' },
+    { to: '/admin/permissoes', icon: ShieldCheck, label: 'Permissões' },
     { to: '/admin/mapa', icon: MapIcon, label: 'Mapa Estratégico' },
     { to: '/admin/relatorios', icon: FileText, label: 'Relatórios' },
-    { to: '/admin/ai-logs', icon: Database, label: 'Logs IA' },
+    { to: '/admin/ia', icon: Sparkles, label: 'IA' },
     { to: '/acessibilidade', icon: A11yIcon, label: 'Acessibilidade' },
   ];
 
@@ -90,7 +92,7 @@ export function Sidebar() {
             <NavLink
               key={link.to}
               to={link.to}
-              end
+              end={link.to === '/' || link.to === '/admin'}
               onClick={() => { if (isMobileMenuOpen) toggleMobileMenu(); }}
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold transition-all ${isActive

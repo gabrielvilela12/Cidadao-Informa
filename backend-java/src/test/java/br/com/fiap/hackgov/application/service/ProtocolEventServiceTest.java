@@ -8,6 +8,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -36,7 +37,7 @@ class ProtocolEventServiceTest {
         ProtocolEventService service = new ProtocolEventService(repository, ignored -> emitter);
         ProtocolEventProjection protocol = protocol("protocol-123");
 
-        service.subscribe();
+        service.subscribe(Set.of("SP"));
         reset(emitter);
         when(repository.findAllProjectedByCreatedAtAfterOrderByCreatedAtAsc(any(Instant.class), any(Pageable.class)))
                 .thenReturn(List.of(protocol));
@@ -53,6 +54,7 @@ class ProtocolEventServiceTest {
         when(projection.getCategory()).thenReturn("Física");
         when(projection.getDescription()).thenReturn("Nova rampa de acesso");
         when(projection.getAddress()).thenReturn("Praça Central");
+        when(projection.getStateCode()).thenReturn("SP");
         when(projection.getCreatedAt()).thenReturn(Instant.now());
         when(projection.getStatus()).thenReturn("Aberto");
         when(projection.getUserId()).thenReturn("user-1");

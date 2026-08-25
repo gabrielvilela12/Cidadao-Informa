@@ -204,8 +204,8 @@ async function uploadLargeImageToStorage(protocolId: string, imageIndex: number,
   return data.publicUrl;
 }
 
-function buildCorrectionPrompt(category: string, description: string, correctionReport: string): string {
-  return `Edite esta fotografia de uma ocorrência urbana para criar uma simulação realista, nítida e em alta resolução de como o mesmo local ficaria após o problema ser completamente corrigido pela equipe pública.
+function buildCorrectionPrompt(category: string, description: string, correctionReport: string, promptTemplate?: string): string {
+  const template = promptTemplate || `Edite esta fotografia de uma ocorrência urbana para criar uma simulação realista, nítida e em alta resolução de como o mesmo local ficaria após o problema ser completamente corrigido pela equipe pública.
 
 Problema relatado: ${description}
 Categoria: ${category}
@@ -223,6 +223,26 @@ REGRAS OBRIGATÓRIAS:
 - Não adicione pessoas, equipes, máquinas, placas, logotipos, textos, legendas ou marcas d'água.
 - Não esconda o local nem produza uma cena diferente.
 - Retorne apenas uma imagem corrigida.`;
+
+  return template
+    .replaceAll("{{category}}", category)
+    .replaceAll("{{description}}", description)
+    .replaceAll("{{correction_report}}", correctionReport);
+}
+
+async function getManagedPrompt(agentKey: string): Promise<string | undefined> {
+  try {
+    const { data, error } = await getStorageClient()
+      .from("ai_prompts")
+      .select("prompt_text")
+      .eq("agent_key", agentKey)
+      .maybeSingle();
+    if (error) throw error;
+    return data?.prompt_text?.trim() || undefined;
+  } catch (error) {
+    console.warn(`Unable to load managed prompt for ${agentKey}`, error);
+    return undefined;
+  }
 }
 
 async function createCorrectionReport(category: string, description: string, referenceImage: string): Promise<string> {
@@ -379,7 +399,12 @@ Deno.serve(async (request) => {
     }
 
     const correctionReport = await createCorrectionReport(payload.category, payload.description, images[0]);
-    const prompt = buildCorrectionPrompt(payload.category, payload.description, correctionReport);
+    const prompt = buildCorrectionPrompt(
+      payload.category,
+      payload.description,
+      correctionReport,
+      await getManagedPrompt("image"),
+    );
     const correctedImages = await Promise.all(
       images.map((image, index) => correctOneImage(payload.protocol_id, index, image, prompt)),
     );

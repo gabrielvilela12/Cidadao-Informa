@@ -6,6 +6,7 @@ import br.com.fiap.hackgov.infrastructure.persistence.repository.JpaUserReposito
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.List;
 
 @Repository
 public class UserRepositoryImpl implements UserRepository {
@@ -29,6 +30,11 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public Optional<User> getById(String id) {
         return repository.findById(id);
+    }
+
+    @Override
+    public List<User> getByRole(String role) {
+        return repository.findAllByRoleIgnoreCaseOrderByCreatedAtDesc(role);
     }
 
     @Override

@@ -81,6 +81,7 @@ class DailyOperationalReportServiceTest {
             public String getId() { return id; }
             public String getCategory() { return category; }
             public String getAddress() { return address; }
+            public String getStateCode() { return "SP"; }
             public Instant getCreatedAt() { return createdAt; }
             public String getStatus() { return status; }
             public BigDecimal getResolutionCost() { return cost; }

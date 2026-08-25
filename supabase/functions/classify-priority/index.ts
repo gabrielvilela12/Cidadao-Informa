@@ -38,6 +38,21 @@ function firstRow<T>(rows: T[] | null): T | null {
   return rows && rows.length > 0 ? rows[0] : null;
 }
 
+async function getManagedPrompt(agentKey: string): Promise<string | undefined> {
+  try {
+    const { data, error } = await supabase
+      .from("ai_prompts")
+      .select("prompt_text")
+      .eq("agent_key", agentKey)
+      .maybeSingle();
+    if (error) throw error;
+    return data?.prompt_text?.trim() || undefined;
+  } catch (error) {
+    console.warn(`Unable to load managed prompt for ${agentKey}`, error);
+    return undefined;
+  }
+}
+
 function stableStringify(value: unknown): string {
   if (value === null || typeof value !== "object") {
     return JSON.stringify(value);
@@ -199,7 +214,10 @@ Deno.serve(async (req) => {
       .eq("id", protocol_id)
       .limit(1);
 
-    const result = await classifyPriority({ description, category });
+    const result = await classifyPriority(
+      { description, category },
+      await getManagedPrompt("priority"),
+    );
     const completedAt = new Date().toISOString();
 
     await supabase

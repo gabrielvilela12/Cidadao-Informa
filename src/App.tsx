@@ -13,6 +13,9 @@ import { AdminRequestsQueue } from './pages/AdminRequestsQueue';
 import { AdminReports } from './pages/AdminReports';
 import { AdminReportDetails } from './pages/AdminReportDetails';
 import { AiLogsPage } from './pages/AiLogsPage';
+import { AdminCitizens } from './pages/AdminCitizens';
+import { AdminCitizenDetails } from './pages/AdminCitizenDetails';
+import { AdminPermissions } from './pages/AdminPermissions';
 import { ProtocolDetails } from './pages/ProtocolDetails';
 import { Login } from './pages/Login';
 import { LandingPage } from './pages/LandingPage';
@@ -126,10 +129,14 @@ function AppContent() {
 
           <Route path="/admin" element={role === 'admin' ? <AdminDashboard /> : <Navigate to="/" replace />} />
           <Route path="/admin/solicitacoes" element={role === 'admin' ? <AdminRequestsQueue /> : <Navigate to="/" replace />} />
+          <Route path="/admin/cidadaos" element={role === 'admin' ? <AdminCitizens /> : <Navigate to="/" replace />} />
+          <Route path="/admin/cidadaos/:id" element={role === 'admin' ? <AdminCitizenDetails /> : <Navigate to="/" replace />} />
+          <Route path="/admin/permissoes" element={role === 'admin' ? <AdminPermissions /> : <Navigate to="/" replace />} />
           <Route path="/admin/mapa" element={role === 'admin' ? <AdminMap /> : <Navigate to="/" replace />} />
           <Route path="/admin/relatorios" element={role === 'admin' ? <AdminReports /> : <Navigate to="/" replace />} />
           <Route path="/admin/relatorios/:id" element={role === 'admin' ? <AdminReportDetails /> : <Navigate to="/" replace />} />
-          <Route path="/admin/ai-logs" element={role === 'admin' ? <AiLogsPage /> : <Navigate to="/" replace />} />
+          <Route path="/admin/ia" element={role === 'admin' ? <AiLogsPage /> : <Navigate to="/" replace />} />
+          <Route path="/admin/ai-logs" element={role === 'admin' ? <Navigate to="/admin/ia" replace /> : <Navigate to="/" replace />} />
 
           {/* Shared Routes */}
           <Route path="/perfil" element={<Profile />} />

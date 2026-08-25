@@ -112,11 +112,40 @@ public class DailyOperationalReportService {
     }
 
     @Transactional(readOnly = true)
+    public List<DailyReportSummaryOutputDto> list(Set<String> allowedStates) {
+        if (allowedStates.isEmpty()) return List.of();
+        return reportRepository.findAllByOrderByReportDateDesc().stream()
+                .map(report -> DailyReportDetailOutputDto.scoped(
+                        report,
+                        detailRepository.findByReportIdAndStateCodeInOrderByProtocolCreatedAtDesc(
+                                report.getId(), allowedStates)))
+                .filter(detail -> detail.protocolsInvolvedCount() > 0)
+                .map(detail -> new DailyReportSummaryOutputDto(
+                        detail.id(), detail.reportDate(), detail.generatedAt(), detail.newProtocolsCount(),
+                        detail.statusChangesCount(), detail.protocolsInvolvedCount(), detail.totalSpent(),
+                        detail.regionsCount()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public DailyReportDetailOutputDto detail(UUID id) {
         DailyOperationalReport report = reportRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Relatório diário não encontrado."));
         return DailyReportDetailOutputDto.from(report,
                 detailRepository.findByReportIdOrderByProtocolCreatedAtDesc(id));
+    }
+
+    @Transactional(readOnly = true)
+    public DailyReportDetailOutputDto detail(UUID id, Set<String> allowedStates) {
+        DailyOperationalReport report = reportRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Relatório diário não encontrado."));
+        List<DailyOperationalReportProtocol> details = allowedStates.isEmpty()
+                ? List.of()
+                : detailRepository.findByReportIdAndStateCodeInOrderByProtocolCreatedAtDesc(id, allowedStates);
+        if (details.isEmpty()) {
+            throw new IllegalArgumentException("Relatório sem protocolos nas UFs permitidas.");
+        }
+        return DailyReportDetailOutputDto.scoped(report, details);
     }
 
     private DailyOperationalReportProtocol detail(UUID reportId,
@@ -130,6 +159,7 @@ public class DailyOperationalReportService {
         item.setProtocolId(protocol.getId());
         item.setCategory(protocol.getCategory());
         item.setAddress(protocol.getAddress());
+        item.setStateCode(protocol.getStateCode());
         item.setRegion(region(protocol.getAddress()));
         item.setCurrentStatus(protocol.getStatus());
         item.setProtocolCreatedAt(protocol.getCreatedAt());

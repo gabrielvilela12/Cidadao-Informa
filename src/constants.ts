@@ -14,6 +14,8 @@ export interface Protocol {
   id: string;
   service: string;
   address: string;
+  /** UF normalizada do local do protocolo. */
+  state_code?: string | null;
   date: string;
   status: Status;
   /** Custo público em reais registrado ao concluir a correção. */

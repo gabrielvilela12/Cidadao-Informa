@@ -203,7 +203,7 @@ export function AiChatbot() {
                 '/admin/solicitacoes',
                 '/admin/mapa',
                 '/admin/relatorios',
-                '/admin/ai-logs',
+                '/admin/ia',
                 '/perfil',
                 '/privacidade',
                 '/termos-de-uso',
