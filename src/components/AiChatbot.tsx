@@ -165,7 +165,7 @@ export function AiChatbot() {
                       navigate(linkHref);
                       if (window.innerWidth < 640) setIsOpen(false);
                     }}
-                    className="inline-flex items-center gap-1 font-semibold text-[#1351b4] hover:underline underline-offset-2 dark:text-[#60a5fa] cursor-pointer"
+                    className="inline-flex items-center gap-1 font-semibold text-[#1351b4] hover:underline underline-offset-2 cursor-pointer"
                   >
                     <span>{linkText}</span>
                     <ExternalLink size={12} className="shrink-0 inline" />
@@ -176,7 +176,7 @@ export function AiChatbot() {
                     href={linkHref}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 font-semibold text-[#1351b4] hover:underline underline-offset-2 dark:text-[#60a5fa]"
+                    className="inline-flex items-center gap-1 font-semibold text-[#1351b4] hover:underline underline-offset-2"
                   >
                     <span>{linkText}</span>
                     <ExternalLink size={12} className="shrink-0 inline" />
@@ -185,7 +185,7 @@ export function AiChatbot() {
               );
             } else if (match[4]) {
               parts.push(
-                <strong key={`bold-${partKey++}`} className="font-bold text-slate-900 dark:text-slate-100">
+                <strong key={`bold-${partKey++}`} className="font-bold text-slate-900">
                   {match[4]}
                 </strong>
               );
@@ -219,7 +219,7 @@ export function AiChatbot() {
                       navigate(route);
                       if (window.innerWidth < 640) setIsOpen(false);
                     }}
-                    className="inline-block px-1.5 py-0.5 rounded bg-blue-50 text-[#1351b4] font-medium text-xs hover:bg-blue-100 dark:bg-blue-950/60 dark:text-blue-300 dark:hover:bg-blue-900 cursor-pointer transition-colors"
+                    className="inline-block px-1.5 py-0.5 rounded bg-blue-50 text-[#1351b4] font-medium text-xs hover:bg-blue-100 cursor-pointer transition-colors"
                   >
                     {route}
                   </button>
@@ -235,13 +235,13 @@ export function AiChatbot() {
           if (isBullet) {
             return (
               <div key={lineIndex} className="flex items-start gap-2 pl-2">
-                <span className="text-[#1351b4] dark:text-[#60a5fa] mt-1 text-xs">•</span>
-                <span className="flex-1">{parts}</span>
+                <span className="text-[#1351b4] mt-1 text-xs">•</span>
+                <span className="flex-1 text-slate-800">{parts}</span>
               </div>
             );
           }
 
-          return <div key={lineIndex}>{parts}</div>;
+          return <div key={lineIndex} className="text-slate-800">{parts}</div>;
         })}
       </div>
     );
@@ -274,19 +274,19 @@ export function AiChatbot() {
         </div>
       )}
 
-      {/* Janela de Diálogo do Chatbot */}
+      {/* Janela de Diálogo do Chatbot - Padrão do Sistema */}
       {isOpen && (
         <div
           role="dialog"
           aria-label="Janela do Assistente Virtual Cidadão Informa"
-          className={`fixed z-[999] flex flex-col shadow-2xl transition-all duration-300 border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100 font-sans print:hidden ${
+          className={`fixed z-[999] flex flex-col shadow-2xl transition-all duration-300 border border-slate-200 bg-white text-slate-800 font-sans print:hidden ${
             isExpanded
               ? 'bottom-4 right-4 left-4 top-4 md:left-auto md:top-auto md:w-[600px] md:h-[750px] md:max-h-[90vh] rounded-2xl'
               : 'bottom-4 right-4 left-4 sm:left-auto sm:w-[420px] sm:h-[620px] max-h-[85vh] rounded-2xl'
           }`}
         >
           {/* Header do Chat - Alto Contraste e Legibilidade Perfeita */}
-          <div className="flex items-center justify-between px-4 py-3.5 bg-[#0c326f] text-white rounded-t-2xl shadow-md border-b border-blue-900/60 select-none">
+          <div className="flex items-center justify-between px-4 py-3.5 bg-[#0c326f] text-white rounded-t-2xl shadow-md border-b border-blue-900 select-none">
             <div className="flex items-center gap-3">
               <div className="relative flex items-center justify-center size-10 rounded-xl bg-white/15 backdrop-blur-md border border-white/25 shadow-inner">
                 <Bot className="size-6 text-white" />
@@ -301,7 +301,7 @@ export function AiChatbot() {
                     Online
                   </span>
                 </div>
-                <p className="text-xs text-blue-100/90 font-normal mt-0.5">
+                <p className="text-xs text-blue-100 font-medium mt-1">
                   Tire dúvidas sobre os serviços da sua cidade
                 </p>
               </div>
@@ -339,7 +339,7 @@ export function AiChatbot() {
           </div>
 
           {/* Área de Mensagens com Scroll Customizado Sleek */}
-          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 bg-[#F7F9FC] dark:bg-[#080d12] chat-scrollbar">
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 bg-[#F7F9FC] chat-scrollbar">
             {messages.map((message) => {
               const isUser = message.role === 'user';
               return (
@@ -351,11 +351,11 @@ export function AiChatbot() {
                     className={`max-w-[88%] sm:max-w-[82%] rounded-2xl px-4 py-3 shadow-sm ${
                       isUser
                         ? 'bg-[#1351b4] text-white rounded-br-none'
-                        : 'bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200/80 dark:border-slate-700/80 rounded-bl-none'
+                        : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'
                     }`}
                   >
                     {!isUser && (
-                      <div className="flex items-center gap-1.5 mb-1.5 pb-1 border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-semibold text-[#1351b4] dark:text-blue-400">
+                      <div className="flex items-center gap-1.5 mb-1.5 pb-1 border-b border-slate-100 text-[11px] font-semibold text-[#1351b4]">
                         <Sparkles size={13} className="text-amber-500" />
                         <span>Cidadão Informa IA</span>
                       </div>
@@ -365,11 +365,11 @@ export function AiChatbot() {
 
                     {/* Tópicos RAG recuperados */}
                     {message.topics && message.topics.length > 0 && !isUser && (
-                      <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-700/60 flex flex-wrap gap-1">
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap gap-1">
                         {message.topics.map((topic, i) => (
                           <span
                             key={i}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-[#1351b4] dark:bg-blue-950 dark:text-blue-300 border border-blue-100 dark:border-blue-900"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-[#1351b4] border border-blue-100"
                           >
                             <CheckCircle2 size={10} className="text-emerald-500" />
                             {topic}
@@ -379,7 +379,7 @@ export function AiChatbot() {
                     )}
                   </div>
 
-                  <span className="text-[10px] text-slate-600 dark:text-slate-400 px-2 mt-1">
+                  <span className="text-[10px] text-slate-600 px-2 mt-1 font-medium">
                     {message.timestamp}
                   </span>
                 </div>
@@ -389,9 +389,9 @@ export function AiChatbot() {
             {/* Indicador de Digitação / Loading */}
             {isLoading && (
               <div className="flex items-start gap-2">
-                <div className="bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm flex items-center gap-2">
+                <div className="bg-white border border-slate-200 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm flex items-center gap-2">
                   <Bot size={16} className="text-[#1351b4] animate-bounce" />
-                  <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                  <span className="text-xs text-slate-600 font-medium">
                     Assistente pensando...
                   </span>
                   <div className="flex gap-1 ml-1">
@@ -408,13 +408,13 @@ export function AiChatbot() {
 
           {/* Sugestões Rápidas (Chips) */}
           {messages.length <= 2 && !isLoading && (
-            <div className="px-4 py-2 bg-white dark:bg-[#0f172a] border-t border-slate-100 dark:border-slate-800 flex gap-1.5 overflow-x-auto chat-scrollbar">
+            <div className="px-4 py-2 bg-white border-t border-slate-100 flex gap-1.5 overflow-x-auto chat-scrollbar">
               {QUICK_PROMPTS.map((prompt, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => handleSendMessage(prompt)}
-                  className="shrink-0 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 dark:bg-[#1e293b] dark:hover:bg-blue-950/70 text-slate-700 dark:text-slate-200 text-xs font-medium border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-800 transition-all cursor-pointer"
+                  className="shrink-0 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-700 text-xs font-medium border border-slate-200 hover:border-blue-300 transition-all cursor-pointer"
                 >
                   {prompt}
                 </button>
@@ -428,9 +428,9 @@ export function AiChatbot() {
               e.preventDefault();
               handleSendMessage();
             }}
-            className="p-3 bg-white dark:bg-[#0f172a] border-t border-slate-200 dark:border-slate-800 rounded-b-2xl"
+            className="p-3 bg-white border-t border-slate-200 rounded-b-2xl"
           >
-            <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#1e293b] rounded-xl px-3 py-1.5 border border-slate-200 dark:border-slate-700 focus-within:border-[#1351b4] focus-within:ring-2 focus-within:ring-blue-100 dark:focus-within:ring-blue-950 transition-all">
+            <div className="flex items-center gap-2 bg-[#F1F5F9] rounded-xl px-3 py-1.5 border border-slate-200 focus-within:border-[#1351b4] focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 transition-all">
               <input
                 ref={inputRef}
                 type="text"
@@ -438,7 +438,7 @@ export function AiChatbot() {
                 onChange={(e) => setInputMessage(e.target.value)}
                 placeholder="Pergunte sobre serviços, pedidos, mapa, transparência..."
                 disabled={isLoading}
-                className="flex-1 bg-transparent text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-600 dark:placeholder:text-slate-400 focus:outline-none py-1.5"
+                className="flex-1 bg-transparent text-sm text-slate-900 placeholder:text-slate-600 focus:outline-none py-1.5"
               />
               <button
                 type="submit"
@@ -447,19 +447,19 @@ export function AiChatbot() {
                 className={`p-2 rounded-lg transition-all ${
                   inputMessage.trim() && !isLoading
                     ? 'bg-[#1351b4] text-white hover:bg-blue-700 cursor-pointer shadow-md'
-                    : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 cursor-not-allowed'
+                    : 'bg-slate-200 text-slate-600 cursor-not-allowed'
                 }`}
               >
                 <Send size={16} />
               </button>
             </div>
 
-            <div className="flex items-center justify-between mt-2 px-1 text-[10px] text-slate-600 dark:text-slate-400">
-              <span className="flex items-center gap-1">
+            <div className="flex items-center justify-between mt-2 px-1 text-[10px] text-slate-600">
+              <span className="flex items-center gap-1 font-medium">
                 <Info size={11} className="text-blue-500" />
                 Responde exclusivamente sobre o Cidadão Informa
               </span>
-              <span className="font-semibold text-slate-600 dark:text-slate-400">
+              <span className="font-semibold text-slate-600">
                 Pressione Enter ↵
               </span>
             </div>

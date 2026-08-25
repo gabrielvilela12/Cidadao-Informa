@@ -107,18 +107,6 @@ html {
   background-color: #94a3b8;
 }
 
-.theme-dark .chat-scrollbar {
-  scrollbar-color: #334155 transparent;
-}
-
-.theme-dark .chat-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #334155;
-}
-
-.theme-dark .chat-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: #475569;
-}
-
 /* Gentle floating animation for chatbot FAB without jumping */
 @keyframes gentle-float {
   0%, 100% {
