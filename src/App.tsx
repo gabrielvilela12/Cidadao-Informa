@@ -143,7 +143,7 @@ function AppContent() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-      <AiChatbot />
+      {!isMapRoute && <AiChatbot />}
     </div>
   );
 }

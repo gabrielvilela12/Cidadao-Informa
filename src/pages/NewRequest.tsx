@@ -674,7 +674,6 @@ export function NewRequest() {
               />
             )}
             {currentStep === 3 && <ReviewGuide />}
-            <ProgressCard currentStep={currentStep} />
           </aside>
         </div>
 
@@ -804,30 +803,6 @@ function ReviewGuide() {
       <span className="flex size-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"><CheckCircle size={27} /></span>
       <h2 className="mt-5 text-xl font-bold text-[#0b1b33]">Tudo pronto para conferir</h2>
       <p className="mt-2 leading-6 text-slate-600">Ao enviar, sua solicitação receberá um protocolo para acompanhamento.</p>
-    </section>
-  );
-}
-
-function ProgressCard({ currentStep }: { currentStep: 1 | 2 | 3 }) {
-  const rows = [{ number: 1, label: 'Tipo selecionado' }, { number: 2, label: 'Localização' }, { number: 3, label: 'Revisão' }];
-  return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-[0_10px_30px_rgba(15,42,73,0.04)] sm:p-6">
-      <h2 className="text-xl font-bold text-[#0b1b33]">Seu progresso</h2>
-      <ol className="mt-5">
-        {rows.map((row, index) => {
-          const complete = currentStep > row.number;
-          const active = currentStep === row.number;
-          return (
-            <li key={row.number} className="relative flex min-h-13 items-center gap-3 pb-5 last:min-h-0 last:pb-0">
-              {index < rows.length - 1 && <span className={`absolute left-[14px] top-8 h-[calc(100%-22px)] border-l border-dashed ${complete ? 'border-[#0758bd]' : 'border-slate-300'}`} />}
-              <span className={`relative z-10 flex size-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${active || complete ? 'border-[#0758bd] bg-[#0758bd] text-white dashboard-inverse-text' : 'border-slate-300 bg-white text-slate-600'}`}>{complete ? <Check size={14} /> : row.number}</span>
-              <span className={`text-sm ${active ? 'font-semibold text-[#0758bd]' : 'text-slate-600'}`}>{row.label}</span>
-              {!active && !complete && <span className="ml-auto rounded bg-slate-100 px-2 py-1 text-xs text-slate-500">Pendente</span>}
-              {complete && <span className="ml-auto rounded bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">Concluído</span>}
-            </li>
-          );
-        })}
-      </ol>
     </section>
   );
 }
