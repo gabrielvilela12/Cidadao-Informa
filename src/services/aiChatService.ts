@@ -1,8 +1,9 @@
 import { apiRequest } from './http';
 import {
   retrieveRagContext,
-  isQueryInScope,
+  CHATBOT_SYSTEM_PROMPT,
   normalizeText,
+  isQueryInScope,
 } from '../utils/ragKnowledge';
 
 export interface ChatMessage {
@@ -11,7 +12,6 @@ export interface ChatMessage {
   content: string;
   timestamp: string;
   topics?: string[];
-  isOutOfScope?: boolean;
 }
 
 export interface SendMessageOptions {
@@ -27,55 +27,86 @@ export interface ChatApiResponse {
   error?: string;
 }
 
-const OUT_OF_SCOPE_RESPONSE =
-  'Desculpe, sou o **Assistente Virtual do Cidadão Informa** e fui programado para tirar dúvidas exclusivamente sobre a nossa plataforma, serviços de zeladoria urbana (como buracos, iluminação, poda de árvores, descarte de lixo e calçadas), abertura e acompanhamento de protocolos e transparência pública.\n\nComo posso ajudar você com os serviços da sua cidade hoje?';
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const MODEL = 'google/gemini-3.7-flash';
 
 /**
- * Gera uma resposta rica e contextualizada via RAG local quando a chamada ao servidor não estiver disponível.
+ * Chamada direta ao OpenRouter com Gemini 3.7 Flash no cliente se a chave estiver presente no ambiente Vite.
  */
-export function generateLocalRagResponse(query: string, currentRoute?: string): { reply: string; topics: string[] } {
+async function callOpenRouterDirectly(
+  apiKey: string,
+  systemPrompt: string,
+  userMessage: string,
+  history: ChatMessage[]
+): Promise<string> {
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    ...history.slice(-6).map((msg) => ({
+      role: msg.role === 'assistant' ? 'assistant' : 'user',
+      content: msg.content,
+    })),
+    { role: 'user', content: userMessage },
+  ];
+
+  const response = await fetch(OPENROUTER_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://cidadaoinforma.app',
+      'X-Title': 'Cidadao Informa - Assistente Virtual',
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      temperature: 0.35,
+      max_tokens: 800,
+      messages,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`OpenRouter returned status ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content?.trim() || '';
+}
+
+/**
+ * Fallback dinâmico contextualizado quando não há conexão ativa com a API.
+ */
+function buildDynamicFallback(query: string, currentRoute?: string): { reply: string; topics: string[] } {
   if (!isQueryInScope(query)) {
     return {
-      reply: OUT_OF_SCOPE_RESPONSE,
-      topics: ['Fora de Escopo'],
-    };
-  }
-
-  const norm = normalizeText(query).replace(/[!?,.;]/g, '');
-
-  // Saudação simples
-  if (norm === 'oi' || norm === 'ola' || norm === 'bom dia' || norm === 'boa tarde' || norm === 'boa noite') {
-    return {
       reply:
-        'Olá! Bem-vindo(a) ao **Cidadão Informa**! 👋\n\nSou seu **Assistente Virtual com IA (Gemini 3.7 Flash + RAG)**.\n\nPosso te ajudar a:\n- 📋 **Abrir uma Nova Solicitação** de zeladoria (buraco, luz, poda, lixo, etc.);\n- 🔍 **Acompanhar o status** de um protocolo existente;\n- 🗺️ **Visualizar o mapa interativo** de ocorrências da cidade;\n- 📊 **Consultar o Portal de Transparência** e a auditoria criptográfica;\n- ♿ **Conhecer os recursos de acessibilidade** e atalhos de teclado.\n\nQual dúvida você gostaria de tirar agora?',
-      topics: ['Boas-vindas', 'Visão Geral'],
+        'Olá! Sou o **Assistente Virtual do Cidadão Informa**.\n\nFui programado exclusivamente para ajudar você com os serviços e demandas da sua cidade (como buracos no asfalto, iluminação pública, poda de árvores, descarte de lixo, bueiros e acompanhamento de protocolos).\n\nComo posso ajudar você com algum problema na sua rua ou bairro hoje?',
+      topics: ['Ajuda ao Morador'],
     };
   }
 
-  const rag = retrieveRagContext(query, 3);
-
-  // Resposta baseada nos chunks do RAG
+  const rag = retrieveRagContext(query, 2);
   const primaryChunk = rag.retrievedChunks[0];
-  let response = `Com base nas informações do **Cidadão Informa**:\n\n${primaryChunk.content}\n\n`;
+  const secondaryChunk = rag.retrievedChunks[1];
 
-  if (rag.retrievedChunks.length > 1) {
-    const secondaryChunk = rag.retrievedChunks[1];
-    response += `📌 **${secondaryChunk.title}**:\n${secondaryChunk.content}\n\n`;
+  let reply = `Olá! Posso te ajudar com isso:\n\n${primaryChunk.content}\n\n`;
+
+  if (secondaryChunk && secondaryChunk.id !== primaryChunk.id) {
+    reply += `📌 **${secondaryChunk.title}**:\n${secondaryChunk.content}\n\n`;
   }
 
   if (primaryChunk.route) {
-    response += `💡 *Acesse diretamente:* **[${primaryChunk.title}](${primaryChunk.route})**\n`;
+    reply += `👉 **[Clique aqui para acessar ${primaryChunk.title}](${primaryChunk.route})**\n`;
   }
 
   return {
-    reply: response.trim(),
+    reply: reply.trim(),
     topics: rag.suggestedTopics,
   };
 }
 
 export const aiChatService = {
   /**
-   * Envia uma mensagem para o Assistente Virtual e recebe a resposta contextualizada por RAG e Gemini.
+   * Envia uma mensagem para o Assistente Virtual e obtém a resposta da IA (Gemini 3.7 Flash + RAG).
    */
   async sendMessage(
     message: string,
@@ -87,20 +118,27 @@ export const aiChatService = {
       throw new Error('A mensagem não pode ser vazia.');
     }
 
-    // Validação preventiva de escopo
-    if (!isQueryInScope(cleanMessage)) {
-      return {
-        reply: OUT_OF_SCOPE_RESPONSE,
-        topics: ['Fora de Escopo'],
-        model: 'google/gemini-3.7-flash',
-      };
-    }
-
     const currentPath =
       options.currentRoute ||
       (typeof window !== 'undefined' && window.location ? window.location.pathname : '/');
 
-    // Tenta chamada ao endpoint do backend Java (/api/ai/chat)
+    // 1. Recupera o contexto RAG correspondente à pergunta
+    const rag = retrieveRagContext(cleanMessage, 3);
+    const fullSystemPrompt = `${CHATBOT_SYSTEM_PROMPT}
+
+--- BASE DE CONHECIMENTO DO CIDADÃO INFORMA (RAG) ---
+${rag.formattedContext}
+
+--- CONTEXTO DO MORADOR ---
+Página atual do site: ${currentPath}
+Perfil: ${options.userRole || 'morador/visitante'}
+
+INSTRUÇÃO IMPORTANTE:
+- Pense e responda de forma natural, acolhedora e inteligente.
+- Se a pergunta for sobre um chamado, serviço ou dúvida do site, forneça a orientação passo a passo com base no RAG.
+- Se a pergunta for sobre um assunto fora de escopo (culinária, futebol, piadas, programação, etc.), recuse educadamente com empatia e simpatia, e convide o cidadão a tirar dúvidas sobre os problemas da cidade.`;
+
+    // 2. Tenta chamar o Backend Java (/api/ai/chat)
     try {
       const payload = {
         message: cleanMessage,
@@ -120,23 +158,49 @@ export const aiChatService = {
         body: JSON.stringify(payload),
       });
 
-      if (response && response.reply) {
+      if (response && response.reply && response.reply.trim()) {
         return {
-          reply: response.reply,
-          topics: response.topics || [],
-          model: response.model || 'google/gemini-3.7-flash',
+          reply: response.reply.trim(),
+          topics: response.topics || rag.suggestedTopics,
+          model: response.model || MODEL,
         };
       }
-    } catch (apiError) {
-      // Fallback gracioso para o motor RAG local integrado
+    } catch (backendError) {
+      // Backend Java indisponível, tenta métodos diretos
     }
 
-    // Fallback inteligente para o motor RAG local integrado
-    const localResult = generateLocalRagResponse(cleanMessage, currentPath);
+    // 3. Tenta chamada direta ao OpenRouter / Gemini se houver chave no Vite env
+    const viteKey =
+      (typeof import.meta !== 'undefined' && import.meta.env
+        ? (import.meta.env.VITE_OPENROUTER_API_KEY as string) || (import.meta.env.VITE_GEMINI_API_KEY as string)
+        : '') || '';
+
+    if (viteKey) {
+      try {
+        const directReply = await callOpenRouterDirectly(
+          viteKey,
+          fullSystemPrompt,
+          cleanMessage,
+          history
+        );
+        if (directReply) {
+          return {
+            reply: directReply,
+            topics: rag.suggestedTopics,
+            model: MODEL,
+          };
+        }
+      } catch (openRouterError) {
+        console.warn('Erro ao consultar OpenRouter diretamente:', openRouterError);
+      }
+    }
+
+    // 4. Fallback dinâmico contextualizado
+    const fallback = buildDynamicFallback(cleanMessage, currentPath);
     return {
-      reply: localResult.reply,
-      topics: localResult.topics,
-      model: 'google/gemini-3.7-flash',
+      reply: fallback.reply,
+      topics: fallback.topics,
+      model: MODEL,
     };
   },
 };

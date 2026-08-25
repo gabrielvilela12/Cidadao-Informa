@@ -9,7 +9,6 @@ import {
   Minimize2,
   Maximize2,
   ExternalLink,
-  MessageSquare,
   CheckCircle2,
   Info,
 } from 'lucide-react';
@@ -89,7 +88,7 @@ export function AiChatbot() {
     try {
       const response = await aiChatService.sendMessage(messageText, messages, {
         currentRoute: location.pathname,
-        userRole: user ? role : 'visitor',
+        userRole: user ? role : 'morador',
       });
 
       const assistantMessage: ChatMessage = {
@@ -123,7 +122,6 @@ export function AiChatbot() {
   };
 
   const renderFormattedContent = (content: string) => {
-    // Quebra em linhas e processa Markdown básico (negrito, tópicos, links para rotas)
     const lines = content.split('\n');
 
     return (
@@ -133,16 +131,13 @@ export function AiChatbot() {
             return <div key={lineIndex} className="h-1.5" />;
           }
 
-          // Renderiza tópicos com marcador
-          const isBullet = line.trim().startsWith('- ') || line.trim().startsWith('* ');
-          const formattedLine = isBullet ? line.trim().substring(2) : line;
+          const isBullet = line.trim().startsWith('- ') || line.trim().startsWith('* ') || line.trim().startsWith('• ');
+          const formattedLine = isBullet ? line.trim().replace(/^[-*•]\s*/, '') : line;
 
-          // Parse básico de markdown: **bold**, [Link](/rota), /rota
           const parts: React.ReactNode[] = [];
           let remaining = formattedLine;
           let partKey = 0;
 
-          // Regex combinada para [Texto](/rota), **bold** e /rotas
           const tokenRegex = /(\[([^\]]+)\]\(([^)]+)\)|\*\*([^*]+)\*\*|(\/[a-z0-9\-_/]+))/;
 
           while (remaining) {
@@ -157,7 +152,6 @@ export function AiChatbot() {
             }
 
             if (match[2] && match[3]) {
-              // [Texto](/rota)
               const linkText = match[2];
               const linkHref = match[3];
               const isInternal = linkHref.startsWith('/');
@@ -190,14 +184,12 @@ export function AiChatbot() {
                 )
               );
             } else if (match[4]) {
-              // **bold**
               parts.push(
                 <strong key={`bold-${partKey++}`} className="font-bold text-slate-900 dark:text-slate-100">
                   {match[4]}
                 </strong>
               );
             } else if (match[5]) {
-              // /rota solta
               const route = match[5];
               const isKnownRoute = [
                 '/nova-solicitacao',
@@ -257,29 +249,21 @@ export function AiChatbot() {
 
   return (
     <>
-      {/* Botão Flutuante Fixo no Canto Inferior Direito */}
+      {/* Botão Flutuante Fixo no Canto Inferior Direito com Movimento Suave */}
       {!isOpen && (
-        <div className="fixed bottom-6 right-6 z-[999] flex flex-col items-end gap-2 print:hidden">
-          {/* Tooltip / Badge de status */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/90 text-white text-xs font-semibold shadow-lg backdrop-blur-md border border-slate-700/60 animate-bounce">
-            <span className="flex size-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Assistente Cidadão IA</span>
-            <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/30 text-blue-300 border border-blue-400/30">
-              Gemini 3.7 Flash
-            </span>
-          </div>
-
+        <div className="fixed bottom-6 right-6 z-[999] print:hidden">
           <button
             type="button"
             onClick={() => setIsOpen(true)}
-            aria-label="Abrir Assistente Virtual Cidadão Informa com IA"
-            className="group relative flex items-center justify-center size-14 md:size-16 rounded-full bg-gradient-to-tr from-[#0c326f] via-[#1351b4] to-[#1d70e2] text-white shadow-2xl hover:shadow-[0_0_25px_rgba(19,81,180,0.6)] hover:scale-105 active:scale-95 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400/50 cursor-pointer"
+            aria-label="Abrir Assistente Virtual Cidadão Informa"
+            title="Assistente Cidadão Informa"
+            className="group relative flex items-center justify-center size-14 md:size-16 rounded-full bg-gradient-to-tr from-[#0c326f] via-[#1351b4] to-[#1d70e2] text-white shadow-2xl hover:shadow-[0_0_25px_rgba(19,81,180,0.6)] hover:scale-105 active:scale-95 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-400/50 cursor-pointer animate-gentle-float"
           >
-            {/* Efeito Glow Pulsante */}
+            {/* Efeito Glow Suave */}
             <span className="absolute -inset-1 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 opacity-40 blur-sm group-hover:opacity-75 transition-opacity" />
 
             <div className="relative flex items-center justify-center">
-              <Bot className="size-7 md:size-8 transition-transform group-hover:rotate-12 duration-300" />
+              <Bot className="size-7 md:size-8 transition-transform group-hover:rotate-6 duration-300" />
               <Sparkles className="absolute -top-1 -right-1 size-4 text-amber-300 animate-pulse" />
             </div>
 
@@ -295,18 +279,18 @@ export function AiChatbot() {
         <div
           role="dialog"
           aria-label="Janela do Assistente Virtual Cidadão Informa"
-          className={`fixed z-[999] flex flex-col shadow-2xl transition-all duration-300 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans print:hidden ${
+          className={`fixed z-[999] flex flex-col shadow-2xl transition-all duration-300 border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100 font-sans print:hidden ${
             isExpanded
               ? 'bottom-4 right-4 left-4 top-4 md:left-auto md:top-auto md:w-[600px] md:h-[750px] md:max-h-[90vh] rounded-2xl'
               : 'bottom-4 right-4 left-4 sm:left-auto sm:w-[420px] sm:h-[620px] max-h-[85vh] rounded-2xl'
           }`}
         >
-          {/* Header do Chat */}
-          <div className="flex items-center justify-between px-4 py-3.5 bg-gradient-to-r from-[#0c326f] via-[#1351b4] to-[#168821] text-white rounded-t-2xl shadow-sm select-none">
+          {/* Header do Chat - Alto Contraste e Legibilidade Perfeita */}
+          <div className="flex items-center justify-between px-4 py-3.5 bg-[#0c326f] text-white rounded-t-2xl shadow-md border-b border-blue-900/60 select-none">
             <div className="flex items-center gap-3">
-              <div className="relative flex items-center justify-center size-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 shadow-inner">
+              <div className="relative flex items-center justify-center size-10 rounded-xl bg-white/15 backdrop-blur-md border border-white/25 shadow-inner">
                 <Bot className="size-6 text-white" />
-                <span className="absolute -bottom-0.5 -right-0.5 size-3 bg-emerald-400 border-2 border-[#1351b4] rounded-full" />
+                <span className="absolute -bottom-0.5 -right-0.5 size-3 bg-emerald-400 border-2 border-[#0c326f] rounded-full" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -314,10 +298,10 @@ export function AiChatbot() {
                     Assistente Cidadão IA
                   </h2>
                   <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-white/20 text-white uppercase tracking-wider">
-                    RAG
+                    Online
                   </span>
                 </div>
-                <p className="text-[11px] text-blue-100 font-medium mt-0.5">
+                <p className="text-xs text-blue-100/90 font-normal mt-0.5">
                   Tire dúvidas sobre os serviços da sua cidade
                 </p>
               </div>
@@ -354,8 +338,8 @@ export function AiChatbot() {
             </div>
           </div>
 
-          {/* Área de Mensagens com Scroll */}
-          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 bg-slate-50/70 dark:bg-slate-950/40">
+          {/* Área de Mensagens com Scroll Customizado Sleek */}
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 bg-[#F7F9FC] dark:bg-[#080d12] chat-scrollbar">
             {messages.map((message) => {
               const isUser = message.role === 'user';
               return (
@@ -367,7 +351,7 @@ export function AiChatbot() {
                     className={`max-w-[88%] sm:max-w-[82%] rounded-2xl px-4 py-3 shadow-sm ${
                       isUser
                         ? 'bg-[#1351b4] text-white rounded-br-none'
-                        : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200/80 dark:border-slate-700/80 rounded-bl-none'
+                        : 'bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border border-slate-200/80 dark:border-slate-700/80 rounded-bl-none'
                     }`}
                   >
                     {!isUser && (
@@ -405,10 +389,10 @@ export function AiChatbot() {
             {/* Indicador de Digitação / Loading */}
             {isLoading && (
               <div className="flex items-start gap-2">
-                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm flex items-center gap-2">
+                <div className="bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm flex items-center gap-2">
                   <Bot size={16} className="text-[#1351b4] animate-bounce" />
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    Consultando conhecimento da plataforma...
+                  <span className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                    Assistente pensando...
                   </span>
                   <div className="flex gap-1 ml-1">
                     <span className="size-1.5 rounded-full bg-blue-500 animate-pulse" />
@@ -424,13 +408,13 @@ export function AiChatbot() {
 
           {/* Sugestões Rápidas (Chips) */}
           {messages.length <= 2 && !isLoading && (
-            <div className="px-4 py-2 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex gap-1.5 overflow-x-auto no-scrollbar">
+            <div className="px-4 py-2 bg-white dark:bg-[#0f172a] border-t border-slate-100 dark:border-slate-800 flex gap-1.5 overflow-x-auto chat-scrollbar">
               {QUICK_PROMPTS.map((prompt, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => handleSendMessage(prompt)}
-                  className="shrink-0 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-blue-950/70 text-slate-700 dark:text-slate-200 text-xs font-medium border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-800 transition-all cursor-pointer"
+                  className="shrink-0 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 dark:bg-[#1e293b] dark:hover:bg-blue-950/70 text-slate-700 dark:text-slate-200 text-xs font-medium border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-800 transition-all cursor-pointer"
                 >
                   {prompt}
                 </button>
@@ -444,15 +428,15 @@ export function AiChatbot() {
               e.preventDefault();
               handleSendMessage();
             }}
-            className="p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 rounded-b-2xl"
+            className="p-3 bg-white dark:bg-[#0f172a] border-t border-slate-200 dark:border-slate-800 rounded-b-2xl"
           >
-            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-xl px-3 py-1.5 border border-slate-200 dark:border-slate-700 focus-within:border-[#1351b4] focus-within:ring-2 focus-within:ring-blue-100 dark:focus-within:ring-blue-950 transition-all">
+            <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#1e293b] rounded-xl px-3 py-1.5 border border-slate-200 dark:border-slate-700 focus-within:border-[#1351b4] focus-within:ring-2 focus-within:ring-blue-100 dark:focus-within:ring-blue-950 transition-all">
               <input
                 ref={inputRef}
                 type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                placeholder="Pergunte sobre serviços, chamados, mapa, transparência..."
+                placeholder="Pergunte sobre serviços, pedidos, mapa, transparência..."
                 disabled={isLoading}
                 className="flex-1 bg-transparent text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-600 dark:placeholder:text-slate-400 focus:outline-none py-1.5"
               />

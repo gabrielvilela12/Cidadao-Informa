@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -16,6 +17,8 @@ import java.util.Map;
 public class ChatAssistantService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ChatAssistantService.class);
+    private static final String MODEL = "google/gemini-3.7-flash";
+    private static final String OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
     private final RestClient restClient;
     private final String chatFunctionUrl;
@@ -40,7 +43,7 @@ public class ChatAssistantService {
             throw new IllegalArgumentException("A mensagem não pode ser vazia.");
         }
 
-        // Tenta chamar a Edge Function do Supabase (que possui acesso aos secrets e modelo Gemini 3.7 Flash)
+        // 1. Tenta chamar a Edge Function do Supabase (onde estão os segredos da nuvem)
         if (chatFunctionUrl != null && !chatFunctionUrl.isBlank()) {
             try {
                 ChatResponse response = restClient.post()
@@ -56,12 +59,71 @@ public class ChatAssistantService {
                     return response;
                 }
             } catch (Exception exception) {
-                LOGGER.warn("Falha ao consultar Edge Function de Chat ({}), aplicando fallback: {}", chatFunctionUrl, exception.getMessage());
+                LOGGER.warn("Falha ao consultar Edge Function de Chat ({}), tentando chamada direta: {}", chatFunctionUrl, exception.getMessage());
             }
         }
 
-        // Resposta de fallback institucional caso a Edge Function esteja indisponível
+        // 2. Tenta chamada direta ao OpenRouter com Gemini 3.7 Flash se houver chave configurada no servidor Java
+        if (openRouterApiKey != null && !openRouterApiKey.isBlank()) {
+            try {
+                String reply = callOpenRouterDirect(request);
+                if (reply != null && !reply.isBlank()) {
+                    return new ChatResponse(true, reply, MODEL, List.of("Atendimento com IA"), null);
+                }
+            } catch (Exception exception) {
+                LOGGER.warn("Falha ao consultar OpenRouter direto: {}", exception.getMessage());
+            }
+        }
+
+        // 3. Fallback dinâmico contextualizado
         return buildLocalResponse(request.message());
+    }
+
+    private String callOpenRouterDirect(ChatRequest request) {
+        String systemPrompt = "Você é o Assistente Virtual Oficial do Cidadão Informa, uma IA prestativa, acolhedora e inteligente especializada em orientar moradores sobre zeladoria urbana e serviços da cidade (como buracos no asfalto, iluminação pública, poda de árvores, descarte de lixo, calçadas, bueiros, acompanhamento de protocolos e transparência pública).\n\n"
+                + "REGRAS:\n"
+                + "1. Responda em Português do Brasil com linguagem simples, acolhedora e didática para moradores leigos.\n"
+                + "2. Quando perguntarem sobre problemas da cidade ou pedidos, explique os passos de forma clara (rotas como /nova-solicitacao, /meus-protocolos, /mapa, /transparencia).\n"
+                + "3. Quando perguntarem sobre assuntos alheios (receitas, piadas, futebol, programação, etc.), recuse educadamente com simpatia e convide o morador a tirar dúvidas sobre os problemas da sua rua ou bairro.";
+
+        List<Map<String, String>> messages = new ArrayList<>();
+        messages.add(Map.of("role", "system", "content", systemPrompt));
+
+        if (request.history() != null) {
+            for (ChatMessageDto msg : request.history()) {
+                if (msg != null && msg.content() != null && !msg.content().isBlank()) {
+                    messages.add(Map.of(
+                            "role", "assistant".equalsIgnoreCase(msg.role()) ? "assistant" : "user",
+                            "content", msg.content()
+                    ));
+                }
+            }
+        }
+
+        messages.add(Map.of("role", "user", "content", request.message()));
+
+        Map<String, Object> body = Map.of(
+                "model", MODEL,
+                "temperature", 0.35,
+                "max_tokens", 800,
+                "messages", messages
+        );
+
+        OpenRouterResponse response = restClient.post()
+                .uri(OPENROUTER_URL)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + openRouterApiKey.trim())
+                .header("HTTP-Referer", "https://cidadaoinforma.app")
+                .header("X-Title", "Cidadao Informa - Assistente Virtual")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .body(OpenRouterResponse.class);
+
+        if (response != null && response.choices() != null && !response.choices().isEmpty()) {
+            return response.choices().get(0).message().content();
+        }
+
+        return null;
     }
 
     private ChatResponse buildLocalResponse(String userMessage) {
@@ -70,7 +132,7 @@ public class ChatAssistantService {
         List<String> topics;
 
         if (lower.contains("buraco") || lower.contains("asfalto") || lower.contains("abrir") || lower.contains("solicita") || lower.contains("chamado") || lower.contains("pedir")) {
-            reply = "Para pedir um conserto para a sua rua (como buraco, poste apagado ou árvore perigosa):\n\n"
+            reply = "Para pedir um conserto para a sua rua (como buraco no asfalto, poste apagado ou árvore perigosa):\n\n"
                     + "1. Acesse **/nova-solicitacao** no menu;\n"
                     + "2. Escolha o tipo de problema e explique onde fica;\n"
                     + "3. Envie fotos do local se puder;\n"
@@ -100,7 +162,7 @@ public class ChatAssistantService {
             topics = List.of("Ajuda ao Cidadão", "Serviços da Cidade");
         }
 
-        return new ChatResponse(true, reply, "google/gemini-3.7-flash", topics, null);
+        return new ChatResponse(true, reply, MODEL, topics, null);
     }
 
     private static String resolveChatFunctionUrl(String priorityFunctionUrl, String configuredUrl) {
@@ -135,5 +197,10 @@ public class ChatAssistantService {
             List<String> topics,
             String error
     ) {
+    }
+
+    private record OpenRouterResponse(List<Choice> choices) {
+        private record Choice(Message message) {}
+        private record Message(String content) {}
     }
 }

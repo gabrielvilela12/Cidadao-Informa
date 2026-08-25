@@ -82,6 +82,57 @@ html {
   background: var(--brand-bg);
 }
 
+/* Sleek Chat Scrollbar */
+.chat-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.chat-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 9999px;
+  border: none;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
+
+.theme-dark .chat-scrollbar {
+  scrollbar-color: #334155 transparent;
+}
+
+.theme-dark .chat-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #334155;
+}
+
+.theme-dark .chat-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #475569;
+}
+
+/* Gentle floating animation for chatbot FAB without jumping */
+@keyframes gentle-float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(1.5deg);
+  }
+}
+
+.animate-gentle-float {
+  animation: gentle-float 3.5s ease-in-out infinite;
+}
+
 /* Institutional visual theme overlay for the original dark prototype classes. */
 [class~="bg-[#080d12]"],
 [class~="bg-[#101922]"],
