@@ -94,6 +94,7 @@ SUPABASE_EDGE_FUNCTION_URL=https://<project-ref>.supabase.co/functions/v1/classi
 SUPABASE_ANON_KEY=<supabase-anon-key>
 SUPABASE_CORRECTED_IMAGE_FUNCTION_URL=https://<project-ref>.supabase.co/functions/v1/generate-corrected-image
 AI_IMAGE_FUNCTION_SECRET=<segredo-compartilhado-com-a-edge-function>
+AI_IMAGE_STORAGE_BUCKET=ai-corrections
 ```
 
 `.env.example` traz ainda as variáveis operacionais, com os mesmos valores que a
@@ -114,9 +115,15 @@ opcionais `OPENROUTER_IMAGE_MODEL` (padrão `google/gemini-3.1-flash-image`) e
 `OPENROUTER_REPORT_MODEL` (padrão `google/gemini-3.7-flash`). A leitura da foto e
 a criação do plano usam o Gemini 3.7 Flash; a edição visual continua no Nano
 Banana 2 (Gemini 3.1 Flash Image), pois o Gemini 3.7 Flash gera apenas saída em
-texto. A imagem corrigida é solicitada em JPEG 4K com compressão 85 para manter
-alta qualidade sem ultrapassar o limite de transporte e persistência em Base64.
-Qualquer um dos modelos pode ser sobrescrito pela variável respectiva.
+texto. A imagem corrigida é solicitada em JPEG 2K com compressão 70 por padrão.
+Quando o resultado cabe em `AI_IMAGE_MAX_DATA_URL_LENGTH` (padrão `4500000`), a
+função retorna Base64 como antes. Quando passa desse limite, a própria Edge
+Function salva o arquivo no Supabase Storage, no bucket
+`AI_IMAGE_STORAGE_BUCKET` (padrão `ai-corrections`), e retorna a URL pública para
+o backend gravar no protocolo. O bucket é criado ou ajustado automaticamente como
+público na primeira imagem grande, usando as chaves server-side disponíveis para
+a Edge Function. Qualquer modelo, resolução ou compressão pode ser sobrescrito
+pelas variáveis respectivas.
 
 Use a conexão Session Pooler mostrada no botão `Connect` do projeto para
 funcionar também em hospedagens e redes compatíveis apenas com IPv4. Nunca
@@ -313,6 +320,12 @@ protegidas (Production e Preview): `SPRING_DATASOURCE_URL`,
 `SUPABASE_CORRECTED_IMAGE_FUNCTION_URL` e `AI_IMAGE_FUNCTION_SECRET` se a
 correção de imagem estiver em uso. Alterar uma variável não muda um deploy já
 construído; é preciso publicar de novo.
+
+Na Edge Function `generate-corrected-image`, configure também
+`OPENROUTER_API_KEY` e o mesmo `AI_IMAGE_FUNCTION_SECRET`. As opções
+`AI_IMAGE_STORAGE_BUCKET`, `AI_IMAGE_MAX_DATA_URL_LENGTH`,
+`OPENROUTER_IMAGE_RESOLUTION` e `OPENROUTER_IMAGE_OUTPUT_COMPRESSION` são
+opcionais e controlam quando uma imagem corrigida deve ir para o Storage.
 
 Valores públicos ou operacionais:
 

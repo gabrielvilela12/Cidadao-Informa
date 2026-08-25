@@ -25,6 +25,7 @@ public class AiImageCorrectionService {
     private static final Logger LOGGER = LoggerFactory.getLogger(AiImageCorrectionService.class);
     private static final int MAX_IMAGES = 4;
     private static final int MAX_DATA_URL_LENGTH = 4_500_000;
+    private static final int MAX_STORAGE_URL_LENGTH = 2_048;
     private static final int MAX_REPORT_LENGTH = 4_000;
     private static final int MAX_FUNCTION_RESPONSE_LENGTH =
             (MAX_DATA_URL_LENGTH * MAX_IMAGES) + MAX_REPORT_LENGTH + 20_000;
@@ -33,6 +34,7 @@ public class AiImageCorrectionService {
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final String imageFunctionUrl;
+    private final String storagePublicUrlPrefix;
     private final String supabaseAnonKey;
     private final String imageFunctionSecret;
 
@@ -49,6 +51,7 @@ public class AiImageCorrectionService {
         this.restClient = restClient;
         this.objectMapper = objectMapper;
         this.imageFunctionUrl = resolveImageFunctionUrl(priorityFunctionUrl, configuredImageFunctionUrl);
+        this.storagePublicUrlPrefix = resolveStoragePublicUrlPrefix(this.imageFunctionUrl);
         this.supabaseAnonKey = supabaseAnonKey;
         this.imageFunctionSecret = imageFunctionSecret;
     }
@@ -110,10 +113,10 @@ public class AiImageCorrectionService {
 
         for (int index = 0; index < images.size(); index++) {
             String image = images.get(index);
-            if (image == null || !isSupportedImageDataUrl(image)) {
+            if (image == null || !isSupportedImageReference(image, storagePublicUrlPrefix)) {
                 throw new IllegalStateException("A IA retornou uma imagem em formato inválido.");
             }
-            if (image.length() > MAX_DATA_URL_LENGTH) {
+            if (isSupportedImageDataUrl(image) && image.length() > MAX_DATA_URL_LENGTH) {
                 LOGGER.warn(
                         "AI correction image {} rejected for protocol payload: {} characters exceeds limit {}",
                         index + 1,
@@ -124,6 +127,9 @@ public class AiImageCorrectionService {
                         "A imagem corrigida ficou maior que o limite permitido. Tente gerar novamente."
                 );
             }
+            if (isSupportedStorageUrl(image, storagePublicUrlPrefix) && image.length() > MAX_STORAGE_URL_LENGTH) {
+                throw new IllegalStateException("A IA retornou uma URL de imagem maior que o permitido.");
+            }
         }
         return List.copyOf(images);
     }
@@ -132,6 +138,21 @@ public class AiImageCorrectionService {
         return image.regionMatches(true, 0, "data:image/jpeg;base64,", 0, "data:image/jpeg;base64,".length())
                 || image.regionMatches(true, 0, "data:image/png;base64,", 0, "data:image/png;base64,".length())
                 || image.regionMatches(true, 0, "data:image/webp;base64,", 0, "data:image/webp;base64,".length());
+    }
+
+    static boolean isSupportedImageReference(String image, String storagePublicUrlPrefix) {
+        return isSupportedImageDataUrl(image) || isSupportedStorageUrl(image, storagePublicUrlPrefix);
+    }
+
+    static boolean isSupportedStorageUrl(String image, String storagePublicUrlPrefix) {
+        return image != null
+                && storagePublicUrlPrefix != null
+                && !storagePublicUrlPrefix.isBlank()
+                && image.length() <= MAX_STORAGE_URL_LENGTH
+                && image.regionMatches(true, 0, storagePublicUrlPrefix, 0, storagePublicUrlPrefix.length())
+                && !image.contains("\r")
+                && !image.contains("\n")
+                && !image.contains(" ");
     }
 
     private CorrectionResponse requestCorrection(Protocol protocol, List<String> originals) {
@@ -232,6 +253,14 @@ public class AiImageCorrectionService {
         int lastSlash = priorityFunctionUrl.lastIndexOf('/');
         if (lastSlash < 0) return "";
         return priorityFunctionUrl.substring(0, lastSlash + 1) + "generate-corrected-image";
+    }
+
+    private static String resolveStoragePublicUrlPrefix(String imageFunctionUrl) {
+        if (imageFunctionUrl == null || imageFunctionUrl.isBlank()) return "";
+        String marker = "/functions/v1/";
+        int markerIndex = imageFunctionUrl.indexOf(marker);
+        if (markerIndex < 0) return "";
+        return imageFunctionUrl.substring(0, markerIndex) + "/storage/v1/object/public/";
     }
 
     private record CorrectionRequest(

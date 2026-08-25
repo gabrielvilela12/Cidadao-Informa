@@ -32,6 +32,24 @@ class AiImageCorrectionServiceTest {
     }
 
     @Test
+    void acceptsStorageUrlOnlyFromExpectedSupabasePublicPrefix() {
+        String prefix = "https://project.supabase.co/storage/v1/object/public/";
+
+        assertTrue(AiImageCorrectionService.isSupportedImageReference(
+                "https://project.supabase.co/storage/v1/object/public/ai-corrections/protocol/file.jpg",
+                prefix
+        ));
+        assertFalse(AiImageCorrectionService.isSupportedImageReference(
+                "https://other.supabase.co/storage/v1/object/public/ai-corrections/protocol/file.jpg",
+                prefix
+        ));
+        assertFalse(AiImageCorrectionService.isSupportedImageReference(
+                "https://project.supabase.co/storage/v1/object/sign/ai-corrections/protocol/file.jpg",
+                prefix
+        ));
+    }
+
+    @Test
     void parsesSuccessfulFunctionResponseWithExtraMetadata() throws Exception {
         Object response = parseCorrectionResponse(
                 HttpStatus.OK,
