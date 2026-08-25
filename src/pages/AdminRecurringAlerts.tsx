@@ -58,15 +58,15 @@ export function AdminRecurringAlerts() {
         <section className="overflow-hidden rounded-xl border border-red-200 bg-gradient-to-r from-red-700 to-red-600 shadow-md shadow-red-900/10">
           <div className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between md:px-5 md:py-4">
             <div className="flex items-start gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white"><AlertTriangle size={22} /></span>
+              <span className="dashboard-inverse-text flex size-10 shrink-0 items-center justify-center rounded-lg bg-white/15"><AlertTriangle size={22} /></span>
               <div>
-                <h1 className="text-lg font-black leading-6 text-white">Pontos que merecem atenção prioritária</h1>
-                <p className="mt-1 max-w-3xl text-sm leading-5 text-red-50">Cada alerta representa mais de 10 cidadãos relatando a mesma causa no mesmo endereço. Os protocolos permanecem unidos e caminham com o status sincronizado.</p>
+                <h1 className="dashboard-inverse-text text-lg font-black leading-6">Pontos que merecem atenção prioritária</h1>
+                <p className="dashboard-inverse-muted mt-1 max-w-3xl text-sm leading-5">Cada alerta representa mais de 10 cidadãos relatando a mesma causa no mesmo endereço. Os protocolos permanecem unidos e caminham com o status sincronizado.</p>
               </div>
             </div>
-            <div className="flex min-w-[168px] shrink-0 items-center justify-center gap-3 self-start rounded-lg border border-white/25 bg-white/10 px-4 py-2.5 text-white md:self-center">
-              <p className="text-2xl font-black leading-none text-white">{affectedReports}</p>
-              <p className="text-[11px] font-bold uppercase leading-4 tracking-wide text-red-50">relatos<br />envolvidos</p>
+            <div className="flex min-w-[190px] shrink-0 items-center justify-center gap-2.5 self-start rounded-lg border border-white/80 bg-white px-4 py-2.5 shadow-sm md:self-center">
+              <p className="text-2xl font-black leading-none text-[#7F1D1D]">{affectedReports}</p>
+              <p className="whitespace-nowrap text-xs font-black uppercase leading-none tracking-wide text-[#7F1D1D]">relatos envolvidos</p>
             </div>
           </div>
         </section>
