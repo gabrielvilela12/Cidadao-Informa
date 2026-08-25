@@ -23,7 +23,7 @@ import { A11yProvider } from './context/A11yContext';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { PublicProtocol } from './pages/PublicProtocol';
 import { NotFound } from './pages/NotFound';
-import { PanelLeftOpen } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { TermsOfUse } from './pages/TermsOfUse';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { AiChatbot } from './components/AiChatbot';
@@ -106,10 +106,11 @@ function AppContent() {
         <button
           type="button"
           onClick={toggleSidebarCollapsed}
-          className={`fixed left-4 ${isMapRoute ? 'top-20' : 'top-4'} z-[700] hidden size-11 items-center justify-center rounded-lg border border-[#CDD8E7] bg-white text-[#0758BD] shadow-xl transition-colors hover:bg-[#EAF2FF] md:flex`}
+          className={`group fixed left-4 ${isMapRoute ? 'top-20' : 'top-4'} z-[700] hidden size-11 items-center justify-center rounded-full border border-blue-700 bg-blue-600 text-white shadow-xl transition-all hover:bg-blue-700 hover:shadow-2xl md:flex`}
           title="Abrir sidebar"
+          aria-label="Abrir sidebar"
         >
-          <PanelLeftOpen size={20} />
+          <ChevronRight aria-hidden="true" size={22} strokeWidth={2.5} className="transition-transform group-hover:translate-x-0.5" />
         </button>
       )}
       <main className={`ml-0 flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'md:ml-0' : 'md:ml-72'}`}>

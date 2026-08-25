@@ -43,8 +43,8 @@ export function AdminReportDetails() {
     <div className="flex h-full flex-1 flex-col overflow-y-auto bg-[#F4F8FC] text-[#0A1F44]">
       <Header title={`Fechamento de ${dateLabel(report.reportDate)}`} subtitle={`Período encerrado • gerado em ${dateTimeLabel(report.generatedAt)}`} action={(
         <div className="flex gap-2">
-          <button type="button" onClick={() => void exportReport('pdf')} disabled={exporting !== null} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#CBD8E9] bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50">{exporting === 'pdf' ? <Loader2 size={17} className="animate-spin" /> : <FileText size={17} />} PDF</button>
-          <button type="button" onClick={() => void exportReport('excel')} disabled={exporting !== null} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#0758BD] px-4 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50">{exporting === 'excel' ? <Loader2 size={17} className="animate-spin" /> : <FileSpreadsheet size={17} />} Excel</button>
+          <button type="button" onClick={() => void exportReport('pdf')} disabled={exporting !== null} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-red-600 px-4 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-50">{exporting === 'pdf' ? <Loader2 size={17} className="animate-spin" /> : <FileText size={17} />} PDF</button>
+          <button type="button" onClick={() => void exportReport('excel')} disabled={exporting !== null} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50">{exporting === 'excel' ? <Loader2 size={17} className="animate-spin" /> : <FileSpreadsheet size={17} />} Excel</button>
         </div>
       )} />
       <div className="space-y-5 px-4 pb-8 sm:px-6 lg:px-8">

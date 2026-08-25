@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, Briefcase, User, LogOut, BarChart3, List, X, Database, PanelLeftClose } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, Briefcase, User, LogOut, BarChart3, List, X, Database, ChevronLeft } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { CidadaoBrand } from './CidadaoBrand';
 import { AccessibilityIcon as A11yIcon } from './AccessibilityIcon';
@@ -61,12 +61,13 @@ export function Sidebar() {
         <div className="flex h-20 items-center justify-between border-b border-[#D9E1EC] px-6">
           <CidadaoBrand compact iconClassName="size-11" />
           <button
+            type="button"
             onClick={toggleSidebarCollapsed}
-            className="hidden size-10 items-center justify-center rounded-lg border border-[#CDD8E7] bg-white text-[#0758BD] shadow-sm transition-colors hover:bg-[#EAF2FF] hover:text-[#1351B4] md:flex"
+            className="group hidden size-10 items-center justify-center rounded-full border border-blue-200 bg-blue-50 text-[#0758BD] shadow-sm transition-all hover:border-blue-600 hover:bg-blue-600 hover:text-white hover:shadow-md md:flex"
             title="Recolher sidebar"
             aria-label="Recolher sidebar"
           >
-            <PanelLeftClose size={20} />
+            <ChevronLeft aria-hidden="true" size={22} strokeWidth={2.5} className="transition-transform group-hover:-translate-x-0.5" />
           </button>
           <button
             onClick={toggleMobileMenu}

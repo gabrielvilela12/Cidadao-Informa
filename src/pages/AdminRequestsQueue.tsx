@@ -40,6 +40,21 @@ const statusLabel = (status: Protocol['status']) => {
   return 'Aberto';
 };
 
+const protocolDateKey = (protocol: Protocol) => {
+  if (protocol.created_at) {
+    const parsed = new Date(protocol.created_at);
+    if (Number.isFinite(parsed.getTime())) {
+      const year = parsed.getFullYear();
+      const month = String(parsed.getMonth() + 1).padStart(2, '0');
+      const day = String(parsed.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+  }
+
+  const fallback = protocol.date?.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return fallback ? `${fallback[3]}-${fallback[2]}-${fallback[1]}` : null;
+};
+
 export function AdminRequestsQueue() {
   const { protocols, loading } = useProtocols('admin');
   const navigate = useNavigate();
@@ -48,6 +63,8 @@ export function AdminRequestsQueue() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [slaFilter, setSlaFilter] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const pageSize = 10;
@@ -71,13 +88,17 @@ export function AdminRequestsQueue() {
       || (priorityFilter === 'processing' ? !protocol.ai_priority : protocol.ai_priority === priorityFilter);
     const slaLate = isSlaLate(protocol);
     const matchesSla = slaFilter === 'all' || (slaFilter === 'late' ? slaLate : !slaLate);
+    const openedOn = protocolDateKey(protocol);
+    const matchesDate = (!startDate || (openedOn !== null && openedOn >= startDate))
+      && (!endDate || (openedOn !== null && openedOn <= endDate));
 
     return matchesSearch
       && statusMatches(protocol.status, statusFilter)
       && matchesCategory
       && matchesPriority
-      && matchesSla;
-  }), [categoryFilter, priorityFilter, protocols, searchTerm, slaFilter, statusFilter]);
+      && matchesSla
+      && matchesDate;
+  }), [categoryFilter, endDate, priorityFilter, protocols, searchTerm, slaFilter, startDate, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProtocols.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -89,6 +110,8 @@ export function AdminRequestsQueue() {
     setCategoryFilter('all');
     setPriorityFilter('all');
     setSlaFilter('all');
+    setStartDate('');
+    setEndDate('');
     setPage(1);
   };
 
@@ -152,7 +175,7 @@ export function AdminRequestsQueue() {
                 className="h-11 w-full rounded-lg border border-[#CDD8E7] bg-white pl-10 pr-3 text-sm outline-none focus:border-[#0758BD] focus:ring-2 focus:ring-blue-100"
               />
             </label>
-            <div className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
               <FilterSelect label="Status" value={statusFilter} onChange={(value) => { setStatusFilter(value); setPage(1); }} options={[
                 // Sem opcao 'Atrasado': atraso e condicao de prazo, filtrada no seletor de SLA.
                 ['all', 'Status'], ['open', 'Aberto'], ['analysis', 'Em análise'], ['resolved', 'Concluído'],
@@ -166,6 +189,18 @@ export function AdminRequestsQueue() {
               <FilterSelect label="SLA" value={slaFilter} onChange={(value) => { setSlaFilter(value); setPage(1); }} options={[
                 ['all', 'SLA'], ['on-time', 'Em dia'], ['late', 'Vencido'],
               ]} />
+              <DateFilter
+                label="Data inicial"
+                value={startDate}
+                max={endDate || undefined}
+                onChange={(value) => { setStartDate(value); setPage(1); }}
+              />
+              <DateFilter
+                label="Data final"
+                value={endDate}
+                min={startDate || undefined}
+                onChange={(value) => { setEndDate(value); setPage(1); }}
+              />
             </div>
             <div className="flex gap-2 sm:justify-end">
               <button
@@ -322,6 +357,23 @@ function FilterSelect({ label, value, onChange, options }: { label: string; valu
       >
         {options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}
       </select>
+    </label>
+  );
+}
+
+function DateFilter({ label, value, onChange, min, max }: { label: string; value: string; onChange: (value: string) => void; min?: string; max?: string }) {
+  return (
+    <label className="flex h-11 min-w-0 w-full items-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-3 focus-within:border-[#0758BD] focus-within:ring-2 focus-within:ring-blue-100">
+      <span className="shrink-0 text-xs font-bold text-slate-500">{label === 'Data inicial' ? 'Início' : 'Fim'}</span>
+      <input
+        type="date"
+        value={value}
+        min={min}
+        max={max}
+        onChange={(event) => onChange(event.target.value)}
+        aria-label={label}
+        className="h-full min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-700 outline-none"
+      />
     </label>
   );
 }
