@@ -49,7 +49,6 @@ export function AdminReports() {
     <div className="flex h-full flex-1 flex-col overflow-y-auto bg-[#F4F8FC] text-[#0A1F44]">
       <Header title="Relatórios diários" subtitle="Fechamentos operacionais gerados todos os dias à 00h" action={(
         <div className="flex gap-2">
-          <button type="button" onClick={() => void load()} disabled={loading} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#CBD8E9] bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60"><RefreshCw size={17} className={loading ? 'animate-spin' : ''} /> Atualizar</button>
           <button type="button" onClick={() => void exportReports('pdf')} disabled={!reports.length || exporting !== null} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-red-600 px-4 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-50">{exporting === 'pdf' ? <Loader2 size={17} className="animate-spin" /> : <FileText size={17} />} PDF</button>
           <button type="button" onClick={() => void exportReports('excel')} disabled={!reports.length || exporting !== null} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50">{exporting === 'excel' ? <Loader2 size={17} className="animate-spin" /> : <FileSpreadsheet size={17} />} Excel</button>
         </div>

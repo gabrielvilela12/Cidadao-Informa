@@ -164,18 +164,38 @@ export function AdminRequestsQueue() {
         </section>
 
         <section className="rounded-lg border border-[#CDD8E7] bg-white p-3 shadow-[0_7px_20px_rgba(15,45,85,0.035)]">
-          <div className="flex flex-col gap-2 2xl:flex-row">
-            <label className="relative min-w-0 flex-1 2xl:max-w-[390px]">
-              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={17} />
-              <input
-                type="search"
-                value={searchTerm}
-                onChange={(event) => { setSearchTerm(event.target.value); setPage(1); }}
-                placeholder="Pesquisar protocolo, solicitante ou endereço..."
-                className="h-11 w-full rounded-lg border border-[#CDD8E7] bg-white pl-10 pr-3 text-sm outline-none focus:border-[#0758BD] focus:ring-2 focus:ring-blue-100"
-              />
-            </label>
-            <div className="grid flex-1 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 lg:flex-row">
+              <label className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={17} />
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => { setSearchTerm(event.target.value); setPage(1); }}
+                  placeholder="Pesquisar protocolo, solicitante ou endereço..."
+                  className="h-11 w-full rounded-lg border border-[#CDD8E7] bg-white pl-10 pr-3 text-sm outline-none focus:border-[#0758BD] focus:ring-2 focus:ring-blue-100"
+                />
+              </label>
+              <div className="flex gap-2 sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => exportProtocolsToExcel(filteredProtocols, 'fila_solicitacoes.xlsx', 'Fila de solicitações')}
+                  disabled={filteredProtocols.length === 0}
+                  title={filteredProtocols.length === 0 ? 'Nenhuma solicitação nos filtros atuais' : undefined}
+                  className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+                >
+                  <Download size={17} /> Exportar
+                </button>
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50 sm:flex-none"
+                >
+                  <FilterX size={17} /> Limpar filtros
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <FilterSelect label="Status" value={statusFilter} onChange={(value) => { setStatusFilter(value); setPage(1); }} options={[
                 // Sem opcao 'Atrasado': atraso e condicao de prazo, filtrada no seletor de SLA.
                 ['all', 'Status'], ['open', 'Aberto'], ['analysis', 'Em análise'], ['resolved', 'Concluído'],
@@ -201,24 +221,6 @@ export function AdminRequestsQueue() {
                 min={startDate || undefined}
                 onChange={(value) => { setEndDate(value); setPage(1); }}
               />
-            </div>
-            <div className="flex gap-2 sm:justify-end">
-              <button
-                type="button"
-                onClick={() => exportProtocolsToExcel(filteredProtocols, 'fila_solicitacoes.xlsx', 'Fila de solicitações')}
-                disabled={filteredProtocols.length === 0}
-                title={filteredProtocols.length === 0 ? 'Nenhuma solicitação nos filtros atuais' : undefined}
-                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
-              >
-                <Download size={17} /> Exportar
-              </button>
-              <button
-                type="button"
-                onClick={resetFilters}
-                className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50 sm:flex-none"
-              >
-                <FilterX size={17} /> Limpar filtros
-              </button>
             </div>
           </div>
         </section>
