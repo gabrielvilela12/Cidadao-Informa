@@ -1,7 +1,6 @@
 import {
   ArrowRight,
   BarChart3,
-  Briefcase,
   CheckCircle,
   Clock,
   Ear,
@@ -85,7 +84,6 @@ export function CitizenDashboard() {
   ];
 
   const quickLinks = [
-    { label: 'Serviços', icon: Briefcase, to: '/servicos' },
     { label: 'Protocolos', icon: FileText, to: '/meus-protocolos' },
     { label: 'Mapa', icon: MapIcon, to: '/mapa' },
   ];
@@ -273,7 +271,7 @@ export function CitizenDashboard() {
 
             <section className="rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-[0_6px_18px_rgba(35,65,110,0.05)] sm:p-6">
               <h2 className="text-xl font-black text-[#111827]">Acesso rápido</h2>
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {quickLinks.map((item) => {
                   const Icon = item.icon;
                   return (

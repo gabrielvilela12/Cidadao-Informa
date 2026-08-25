@@ -195,7 +195,6 @@ export function AiChatbot() {
                 '/nova-solicitacao',
                 '/meus-protocolos',
                 '/mapa',
-                '/servicos',
                 '/transparencia',
                 '/acessibilidade',
                 '/login',

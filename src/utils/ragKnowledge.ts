@@ -36,7 +36,7 @@ Pelo site, você pode relatar problemas como buracos no asfalto, lâmpadas apaga
 6. 🌊 Bueiros entupidos ou bocas de lobo com risco de alagamento.
 7. 🛑 Placas de trânsito ou sinalização danificada.
 8. 📦 Outros problemas de manutenção da cidade.`,
-    route: '/servicos',
+    route: '/nova-solicitacao',
   },
   {
     id: 'como-abrir-pedido',

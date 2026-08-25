@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, Briefcase, User, LogOut, BarChart3, List, X, Database, ChevronLeft } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, User, LogOut, BarChart3, List, X, Database, ChevronLeft } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { CidadaoBrand } from './CidadaoBrand';
 import { AccessibilityIcon as A11yIcon } from './AccessibilityIcon';
@@ -18,7 +18,6 @@ export function Sidebar() {
     { to: '/nova-solicitacao', icon: PlusCircle, label: 'Nova Solicitação' },
     { to: '/meus-protocolos', icon: FileText, label: 'Meus Protocolos' },
     { to: '/mapa', icon: MapIcon, label: 'Mapa' },
-    { to: '/servicos', icon: Briefcase, label: 'Serviços' },
     { to: '/acessibilidade', icon: A11yIcon, label: 'Acessibilidade' },
   ];
 

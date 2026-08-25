@@ -124,16 +124,13 @@ export interface AddressValidationError {
 }
 
 /**
- * Valida os campos obrigatorios do endereco. Retorna o primeiro erro
- * encontrado, ou null quando o endereco esta utilizavel.
+ * Valida os campos obrigatorios do endereco. O numero e opcional porque vias,
+ * pracas e outros espacos publicos podem nao possuir numeracao. Retorna o
+ * primeiro erro encontrado, ou null quando o endereco esta utilizavel.
  */
 export function validateAddress(parts: AddressParts): AddressValidationError | null {
     if (parts.street.trim().length < 3) {
         return { field: 'street', message: 'Informe a rua ou avenida da ocorrência.' };
-    }
-
-    if (!parts.number.trim()) {
-        return { field: 'number', message: 'Informe o número. Use "S/N" se o local não tiver numeração.' };
     }
 
     if (parts.city.trim().length < 2) {

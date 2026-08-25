@@ -14,7 +14,6 @@ export const CITIZEN_SHORTCUTS: ShortcutDefinition[] = [
   { key: 'Alt+2', label: 'Alt + 2', description: 'Nova Solicitação', path: '/nova-solicitacao', roles: ['citizen'] },
   { key: 'Alt+3', label: 'Alt + 3', description: 'Mapa', path: '/mapa', roles: ['citizen'] },
   { key: 'Alt+4', label: 'Alt + 4', description: 'Meus Protocolos', path: '/meus-protocolos', roles: ['citizen'] },
-  { key: 'Alt+5', label: 'Alt + 5', description: 'Serviços', path: '/servicos', roles: ['citizen'] },
 ];
 
 export const ADMIN_SHORTCUTS: ShortcutDefinition[] = [

@@ -7,7 +7,6 @@ import { CitizenDashboard } from './pages/CitizenDashboard';
 import { NewRequest } from './pages/NewRequest';
 import { CitizenMap } from './pages/CitizenMap';
 import { CitizenProtocols } from './pages/CitizenProtocols';
-import { CitizenServices } from './pages/CitizenServices';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminMap } from './pages/AdminMap';
 import { AdminRequestsQueue } from './pages/AdminRequestsQueue';
@@ -123,7 +122,7 @@ function AppContent() {
           <Route path="/nova-solicitacao" element={<NewRequest />} />
           <Route path="/mapa" element={<CitizenMap />} />
           <Route path="/meus-protocolos" element={<CitizenProtocols />} />
-          <Route path="/servicos" element={<CitizenServices />} />
+          <Route path="/servicos" element={<Navigate to="/nova-solicitacao" replace />} />
 
           <Route path="/admin" element={role === 'admin' ? <AdminDashboard /> : <Navigate to="/" replace />} />
           <Route path="/admin/solicitacoes" element={role === 'admin' ? <AdminRequestsQueue /> : <Navigate to="/" replace />} />

@@ -234,7 +234,12 @@ export function NewRequest() {
     cancelNumberLookup();
     setNumberLocationMessage('');
 
-    if (!address.street.trim() || !address.number.trim() || !address.city.trim() || !address.state.trim()) {
+    if (!address.street.trim() || !address.city.trim() || !address.state.trim()) {
+      return;
+    }
+
+    if (!address.number.trim()) {
+      setNumberLocationMessage('Número opcional. Confirme no mapa o ponto exato do problema.');
       return;
     }
 
@@ -289,7 +294,7 @@ export function NewRequest() {
     setMapCenter([lat, lon]);
     setNumberLocationMessage(selectedAddress.number
       ? `Número ${selectedAddress.number} localizado e marcado no mapa.`
-      : 'Digite o número para localizar o ponto exato no mapa.');
+      : 'Endereço sem número. Confirme no mapa o ponto exato do problema.');
   };
 
   const handleManualMapPosition = (nextPosition: { lat: number; lng: number }) => {
@@ -364,8 +369,9 @@ export function NewRequest() {
         return;
       }
 
-      // Valida rua, numero, cidade e UF. Impede que placeholder ("Selecionar")
-      // ou campos vazios virem endereco no banco.
+      // Valida rua, cidade e UF. O numero e opcional para locais sem numeracao.
+      // Impede que placeholder ("Selecionar") ou campos essenciais vazios virem
+      // endereco no banco.
       const addressError = validateAddress(addressObj);
       if (addressError) {
         setSubmitStatus('error');
@@ -553,12 +559,12 @@ export function NewRequest() {
                       )}
                     </div>
 
-                    <Field label="Número" id="number">
+                    <Field label="Número (opcional)" id="number">
                       <div>
                         <input
                           id="number"
                           className={fieldClass}
-                          placeholder="Ex: 1578"
+                          placeholder="Ex: 1578 ou deixe em branco"
                           value={addressObj.number}
                           onChange={(event) => {
                             const nextAddress = { ...addressObj, number: event.target.value };
@@ -600,14 +606,14 @@ export function NewRequest() {
                     <ImageIcon className="text-[#1260c9]" size={24} />
                     <div>
                       <h2 className="text-xl font-bold text-[#0b1b33]">Fotos do local</h2>
-                      <p className="text-sm text-slate-600">Adicione imagens que mostrem o problema.</p>
+                      <p className="text-sm text-slate-600">Uma foto já é suficiente; se precisar, envie até {MAX_IMAGES}.</p>
                     </div>
                   </div>
                   <label className="relative mt-5 flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-blue-200 bg-blue-50/50 p-6 text-center transition hover:border-[#1260c9] hover:bg-blue-50">
                     <input className="sr-only" multiple type="file" accept="image/png,image/jpeg" onChange={handleImageUpload} />
                     <CloudUpload className="text-[#1260c9]" size={34} />
-                    <span className="mt-3 font-semibold text-[#0b1b33]">Selecionar fotos</span>
-                    <span className="mt-1 text-sm text-slate-500">JPG ou PNG · até {MAX_IMAGES} fotos</span>
+                    <span className="mt-3 font-semibold text-[#0b1b33]">Selecionar uma ou mais fotos</span>
+                    <span className="mt-1 text-sm text-slate-500">JPG ou PNG · 1 foto já é suficiente</span>
                   </label>
                   {images.length > 0 && (
                     <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">

@@ -232,7 +232,7 @@ minutos, desligável por `APP_SCHEDULING_ENABLED=false`.
 | `/login`, `/cadastro` | Público |
 | `/termos-de-uso`, `/privacidade`, `/acessibilidade` | Público |
 | `/p/:id` | Público — consulta de protocolo por link |
-| `/nova-solicitacao`, `/mapa`, `/meus-protocolos`, `/servicos` | Cidadão |
+| `/nova-solicitacao`, `/mapa`, `/meus-protocolos` | Cidadão |
 | `/perfil`, `/protocolo/:id` | Autenticado |
 | `/admin` | Dashboard executivo (admin) |
 | `/admin/solicitacoes` | Fila de solicitações (admin) |
