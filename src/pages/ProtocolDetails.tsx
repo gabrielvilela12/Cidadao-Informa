@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Accessibility, AlertCircle, ArrowLeft, ArrowRight, Box, Calendar, Check, CheckCircle2,
@@ -388,6 +388,63 @@ function DescriptionCard({ description }: { description: string }) {
   );
 }
 
+function formatAiReportLine(line: string, lineIndex: number): ReactNode[] {
+  const parts: ReactNode[] = [];
+  const boldRegex = /\*\*([^*]+)\*\*/g;
+  let lastIndex = 0;
+  let partIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = boldRegex.exec(line)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(line.slice(lastIndex, match.index));
+    }
+
+    parts.push(
+      <strong key={`${lineIndex}-${partIndex++}`} className="font-black text-slate-950">
+        {match[1]}
+      </strong>
+    );
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < line.length) {
+    parts.push(line.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : [line];
+}
+
+function AiCorrectionReport({ report }: { report: string }) {
+  const lines = report.split(/\r?\n/);
+
+  return (
+    <div className="mt-3 space-y-1.5 text-sm leading-6 text-slate-700">
+      {lines.map((line, lineIndex) => {
+        if (!line.trim()) {
+          return <div key={`blank-${lineIndex}`} className="h-1" />;
+        }
+
+        const trimmed = line.trim();
+        const bulletMatch = trimmed.match(/^-\s*/) ?? trimmed.match(/^\*\s+/);
+        const content = bulletMatch ? trimmed.slice(bulletMatch[0].length) : line;
+        const formattedContent = formatAiReportLine(content, lineIndex);
+
+        if (bulletMatch) {
+          return (
+            <div key={`line-${lineIndex}`} className="flex items-start gap-2">
+              <span className="mt-2 size-1.5 shrink-0 rounded-full bg-violet-600" />
+              <span className="min-w-0 flex-1">{formattedContent}</span>
+            </div>
+          );
+        }
+
+        return <p key={`line-${lineIndex}`} className="whitespace-pre-wrap">{formattedContent}</p>;
+      })}
+    </div>
+  );
+}
+
 function AttachmentsCard({
   images,
   correctedImages,
@@ -496,7 +553,7 @@ function AttachmentsCard({
                 <ClipboardList size={17} className="text-violet-600" />Relatório da geração pela IA
               </h4>
               {correctionReport ? (
-                <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700">{correctionReport}</p>
+                <AiCorrectionReport report={correctionReport} />
               ) : (
                 <p className="mt-2 text-sm leading-6 text-slate-600">
                   O relatório não está disponível para esta geração anterior. Gere novamente para criar a imagem com o plano detalhado.
