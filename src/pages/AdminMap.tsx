@@ -24,7 +24,7 @@ import {
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { AccessibilityIcon } from '../components/AccessibilityIcon';
 import { type Protocol } from '../constants';
@@ -166,6 +166,7 @@ function MapTracker({ onReady }: { onReady: (map: L.Map) => void }) {
 export function AdminMap() {
   const { protocols, loading, mergeProtocol, refetch } = useProtocols('admin');
   const { toggleMobileMenu } = useApp();
+  const location = useLocation();
   const [map, setMap] = useState<L.Map | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>(DEFAULT_MAP_CENTER);
   const [search, setSearch] = useState('');
@@ -193,6 +194,11 @@ export function AdminMap() {
   });
 
   const [states, setStates] = useState<StateShape[] | null>(null);
+  const focusedProtocolId = useMemo(
+    () => new URLSearchParams(location.search).get('protocol')?.trim() || '',
+    [location.search],
+  );
+  const handledFocusedProtocolId = useRef('');
 
   const showHeat = activeLayer === 'heat';
   const showStates = showHeat && heatMode === 'state';
@@ -395,6 +401,32 @@ export function AdminMap() {
     setActiveIncident(null);
     setSelectedIndex(-1);
   }, [activeIncident, filteredProtocols]);
+
+  useEffect(() => {
+    if (!focusedProtocolId || loading || handledFocusedProtocolId.current === focusedProtocolId) return;
+
+    const protocol = protocols.find((item) => item.id === focusedProtocolId);
+    if (!protocol) return;
+
+    const category = protocol.category || 'Outros';
+    const status = canonicalStatus(protocol);
+    setActiveCategories((current) => current.includes(category) ? current : [...current, category]);
+    setActiveStatuses((current) => current.includes(status) ? current : [...current, status]);
+    setActiveLayer('pins');
+    setActiveIncident(protocol);
+
+    const filteredIndex = filteredProtocols.findIndex((item) => item.id === protocol.id);
+    setSelectedIndex(filteredIndex);
+
+    const marker = visibleProtocolMarkers.find((item) => item.protocol.id === protocol.id);
+    const position = marker?.position || getMarkerPosition(protocol);
+    if (position) {
+      setMapCenter(position);
+      map?.flyTo(position, Math.max(map.getZoom(), 16), { duration: 0.8 });
+    }
+
+    handledFocusedProtocolId.current = focusedProtocolId;
+  }, [filteredProtocols, focusedProtocolId, loading, map, protocols, visibleProtocolMarkers]);
   const handleAddressSearch = (value: string) => {
     setSearch(value);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);

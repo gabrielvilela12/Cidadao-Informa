@@ -17,7 +17,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Protocol } from '../constants';
 import { useApp } from '../context/AppContext';
 import { useProtocols } from '../hooks/useProtocols';
@@ -89,6 +89,7 @@ export function CitizenMap() {
   const { protocols, loading } = useProtocols('citizen');
   const { toggleMobileMenu } = useApp();
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedIncident, setSelectedIncident] = useState<Protocol | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [showFilters, setShowFilters] = useState(false);
@@ -100,6 +101,11 @@ export function CitizenMap() {
   const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
   const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const searchTimeout = useRef<number | null>(null);
+  const focusedProtocolId = useMemo(
+    () => new URLSearchParams(location.search).get('protocol')?.trim() || '',
+    [location.search],
+  );
+  const handledFocusedProtocolId = useRef('');
 
   const filteredProtocols = useMemo(() => {
     return protocols.filter((protocol) => {
@@ -121,6 +127,24 @@ export function CitizenMap() {
       setSelectedIndex(0);
     }
   }, [filteredProtocols, selectedIncident]);
+
+  useEffect(() => {
+    if (!focusedProtocolId || loading || handledFocusedProtocolId.current === focusedProtocolId) return;
+
+    const protocol = filteredProtocols.find((item) => item.id === focusedProtocolId);
+    if (!protocol) return;
+
+    const index = filteredProtocols.findIndex((item) => item.id === protocol.id);
+    setSelectedIncident(protocol);
+    setSelectedIndex(index);
+    const position = getMarkerPosition(protocol);
+    if (position) {
+      setMapCenter(position);
+      mapInstance?.flyTo(position, Math.max(mapInstance.getZoom(), 15), { duration: 0.7 });
+    }
+
+    handledFocusedProtocolId.current = focusedProtocolId;
+  }, [filteredProtocols, focusedProtocolId, loading, mapInstance]);
 
   useEffect(() => {
     return () => {

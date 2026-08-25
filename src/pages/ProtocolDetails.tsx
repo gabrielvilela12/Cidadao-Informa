@@ -240,7 +240,11 @@ export function ProtocolDetails() {
               </div>
             </div>
             <div className="mt-4">
-              <LocationCard protocol={protocol} position={mapPosition} onOpenMap={() => navigate(role === 'admin' ? '/admin/mapa' : '/mapa')} />
+              <LocationCard
+                protocol={protocol}
+                position={mapPosition}
+                onOpenMap={() => navigate(`${role === 'admin' ? '/admin/mapa' : '/mapa'}?protocol=${encodeURIComponent(protocol.id)}`)}
+              />
             </div>
           </>
         )}

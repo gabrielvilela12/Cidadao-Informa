@@ -2,15 +2,20 @@ package br.com.fiap.hackgov.application.service;
 
 import br.com.fiap.hackgov.domain.entity.Protocol;
 import br.com.fiap.hackgov.domain.repository.ProtocolRepository;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StreamUtils;
 import org.springframework.web.client.RestClient;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 
@@ -21,9 +26,12 @@ public class AiImageCorrectionService {
     private static final int MAX_IMAGES = 4;
     private static final int MAX_DATA_URL_LENGTH = 4_500_000;
     private static final int MAX_REPORT_LENGTH = 4_000;
+    private static final int MAX_FUNCTION_RESPONSE_LENGTH =
+            (MAX_DATA_URL_LENGTH * MAX_IMAGES) + MAX_REPORT_LENGTH + 20_000;
 
     private final ProtocolRepository protocolRepository;
     private final RestClient restClient;
+    private final ObjectMapper objectMapper;
     private final String imageFunctionUrl;
     private final String supabaseAnonKey;
     private final String imageFunctionSecret;
@@ -31,6 +39,7 @@ public class AiImageCorrectionService {
     public AiImageCorrectionService(
             ProtocolRepository protocolRepository,
             RestClient restClient,
+            ObjectMapper objectMapper,
             @Value("${app.supabase.edge-function-url}") String priorityFunctionUrl,
             @Value("${app.supabase.corrected-image-function-url:}") String configuredImageFunctionUrl,
             @Value("${app.supabase.anon-key}") String supabaseAnonKey,
@@ -38,6 +47,7 @@ public class AiImageCorrectionService {
     ) {
         this.protocolRepository = protocolRepository;
         this.restClient = restClient;
+        this.objectMapper = objectMapper;
         this.imageFunctionUrl = resolveImageFunctionUrl(priorityFunctionUrl, configuredImageFunctionUrl);
         this.supabaseAnonKey = supabaseAnonKey;
         this.imageFunctionSecret = imageFunctionSecret;
@@ -61,21 +71,7 @@ public class AiImageCorrectionService {
         protocolRepository.update(protocol);
 
         try {
-            CorrectionResponse response = restClient.post()
-                    .uri(imageFunctionUrl)
-                    .header("apikey", supabaseAnonKey)
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + supabaseAnonKey)
-                    .header("x-ai-function-secret", imageFunctionSecret)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(new CorrectionRequest(
-                            protocol.getId(),
-                            protocol.getCategory(),
-                            protocol.getDescription(),
-                            originals
-                    ))
-                    .retrieve()
-                    .body(CorrectionResponse.class);
-
+            CorrectionResponse response = requestCorrection(protocol, originals);
             List<String> correctedImages = validateResponse(response, originals.size());
             String correctionReport = validateReport(response);
             protocol.setCorrectedImageUrls(correctedImages);
@@ -138,6 +134,62 @@ public class AiImageCorrectionService {
                 || image.regionMatches(true, 0, "data:image/webp;base64,", 0, "data:image/webp;base64,".length());
     }
 
+    private CorrectionResponse requestCorrection(Protocol protocol, List<String> originals) {
+        return restClient.post()
+                .uri(imageFunctionUrl)
+                .header("apikey", supabaseAnonKey)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + supabaseAnonKey)
+                .header("x-ai-function-secret", imageFunctionSecret)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new CorrectionRequest(
+                        protocol.getId(),
+                        protocol.getCategory(),
+                        protocol.getDescription(),
+                        originals
+                ))
+                .exchange((request, response) -> parseCorrectionResponse(
+                        response.getStatusCode(),
+                        StreamUtils.copyToString(response.getBody(), StandardCharsets.UTF_8)
+                ));
+    }
+
+    private CorrectionResponse parseCorrectionResponse(HttpStatusCode statusCode, String body) {
+        if (body == null || body.isBlank()) {
+            throw new IllegalStateException("O serviço de geração por IA retornou uma resposta vazia.");
+        }
+
+        if (body.length() > MAX_FUNCTION_RESPONSE_LENGTH) {
+            throw new IllegalStateException(
+                    "A imagem corrigida ficou maior que o limite permitido. Tente gerar novamente."
+            );
+        }
+
+        CorrectionResponse response;
+        try {
+            response = objectMapper.readValue(body, CorrectionResponse.class);
+        } catch (Exception exception) {
+            LOGGER.warn("Invalid AI correction response body: {}", summarizeBody(body));
+            throw new IllegalStateException(
+                    "O serviço de geração por IA retornou uma resposta inválida. Tente novamente.",
+                    exception
+            );
+        }
+
+        if (!statusCode.is2xxSuccessful()) {
+            throw new IllegalStateException(response == null || response.error() == null || response.error().isBlank()
+                    ? "O serviço de geração por IA não conseguiu processar a imagem."
+                    : response.error());
+        }
+
+        return response;
+    }
+
+    private static String summarizeBody(String body) {
+        if (body == null) return "";
+        String normalized = body.replaceAll("\\s+", " ").trim();
+        return normalized.length() <= 300 ? normalized : normalized.substring(0, 300) + "...";
+    }
+
     private String validateReport(CorrectionResponse response) {
         String report = response.correctionReport();
         if (report == null || report.isBlank()) {
@@ -183,13 +235,14 @@ public class AiImageCorrectionService {
     }
 
     private record CorrectionRequest(
-            @JsonProperty("protocol_id") String protocolId,
-            String category,
-            String description,
-            List<String> images
+        @JsonProperty("protocol_id") String protocolId,
+        String category,
+        String description,
+        List<String> images
     ) {
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private record CorrectionResponse(
             boolean success,
             @JsonProperty("image_urls") List<String> imageUrls,

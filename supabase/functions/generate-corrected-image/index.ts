@@ -4,15 +4,16 @@ const IMAGE_FUNCTION_SECRET = Deno.env.get("AI_IMAGE_FUNCTION_SECRET")
   ?? "";
 const IMAGE_MODEL = Deno.env.get("OPENROUTER_IMAGE_MODEL")
   ?? "google/gemini-3.1-flash-image";
-const IMAGE_RESOLUTION = Deno.env.get("OPENROUTER_IMAGE_RESOLUTION") ?? "4K";
+const IMAGE_RESOLUTION = Deno.env.get("OPENROUTER_IMAGE_RESOLUTION") ?? "2K";
 const IMAGE_OUTPUT_FORMAT = "jpeg";
-const IMAGE_OUTPUT_COMPRESSION = 85;
+const IMAGE_OUTPUT_COMPRESSION = getIntegerEnv("OPENROUTER_IMAGE_OUTPUT_COMPRESSION", 70);
 const OPENROUTER_IMAGES_URL = "https://openrouter.ai/api/v1/images";
 const OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions";
 const REPORT_MODEL = Deno.env.get("OPENROUTER_REPORT_MODEL")
   ?? "google/gemini-3.7-flash";
 const MAX_IMAGES = 4;
 const MAX_INPUT_LENGTH = 3_000_000;
+const MAX_OUTPUT_DATA_URL_LENGTH = getIntegerEnv("AI_IMAGE_MAX_DATA_URL_LENGTH", 4_500_000);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -53,6 +54,13 @@ function jsonResponse(body: unknown, status = 200): Response {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+function getIntegerEnv(name: string, fallback: number): number {
+  const raw = Deno.env.get(name);
+  if (!raw) return fallback;
+  const value = Number.parseInt(raw, 10);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
 function isSupportedDataUrl(value: unknown): value is string {
@@ -175,11 +183,31 @@ async function correctOneImage(image: string, prompt: string): Promise<string> {
 
   console.log("Corrected image generated", {
     model: IMAGE_MODEL,
+    resolution: IMAGE_RESOLUTION,
     media_type: mediaType,
     base64_length: generated.b64_json.length,
   });
 
-  return `data:${mediaType};base64,${generated.b64_json}`;
+  const dataUrl = `data:${mediaType};base64,${generated.b64_json}`;
+  if (dataUrl.length > MAX_OUTPUT_DATA_URL_LENGTH) {
+    console.warn("Corrected image rejected because it exceeded the configured payload limit", {
+      data_url_length: dataUrl.length,
+      max_data_url_length: MAX_OUTPUT_DATA_URL_LENGTH,
+      model: IMAGE_MODEL,
+      resolution: IMAGE_RESOLUTION,
+    });
+    throw new Error("A imagem corrigida ficou maior que o limite permitido. Tente gerar novamente.");
+  }
+
+  return dataUrl;
+}
+
+function publicErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : "";
+  if (message === "A imagem corrigida ficou maior que o limite permitido. Tente gerar novamente.") {
+    return message;
+  }
+  return "Não foi possível gerar a simulação corrigida. Tente novamente.";
 }
 
 Deno.serve(async (request) => {
@@ -224,7 +252,7 @@ Deno.serve(async (request) => {
     console.error("Corrected image generation failed", error);
     return jsonResponse({
       success: false,
-      error: "Não foi possível gerar a simulação corrigida. Tente novamente.",
+      error: publicErrorMessage(error),
     }, 502);
   }
 });
