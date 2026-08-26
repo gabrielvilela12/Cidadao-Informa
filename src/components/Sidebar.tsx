@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, User, LogOut, BarChart3, List, X, Sparkles, ChevronDown, ChevronLeft, Users, ShieldCheck, BellRing } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, User, LogOut, BarChart3, List, X, Sparkles, ChevronDown, ChevronLeft, Users, ShieldCheck, BellRing, Crown, Building2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { CidadaoBrand } from './CidadaoBrand';
 import { AccessibilityIcon as A11yIcon } from './AccessibilityIcon';
 import type { AdminScreenPermission } from '../services/serverPermissionService';
+import { getRoleDisplayName, getRolePortalLabel } from '../types/auth';
 
 export function Sidebar() {
   const { role, logout, user, hasAdminScreen, isMobileMenuOpen, toggleMobileMenu, isSidebarCollapsed, toggleSidebarCollapsed } = useApp();
@@ -56,6 +57,11 @@ export function Sidebar() {
     gestao: true,
     inteligencia: true,
   });
+  const ownerLinks = role === 'platform_owner'
+    ? [{ to: '/admin-master', icon: Crown, label: 'Admin Master' }]
+    : role === 'establishment_owner'
+      ? [{ to: '/admin-dono', icon: Building2, label: 'Painel do Diretor' }]
+      : [];
   const initials = user?.full_name ? user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'U';
 
   const closeMobileMenu = () => {
@@ -115,7 +121,7 @@ export function Sidebar() {
         {/* Role badge */}
         <div className="px-7 pb-2 pt-6">
           <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">
-            {role === 'citizen' ? 'Portal do Cidadão' : 'Portal do Servidor'}
+            {getRolePortalLabel(role)}
           </span>
         </div>
 
@@ -134,6 +140,19 @@ export function Sidebar() {
               </NavLink>
             )) : (
               <>
+                {ownerLinks.map((link) => (
+                  <NavLink
+                    key={link.to}
+                    to={link.to}
+                    end
+                    onClick={closeMobileMenu}
+                    className={({ isActive }) => linkClassName(isActive)}
+                  >
+                    <link.icon size={18} />
+                    <span>{link.label}</span>
+                  </NavLink>
+                ))}
+
                 <NavLink
                   to="/admin"
                   end
@@ -224,7 +243,7 @@ export function Sidebar() {
             </div>
             <div className="flex flex-col min-w-0 flex-1">
               <p className="truncate text-sm font-bold text-[#111827]">{user?.full_name || 'Usuário'}</p>
-              <p className="text-xs text-slate-500 truncate">{user?.email || (role === 'citizen' ? 'Cidadão' : 'Servidor')}</p>
+              <p className="text-xs text-slate-500 truncate">{user?.email || getRoleDisplayName(role)}</p>
             </div>
             <button
               onClick={handleLogout}

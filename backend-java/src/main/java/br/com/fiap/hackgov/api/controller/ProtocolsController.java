@@ -21,7 +21,7 @@ import br.com.fiap.hackgov.application.validation.ProtocolCompletionCostPolicy;
 import br.com.fiap.hackgov.domain.entity.Protocol;
 import br.com.fiap.hackgov.domain.repository.ProtocolRepository;
 import br.com.fiap.hackgov.infrastructure.security.AuthenticatedUser;
-import br.com.fiap.hackgov.application.util.AdminRoles;
+import br.com.fiap.hackgov.infrastructure.security.RoleAccess;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -103,7 +103,8 @@ public class ProtocolsController {
             ProtocolOutputDto created = createProtocolUseCase.execute(
                     input,
                     user.userId(),
-                    user.name()
+                    user.name(),
+                    user.establishmentId()
             );
 
             auditService.append(
@@ -141,9 +142,13 @@ public class ProtocolsController {
     public ResponseEntity<?> getProtocols(Authentication authentication) {
         try {
             AuthenticatedUser user = requireUser(authentication);
-            return ResponseEntity.ok(isAdmin(user)
-                    ? getProtocolsUseCase.executeForAdmin(permissionService.allowedStates(user.userId()))
-                    : getProtocolsUseCase.execute(user.userId()));
+            if (!isAdmin(user)) {
+                return ResponseEntity.ok(getProtocolsUseCase.execute(user.userId(), null, false));
+            }
+            if (hasEstablishmentScope(user)) {
+                return ResponseEntity.ok(getProtocolsUseCase.executeForAdminByEstablishment(user.establishmentId()));
+            }
+            return ResponseEntity.ok(getProtocolsUseCase.executeForAdmin(permissionService.allowedStates(user.userId())));
         } catch (Exception ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse(ex.getMessage()));
@@ -179,16 +184,12 @@ public class ProtocolsController {
             Set<String> allowedStates = isAdmin(user)
                     ? permissionService.allowedStates(user.userId())
                     : Set.of();
-            if (isAdmin(user) && !permissionService.canAccess(protocol, allowedStates)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new ErrorResponse("Você não tem permissão para acessar protocolos desta UF."));
-            }
-            if (!isAdmin(user) && !protocol.getUserId().equals(user.userId())) {
+            if (!canAccessProtocol(user, protocol, allowedStates)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new ErrorResponse("Você não tem acesso a este protocolo."));
             }
             return ResponseEntity.ok(isAdmin(user)
-                    ? locationGroupService.detailsForAdmin(protocol, allowedStates)
+                    ? detailsForAdmin(user, protocol, allowedStates)
                     : ProtocolOutputDto.from(protocol));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -222,13 +223,14 @@ public class ProtocolsController {
 
             Protocol protocol = findProtocol(id);
             Set<String> allowedStates = permissionService.allowedStates(user.userId());
-            if (!permissionService.canAccess(protocol, allowedStates)) {
-                throw new IllegalArgumentException("Você não tem permissão para acessar protocolos desta UF.");
+            if (!canAccessProtocol(user, protocol, allowedStates)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ErrorResponse("Você não tem acesso a este protocolo."));
             }
 
             List<Protocol> synchronizedProtocols = locationGroupService.membersForStatusSync(protocol)
                     .stream()
-                    .filter(member -> permissionService.canAccess(member, allowedStates))
+                    .filter(member -> canAccessProtocol(user, member, allowedStates))
                     .toList();
             BigDecimal resolutionCost = ProtocolCompletionCostPolicy.validate(
                     input.status(),
@@ -278,7 +280,7 @@ public class ProtocolsController {
             // com o cidadão já ficou fora da sessão do repositório. Recarregar
             // pelo método com EntityGraph evita um 500 depois de a alteração e
             // o bloco de auditoria já terem sido persistidos com sucesso.
-            return ResponseEntity.ok(locationGroupService.detailsForAdmin(findProtocol(id), allowedStates));
+            return ResponseEntity.ok(detailsForAdmin(user, findProtocol(id), allowedStates));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(new ErrorResponse(ex.getMessage()));
         }
@@ -291,7 +293,11 @@ public class ProtocolsController {
     ) {
         try {
             AuthenticatedUser user = requireAdmin(authentication);
-            permissionService.requireAccess(findProtocol(id), user.userId());
+            Protocol protocol = findProtocol(id);
+            if (!canAccessProtocol(user, protocol, permissionService.allowedStates(user.userId()))) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new ErrorResponse("Você não tem acesso a este protocolo."));
+            }
             Protocol updated = aiImageCorrectionService.generate(id);
 
             auditService.append(
@@ -350,11 +356,10 @@ public class ProtocolsController {
         try {
             AuthenticatedUser user = requireUser(authentication);
             Protocol protocol = findProtocol(id);
-            if (isAdmin(user) && !permissionService.canAccess(protocol, permissionService.allowedStates(user.userId()))) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new ErrorResponse("Você não tem permissão para acessar a auditoria desta UF."));
-            }
-            if (!isAdmin(user) && !protocol.getUserId().equals(user.userId())) {
+            Set<String> allowedStates = isAdmin(user)
+                    ? permissionService.allowedStates(user.userId())
+                    : Set.of();
+            if (!canAccessProtocol(user, protocol, allowedStates)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(new ErrorResponse("Você não tem acesso à auditoria deste protocolo."));
             }
@@ -398,12 +403,37 @@ public class ProtocolsController {
     }
 
     private boolean isAdmin(AuthenticatedUser user) {
-        return AdminRoles.isAdministrative(user.role());
+        return RoleAccess.isAdministrative(user.role());
     }
 
     private void requireAllStates(AuthenticatedUser admin) {
         if (!permissionService.allowedStates(admin.userId()).containsAll(ServerStatePermissionService.ALL_STATES)) {
             throw new IllegalArgumentException("Esta operação global exige permissão para todas as UFs.");
         }
+    }
+
+    private boolean canAccessProtocol(AuthenticatedUser user, Protocol protocol, Set<String> allowedStates) {
+        if (RoleAccess.isPlatformOwner(user.role())) {
+            return true;
+        }
+        if (RoleAccess.isAdministrative(user.role())) {
+            if (hasEstablishmentScope(user)) {
+                return Objects.equals(user.establishmentId(), protocol.getEstablishmentId());
+            }
+            return permissionService.canAccess(protocol, allowedStates);
+        }
+        return Objects.equals(protocol.getUserId(), user.userId());
+    }
+
+    private boolean hasEstablishmentScope(AuthenticatedUser user) {
+        return !RoleAccess.isPlatformOwner(user.role())
+                && user.establishmentId() != null
+                && !user.establishmentId().isBlank();
+    }
+
+    private ProtocolOutputDto detailsForAdmin(AuthenticatedUser user, Protocol protocol, Set<String> allowedStates) {
+        return hasEstablishmentScope(user)
+                ? locationGroupService.detailsForEstablishmentAdmin(protocol, user.establishmentId())
+                : locationGroupService.detailsForAdmin(protocol, allowedStates);
     }
 }

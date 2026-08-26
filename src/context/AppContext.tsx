@@ -1,10 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { AdminAccessProfile, AdminScreenPermission } from '../services/serverPermissionService';
-
-/**
- * Definição dos papéis (roles) suportados pela aplicação.
- */
-export type UserRole = 'citizen' | 'admin' | 'master';
+import { normalizeRole, type UserRole } from '../types/auth';
 
 /**
  * Representação do Usuário autenticado na aplicação.
@@ -15,6 +11,8 @@ interface AppUser {
   full_name: string;
   email: string;
   phone?: string;
+  establishment_id?: string | null;
+  establishment_name?: string | null;
   created_at?: string;
 }
 
@@ -39,11 +37,6 @@ interface AppContextType {
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
-
-function normalizeRole(role: unknown): UserRole {
-  if (role === 'master') return 'master';
-  return role === 'admin' ? 'admin' : 'citizen';
-}
 
 /**
  * Sessão otimista lida do localStorage.
@@ -79,6 +72,8 @@ function readCachedSession(): { user: AppUser; role: UserRole } | null {
         full_name: parsed.full_name ?? '',
         email: parsed.email,
         phone: parsed.phone,
+        establishment_id: parsed.establishment_id ?? null,
+        establishment_name: parsed.establishment_name ?? null,
         created_at: parsed.created_at,
       },
       role: normalizeRole(localStorage.getItem('cidadaoinforma_role')),
@@ -108,6 +103,8 @@ function isSameUser(a: AppUser | null, b: AppUser): boolean {
     && a.full_name === b.full_name
     && a.email === b.email
     && a.phone === b.phone
+    && a.establishment_id === b.establishment_id
+    && a.establishment_name === b.establishment_name
     && a.created_at === b.created_at;
 }
 
@@ -166,6 +163,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           full_name: userData.name,
           email: userData.email,
           phone: userData.phone,
+          establishment_id: userData.establishmentId ?? null,
+          establishment_name: userData.establishmentName ?? null,
           created_at: userData.createdAt,
         };
         const validatedRole = normalizeRole(userData.role);

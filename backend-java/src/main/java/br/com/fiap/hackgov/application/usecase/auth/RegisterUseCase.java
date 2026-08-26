@@ -63,6 +63,8 @@ public class RegisterUseCase {
                 createdUser.getCpf(),
                 createdUser.getPhone(),
                 createdUser.getRole(),
+                createdUser.getEstablishmentId(),
+                createdUser.getEstablishment() == null ? null : createdUser.getEstablishment().getName(),
                 createdUser.getId(),
                 createdUser.getCreatedAt()
         );

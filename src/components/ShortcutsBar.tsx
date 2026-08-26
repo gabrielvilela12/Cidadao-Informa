@@ -2,13 +2,12 @@ import { useState } from 'react';
 import { Keyboard, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
-    CITIZEN_SHORTCUTS,
-    ADMIN_SHORTCUTS,
+    getShortcutsForRole,
     SHARED_SHORTCUTS,
     ShortcutDefinition,
 } from '../hooks/useKeyboardShortcuts';
 import { useApp } from '../context/AppContext';
-import type { UserRole } from '../context/AppContext';
+import type { UserRole } from '../types/auth';
 
 interface ShortcutsBarProps {
     role: UserRole;
@@ -37,9 +36,8 @@ export function ShortcutsBar({ role }: ShortcutsBarProps) {
 
     if (dismissed) return null;
 
-    const mainShortcuts: ShortcutDefinition[] =
-        (role === 'citizen' ? CITIZEN_SHORTCUTS : ADMIN_SHORTCUTS)
-            .filter((shortcut) => !shortcut.permission || hasAdminScreen(shortcut.permission));
+    const mainShortcuts: ShortcutDefinition[] = getShortcutsForRole(role)
+        .filter((shortcut) => !shortcut.permission || hasAdminScreen(shortcut.permission));
 
     return (
         <div className="w-full z-40 sticky top-0">

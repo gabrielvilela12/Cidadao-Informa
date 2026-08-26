@@ -9,6 +9,8 @@ public record AuthOutputDto(
         String cpf,
         String phone,
         String role,
+        String establishmentId,
+        String establishmentName,
         String userId,
         Instant createdAt
 ) {

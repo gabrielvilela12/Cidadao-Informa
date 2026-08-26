@@ -3,11 +3,11 @@ package br.com.fiap.hackgov.api.controller;
 import br.com.fiap.hackgov.api.response.ErrorResponse;
 import br.com.fiap.hackgov.application.service.AiPriorityService;
 import br.com.fiap.hackgov.application.service.AdminAccessService;
-import br.com.fiap.hackgov.application.util.AdminRoles;
 import br.com.fiap.hackgov.application.service.ServerStatePermissionService;
 import br.com.fiap.hackgov.domain.entity.Protocol;
 import br.com.fiap.hackgov.domain.repository.ProtocolRepository;
 import br.com.fiap.hackgov.infrastructure.security.AuthenticatedUser;
+import br.com.fiap.hackgov.infrastructure.security.RoleAccess;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/ai-priority")
@@ -128,7 +130,7 @@ public class AiPriorityController {
 
     private AuthenticatedUser requireAdmin(Authentication authentication) {
         AuthenticatedUser user = requireUser(authentication);
-        if (!AdminRoles.isAdministrative(user.role())) {
+        if (!RoleAccess.isAdministrative(user.role())) {
             throw new IllegalArgumentException("Acesso restrito a administradores.");
         }
         return user;
@@ -137,7 +139,16 @@ public class AiPriorityController {
     private void requireProtocolAccess(String protocolId, AuthenticatedUser user) {
         Protocol protocol = protocolRepository.getById(protocolId)
                 .orElseThrow(() -> new IllegalArgumentException("Protocolo não encontrado."));
-        if (AdminRoles.isAdministrative(user.role())) {
+        if (RoleAccess.isPlatformOwner(user.role())) {
+            return;
+        }
+        if (RoleAccess.isAdministrative(user.role())) {
+            if (user.establishmentId() != null && !user.establishmentId().isBlank()) {
+                if (!Objects.equals(user.establishmentId(), protocol.getEstablishmentId())) {
+                    throw new IllegalArgumentException("Você não tem acesso a este protocolo.");
+                }
+                return;
+            }
             permissionService.requireAccess(protocol, user.userId());
         } else if (!protocol.getUserId().equals(user.userId())) {
             throw new IllegalArgumentException("Você não tem acesso a este protocolo.");

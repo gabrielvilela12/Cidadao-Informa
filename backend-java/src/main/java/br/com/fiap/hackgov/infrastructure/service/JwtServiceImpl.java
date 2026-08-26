@@ -28,6 +28,7 @@ public class JwtServiceImpl implements JwtService {
     private static final String CLAIM_ROLE =
             "http://schemas.microsoft.com/ws/2008/06/identity/claims/role";
     private static final String CLAIM_CPF = "Cpf";
+    private static final String CLAIM_ESTABLISHMENT_ID = "establishment_id";
 
     private final SecretKey signingKey;
 
@@ -44,6 +45,7 @@ public class JwtServiceImpl implements JwtService {
                 .claim(CLAIM_NAME, user.getName())
                 .claim(CLAIM_CPF, user.getCpf())
                 .claim(CLAIM_ROLE, user.getRole())
+                .claim(CLAIM_ESTABLISHMENT_ID, user.getEstablishmentId())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(24, ChronoUnit.HOURS)))
                 .signWith(signingKey)
@@ -68,7 +70,8 @@ public class JwtServiceImpl implements JwtService {
                     userId,
                     claims.get(CLAIM_NAME, String.class),
                     claims.get(CLAIM_CPF, String.class),
-                    claims.get(CLAIM_ROLE, String.class)
+                    claims.get(CLAIM_ROLE, String.class),
+                    claims.get(CLAIM_ESTABLISHMENT_ID, String.class)
             ));
         } catch (JwtException | IllegalArgumentException ex) {
             return Optional.empty();

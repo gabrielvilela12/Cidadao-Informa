@@ -17,6 +17,8 @@ public interface UserRepository {
 
     long countByRole(String role);
 
+    long countAll();
+
     User add(User user);
 
     User update(User user);

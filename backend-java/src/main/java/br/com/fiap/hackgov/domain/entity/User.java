@@ -2,7 +2,10 @@ package br.com.fiap.hackgov.domain.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
@@ -32,6 +35,16 @@ public class User {
     @Column(name = "role", nullable = false)
     private String role;
 
+    @Column(name = "establishment_id")
+    private String establishmentId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "establishment_id", referencedColumnName = "id", insertable = false, updatable = false)
+    private Establishment establishment;
+
+    @Column(name = "status", nullable = false)
+    private String status;
+
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
@@ -45,6 +58,9 @@ public class User {
         }
         if (role == null || role.isBlank()) {
             role = "citizen";
+        }
+        if (status == null || status.isBlank()) {
+            status = "active";
         }
         if (createdAt == null) {
             createdAt = Instant.now();
@@ -97,6 +113,30 @@ public class User {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getEstablishmentId() {
+        return establishmentId;
+    }
+
+    public void setEstablishmentId(String establishmentId) {
+        this.establishmentId = establishmentId;
+    }
+
+    public Establishment getEstablishment() {
+        return establishment;
+    }
+
+    public void setEstablishment(Establishment establishment) {
+        this.establishment = establishment;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public String getPasswordHash() {

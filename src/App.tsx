@@ -8,6 +8,8 @@ import { NewRequest } from './pages/NewRequest';
 import { CitizenMap } from './pages/CitizenMap';
 import { CitizenProtocols } from './pages/CitizenProtocols';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { AdminMasterDashboard } from './pages/AdminMasterDashboard';
+import { AdminOwnerDashboard } from './pages/AdminOwnerDashboard';
 import { AdminMap } from './pages/AdminMap';
 import { AdminRequestsQueue } from './pages/AdminRequestsQueue';
 import { AdminRecurringAlerts } from './pages/AdminRecurringAlerts';
@@ -31,6 +33,7 @@ import { TermsOfUse } from './pages/TermsOfUse';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { AiChatbot } from './components/AiChatbot';
 import type { AdminScreenPermission } from './services/serverPermissionService';
+import { canAccessOperationalAdmin, getDefaultRouteForRole, isPlatformOwner } from './types/auth';
 
 const Transparency = lazy(() =>
   import('./pages/Transparency').then((module) => ({ default: module.Transparency })),
@@ -38,7 +41,7 @@ const Transparency = lazy(() =>
 
 function AdminScreenRoute({ permission, children }: { permission: AdminScreenPermission; children: ReactNode }) {
   const { role, adminAccessLoading, hasAdminScreen } = useApp();
-  if (role === 'citizen') return <Navigate to="/" replace />;
+  if (!canAccessOperationalAdmin(role)) return <Navigate to={getDefaultRouteForRole(role)} replace />;
   if (adminAccessLoading) {
     return <div className="flex h-full items-center justify-center bg-[#F4F8FC] font-semibold text-slate-600">Carregando permissões…</div>;
   }
@@ -68,7 +71,7 @@ function useHashRoutePath() {
  * 
  * - Se o usuário não estiver autenticado, restringe o acesso apenas à rota `/login`.
  * - Se autenticado, renderiza o layout principal com a `Sidebar` e o conteúdo específico das rotas.
- * - Trata o direcionamento padrão (Citizens para `/` e Admins para `/admin`).
+ * - Trata o direcionamento padrão de cada perfil autenticado.
  * 
  * @returns O layout e as rotas mapeadas de acordo com as permissões do usuário em sessão.
  */
@@ -129,23 +132,27 @@ function AppContent() {
       <main className={`ml-0 flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'md:ml-0' : 'md:ml-72'}`}>
         <Routes location={routeLocation}>
           {/* Default Route when authenticated */}
-          <Route path="/login" element={<Navigate to={role === 'citizen' ? '/' : '/admin'} replace />} />
+          <Route path="/login" element={<Navigate to={getDefaultRouteForRole(role)} replace />} />
 
           {/* Citizen Routes */}
-          <Route path="/" element={<CitizenDashboard />} />
-          <Route path="/nova-solicitacao" element={<NewRequest />} />
-          <Route path="/mapa" element={<CitizenMap />} />
-          <Route path="/meus-protocolos" element={<CitizenProtocols />} />
-          <Route path="/servicos" element={<Navigate to="/nova-solicitacao" replace />} />
+          <Route path="/" element={role === 'citizen' ? <CitizenDashboard /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
+          <Route path="/nova-solicitacao" element={role === 'citizen' ? <NewRequest /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
+          <Route path="/mapa" element={role === 'citizen' ? <CitizenMap /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
+          <Route path="/meus-protocolos" element={role === 'citizen' ? <CitizenProtocols /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
+          <Route path="/servicos" element={role === 'citizen' ? <Navigate to="/nova-solicitacao" replace /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
 
-          <Route path="/admin" element={role !== 'citizen' ? <AdminDashboard /> : <Navigate to="/" replace />} />
-          <Route path="/admin/solicitacoes" element={role !== 'citizen' ? <AdminRequestsQueue /> : <Navigate to="/" replace />} />
-          <Route path="/admin/alertas" element={role !== 'citizen' ? <AdminRecurringAlerts /> : <Navigate to="/" replace />} />
+          {/* Owner Routes */}
+          <Route path="/admin-master" element={isPlatformOwner(role) ? <AdminMasterDashboard /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
+          <Route path="/admin-dono" element={role === 'establishment_owner' || isPlatformOwner(role) ? <AdminOwnerDashboard /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
+
+          <Route path="/admin" element={canAccessOperationalAdmin(role) ? <AdminDashboard /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
+          <Route path="/admin/solicitacoes" element={canAccessOperationalAdmin(role) ? <AdminRequestsQueue /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
+          <Route path="/admin/alertas" element={canAccessOperationalAdmin(role) ? <AdminRecurringAlerts /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
           <Route path="/admin/cidadaos" element={<AdminScreenRoute permission="CITIZENS"><AdminCitizens /></AdminScreenRoute>} />
           <Route path="/admin/cidadaos/:id" element={<AdminScreenRoute permission="CITIZENS"><AdminCitizenDetails /></AdminScreenRoute>} />
           <Route path="/admin/usuarios" element={<AdminScreenRoute permission="USER_MANAGEMENT"><AdminPermissions /></AdminScreenRoute>} />
           <Route path="/admin/permissoes" element={<AdminScreenRoute permission="USER_MANAGEMENT"><Navigate to="/admin/usuarios" replace /></AdminScreenRoute>} />
-          <Route path="/admin/mapa" element={role !== 'citizen' ? <AdminMap /> : <Navigate to="/" replace />} />
+          <Route path="/admin/mapa" element={canAccessOperationalAdmin(role) ? <AdminMap /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
           <Route path="/admin/relatorios" element={<AdminScreenRoute permission="REPORTS"><AdminReports /></AdminScreenRoute>} />
           <Route path="/admin/relatorios/:id" element={<AdminScreenRoute permission="REPORTS"><AdminReportDetails /></AdminScreenRoute>} />
           <Route path="/admin/ia" element={<AdminScreenRoute permission="AI"><AiLogsPage /></AdminScreenRoute>} />

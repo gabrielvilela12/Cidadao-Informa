@@ -27,6 +27,7 @@ import { CidadaoBrand } from '../components/CidadaoBrand';
 import { AccessibilityIcon } from '../components/AccessibilityIcon';
 import { useA11y, type Theme } from '../context/A11yContext';
 import { useApp } from '../context/AppContext';
+import { getDefaultRouteForRole } from '../types/auth';
 
 type TextSpacing = 'normal' | 'medium' | 'wide';
 
@@ -71,7 +72,7 @@ export function Accessibility() {
     const location = useLocation();
     const { isAuthenticated, role, toggleMobileMenu } = useApp();
 
-    const fallbackPath = isAuthenticated ? (role === 'citizen' ? '/' : '/admin') : '/login';
+    const fallbackPath = isAuthenticated ? getDefaultRouteForRole(role) : '/login';
 
     useEffect(() => {
         setFontSizeInput(String(fontSize));

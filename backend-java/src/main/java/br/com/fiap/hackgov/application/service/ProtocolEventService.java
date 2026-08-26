@@ -157,6 +157,7 @@ public class ProtocolEventService {
                 protocol.getStatus(),
                 protocol.getResolutionCost(),
                 protocol.getUserId(),
+                protocol.getEstablishmentId(),
                 protocol.getRequester(),
                 protocol.getUser() == null ? null : protocol.getUser().getPhone(),
                 protocol.getAiPriority(),

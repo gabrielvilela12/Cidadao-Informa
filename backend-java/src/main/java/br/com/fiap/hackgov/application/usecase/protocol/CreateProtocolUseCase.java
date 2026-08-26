@@ -26,7 +26,20 @@ public class CreateProtocolUseCase {
         this.permissionService = permissionService;
     }
 
-    public ProtocolOutputDto execute(ProtocolInputDto input, String userId, String requester) {
+    public ProtocolOutputDto execute(
+            ProtocolInputDto input,
+            String userId,
+            String requester
+    ) {
+        return execute(input, userId, requester, null);
+    }
+
+    public ProtocolOutputDto execute(
+            ProtocolInputDto input,
+            String userId,
+            String requester,
+            String establishmentId
+    ) {
         if (input.category() == null || input.category().isBlank()
                 || input.description() == null || input.description().isBlank()
                 || input.address() == null || input.address().isBlank()) {
@@ -48,6 +61,7 @@ public class CreateProtocolUseCase {
         }
         protocol.setStateCode(permissionService.resolveState(input.stateCode(), input.address()));
         protocol.setUserId(userId);
+        protocol.setEstablishmentId(establishmentId);
         protocol.setRequester(requester);
         // Um novo relato da mesma causa no mesmo local entra no andamento que
         // ja existe. A partir do segundo protocolo o grupo nasce sincronizado.

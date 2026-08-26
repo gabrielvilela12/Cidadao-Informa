@@ -25,6 +25,7 @@ import {
   type AdminRole,
 } from '../services/serverPermissionService';
 import { useApp } from '../context/AppContext';
+import { isPlatformOwner, normalizeRole } from '../types/auth';
 
 type StateOption = readonly [code: string, name: string];
 
@@ -84,6 +85,7 @@ export function AdminPermissions() {
 
   const allowedStates = adminAccess?.states ?? [];
   const allowedScreens = SCREEN_OPTIONS.filter((screen) => adminAccess?.screens.includes(screen.key));
+  const canManageMasters = isPlatformOwner(role);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLocaleLowerCase('pt-BR');
@@ -143,7 +145,7 @@ export function AdminPermissions() {
       setSuccess(`Permissões de ${updated.name} atualizadas.`);
       if (updated.userId === user?.id) {
         await refreshAdminAccess();
-        if (updated.role !== role) window.location.reload();
+        if (normalizeRole(updated.role) !== role) window.location.reload();
       }
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Não foi possível salvar as permissões.');
@@ -281,7 +283,7 @@ export function AdminPermissions() {
             </div>
 
             <div className="overflow-y-auto px-5 py-5 sm:px-7">
-              {role === 'master' && (
+              {canManageMasters && (
                 <div className="mb-5 rounded-xl border border-violet-200 bg-violet-50 p-4">
                   <label className="text-sm font-black text-violet-950">Cargo administrativo
                     <select value={selectedRole} onChange={(event) => changeSelectedRole(event.target.value as AdminRole)} className="mt-2 min-h-11 w-full rounded-xl border border-violet-200 bg-white px-3 font-semibold text-slate-800 outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100">
@@ -354,7 +356,7 @@ export function AdminPermissions() {
                 <label className="text-sm font-bold text-slate-700">E-mail<input required type="email" value={newAdmin.email} onChange={(event) => setNewAdmin((current) => ({ ...current, email: event.target.value }))} className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 px-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" /></label>
                 <label className="text-sm font-bold text-slate-700">CPF<input required inputMode="numeric" maxLength={14} value={newAdmin.cpf} onChange={(event) => setNewAdmin((current) => ({ ...current, cpf: event.target.value }))} placeholder="Somente números" className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 px-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" /></label>
                 <label className="text-sm font-bold text-slate-700">Senha inicial<input required type="password" minLength={6} value={newAdmin.password} onChange={(event) => setNewAdmin((current) => ({ ...current, password: event.target.value }))} className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 px-3 font-normal outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" /></label>
-                {role === 'master' && <label className="text-sm font-bold text-slate-700 sm:col-span-2">Cargo<select value={newAdmin.role} onChange={(event) => changeNewRole(event.target.value as AdminRole)} className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"><option value="admin">Administrador</option><option value="master">Master — acesso total e gestão de masters</option></select></label>}
+                {canManageMasters && <label className="text-sm font-bold text-slate-700 sm:col-span-2">Cargo<select value={newAdmin.role} onChange={(event) => changeNewRole(event.target.value as AdminRole)} className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 font-semibold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"><option value="admin">Administrador</option><option value="master">Master — acesso total e gestão de masters</option></select></label>}
               </div>
 
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50 p-4">

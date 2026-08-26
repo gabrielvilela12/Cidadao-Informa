@@ -10,6 +10,7 @@ interface ApiProtocol {
     status: string;
     resolutionCost?: number | null;
     userId?: string;
+    establishmentId?: string | null;
     requester?: string;
     phone?: string;
     createdAt: string;
@@ -190,7 +191,42 @@ interface AuthResponse {
     cpf: string;
     phone?: string;
     role: string;
+    establishmentId?: string | null;
+    establishmentName?: string | null;
     createdAt: string;
+}
+
+export interface PlatformOverview {
+    totalUsers: number;
+    citizens: number;
+    platformOwners: number;
+    establishmentOwners: number;
+    admins: number;
+    establishments: number;
+    activeEstablishments: number;
+    activeSubscriptions: number;
+    overdueSubscriptions: number;
+    pendingPayments: number;
+    monthlyRecurringRevenue: number;
+    pendingRevenue: number;
+    establishmentSubscriptions: Array<{
+        establishmentId: string;
+        establishmentName: string;
+        establishmentType: string;
+        city: string;
+        state: string;
+        establishmentStatus: string;
+        primaryColor: string;
+        subscriptionId: string;
+        planName: string;
+        subscriptionStatus: string;
+        monthlyAmount: number;
+        billingDay: number;
+        currentPeriodEnd: string | null;
+        owners: number;
+        admins: number;
+        citizens: number;
+    }>;
 }
 
 function mapProtocol(item: ApiProtocol): Protocol {
@@ -363,6 +399,10 @@ export const api = {
             ...data,
             protocols: data.protocols.map(mapProtocol),
         };
+    },
+
+    getPlatformOverview() {
+        return apiRequest<PlatformOverview>('/api/admin-master/overview');
     },
 
     async createProtocol(data: any) {

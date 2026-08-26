@@ -2,6 +2,7 @@ package br.com.fiap.hackgov.application.service;
 
 import br.com.fiap.hackgov.domain.audit.ProtocolAuditBlock;
 import br.com.fiap.hackgov.infrastructure.repository.ProtocolAuditRepository;
+import br.com.fiap.hackgov.infrastructure.security.RoleAccess;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -200,10 +201,10 @@ public class ProtocolAuditService {
     }
 
     private String normalizeRole(String role) {
-        return switch (role) {
-            case "admin", "system", "ia" -> role;
-            default -> "citizen";
-        };
+        if ("system".equals(role) || "ia".equals(role)) {
+            return role;
+        }
+        return RoleAccess.normalize(role);
     }
 
     public record AuditBlockDto(

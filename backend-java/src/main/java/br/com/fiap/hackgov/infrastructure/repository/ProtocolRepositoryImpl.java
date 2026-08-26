@@ -57,6 +57,11 @@ public class ProtocolRepositoryImpl implements ProtocolRepository {
     }
 
     @Override
+    public List<Protocol> getByEstablishmentId(String establishmentId) {
+        return repository.findByEstablishmentIdOrderByCreatedAtDesc(establishmentId);
+    }
+
+    @Override
     public long countAll() {
         return repository.count();
     }

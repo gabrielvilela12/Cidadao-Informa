@@ -1,7 +1,6 @@
 import React, { useId, useState } from 'react';
 import { User, Shield, Key, FileText, Loader2, ArrowRight, Eye, EyeOff, Home } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import type { UserRole } from '../context/AppContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { ApiError } from '../services/http';
@@ -9,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CidadaoBrand } from '../components/CidadaoBrand';
 import { CitizenLoginHero } from '../components/CitizenLoginHero';
 import { ServerLoginHero } from '../components/ServerLoginHero';
+import { canAccessOperationalAdmin, getDefaultRouteForRole, normalizeRole } from '../types/auth';
 
 // ─── InputField — must be at module level to avoid remounting on each render ──
 function InputField({ label, icon: Icon, type = 'text', value, onChange, placeholder, autoComplete }: any) {
@@ -113,12 +113,14 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
             if (isRegistering) {
                 if (!name.trim()) { setErrorDesc('O Nome Completo é obrigatório.'); setLoading(false); return; }
                 const data = await api.register(name, email, cleanCpf, password);
-                loginSuccess(data.token, { id: data.userId, cpf: data.cpf, full_name: data.name, email: data.email, phone: data.phone, created_at: data.createdAt }, data.role as 'citizen');
+                const role = normalizeRole(data.role);
+                loginSuccess(data.token, { id: data.userId, cpf: data.cpf, full_name: data.name, email: data.email, phone: data.phone, establishment_id: data.establishmentId, establishment_name: data.establishmentName, created_at: data.createdAt }, role);
                 navigate('/');
             } else {
                 const data = await api.login(cleanCpf, password);
-                loginSuccess(data.token, { id: data.userId, cpf: data.cpf, full_name: data.name, email: data.email, phone: data.phone, created_at: data.createdAt }, data.role as UserRole);
-                navigate(data.role === 'citizen' ? '/' : '/admin');
+                const role = normalizeRole(data.role);
+                loginSuccess(data.token, { id: data.userId, cpf: data.cpf, full_name: data.name, email: data.email, phone: data.phone, establishment_id: data.establishmentId, establishment_name: data.establishmentName, created_at: data.createdAt }, role);
+                navigate(getDefaultRouteForRole(role));
             }
         } catch (err) {
             setErrorDesc(authErrorMessage(err));
@@ -138,8 +140,9 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
 
         try {
             const data = await api.login(cleanCpf, password);
-            if (data.role !== 'admin' && data.role !== 'master') {
-                throw new ApiError('Acesso restrito a servidores autorizados.', true);
+            const role = normalizeRole(data.role);
+            if (!canAccessOperationalAdmin(role)) {
+                throw new ApiError('Acesso restrito à equipe autorizada.', true);
             }
 
             loginSuccess(
@@ -150,11 +153,13 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                     full_name: data.name,
                     email: data.email,
                     phone: data.phone,
+                    establishment_id: data.establishmentId,
+                    establishment_name: data.establishmentName,
                     created_at: data.createdAt
                 },
-                'admin'
+                role
             );
-            navigate('/admin');
+            navigate(getDefaultRouteForRole(role));
         } catch (err) {
             setErrorDesc(authErrorMessage(err));
         } finally {
@@ -228,7 +233,7 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                                 </h1>
                                 <p className="text-sm text-slate-500">
                                     {isAdmin
-                                        ? 'Digite seu código e senha para continuar.'
+                                    ? 'Digite seu código e senha para continuar.'
                                         : isRegistering
                                             ? 'Informe seus dados para acompanhar solicitações de acessibilidade.'
                                             : 'Acesse para reportar e acompanhar suas solicitações.'}
@@ -388,7 +393,7 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                                     onChange={(e: any) => setCpf(sanitizeCPF(e.target.value).slice(0, 11))} placeholder="00000000000" autoComplete="username" />
                                 <InputField label="Senha" icon={Key} type="password" value={password}
                                     onChange={(e: any) => setPassword(e.target.value)} placeholder="••••••••" autoComplete="current-password" />
-                                <p className="text-center text-xs text-slate-600">Acesso restrito a servidores municipais autorizados.</p>
+                            <p className="text-center text-xs text-slate-600">Acesso restrito a donos, diretores e servidores autorizados.</p>
                                 <button
                                     type="submit"
                                     disabled={loading}

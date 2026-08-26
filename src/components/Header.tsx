@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Menu, Keyboard } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
-import { CITIZEN_SHORTCUTS, ADMIN_SHORTCUTS, SHARED_SHORTCUTS } from '../hooks/useKeyboardShortcuts';
+import { getShortcutsForRole, SHARED_SHORTCUTS } from '../hooks/useKeyboardShortcuts';
 import { ThemeSwitch } from './ThemeSwitch';
 
 interface HeaderProps {
@@ -19,7 +19,7 @@ export function Header({ title, subtitle, description, action }: HeaderProps) {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const shortcutsRef = useRef<HTMLDivElement>(null);
 
-  const mainShortcuts = (role === 'citizen' ? CITIZEN_SHORTCUTS : ADMIN_SHORTCUTS)
+  const mainShortcuts = getShortcutsForRole(role)
     .filter((shortcut) => !shortcut.permission || hasAdminScreen(shortcut.permission));
 
   useEffect(() => {

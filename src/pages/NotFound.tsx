@@ -4,12 +4,13 @@ import { motion } from 'motion/react';
 import { CidadaoBrand } from '../components/CidadaoBrand';
 import { Button3D } from '../components/Button3D';
 import { useApp } from '../context/AppContext';
+import { getDefaultRouteForRole } from '../types/auth';
 
 export function NotFound() {
   const navigate = useNavigate();
   const { isAuthenticated, role } = useApp();
 
-  const homePath = !isAuthenticated ? '/' : role === 'citizen' ? '/' : '/admin';
+  const homePath = !isAuthenticated ? '/' : getDefaultRouteForRole(role);
 
   return (
     <div className="min-h-screen w-full flex flex-col bg-[#080d12] text-white font-sans overflow-hidden">

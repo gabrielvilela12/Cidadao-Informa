@@ -199,6 +199,8 @@ export function AiChatbot() {
                 '/acessibilidade',
                 '/login',
                 '/cadastro',
+                '/admin-master',
+                '/admin-dono',
                 '/admin',
                 '/admin/solicitacoes',
                 '/admin/mapa',

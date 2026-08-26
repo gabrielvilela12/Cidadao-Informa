@@ -43,6 +43,11 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
+    public long countAll() {
+        return repository.count();
+    }
+
+    @Override
     public User add(User user) {
         return repository.save(user);
     }

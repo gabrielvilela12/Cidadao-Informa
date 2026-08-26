@@ -2,6 +2,7 @@ import { useCallback, useEffect } from 'react';
 import { Protocol } from '../constants';
 import { useProtocolsCache } from '../context/ProtocolsContext';
 import { api } from '../services/api';
+import type { UserRole } from '../types/auth';
 
 /**
  * Lista de protocolos das telas.
@@ -15,7 +16,7 @@ import { api } from '../services/api';
  * mas nao tem efeito: o escopo e decidido no servidor a partir do token -
  * cidadao recebe so os proprios protocolos, admin recebe todos.
  */
-export function useProtocols(_role: 'citizen' | 'admin' | 'master' | 'all' = 'all') {
+export function useProtocols(_role: UserRole | 'all' = 'all') {
     const { protocols, loading, error, ensureFresh, refetch, mergeProtocol } = useProtocolsCache();
 
     useEffect(() => {

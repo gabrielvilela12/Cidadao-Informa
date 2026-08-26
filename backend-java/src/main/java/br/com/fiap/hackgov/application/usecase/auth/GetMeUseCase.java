@@ -25,6 +25,8 @@ public class GetMeUseCase {
                 user.getCpf(),
                 user.getPhone(),
                 user.getRole(),
+                user.getEstablishmentId(),
+                user.getEstablishment() == null ? null : user.getEstablishment().getName(),
                 user.getId(),
                 user.getCreatedAt()
         );

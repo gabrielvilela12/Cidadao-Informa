@@ -18,6 +18,7 @@ import { useProtocolsCache } from '../context/ProtocolsContext';
 import type { Protocol } from '../constants';
 import { api, type ProtocolAuditTrail } from '../services/api';
 import { getMarkerPosition } from '../utils/mapUtils';
+import { canAccessOperationalAdmin } from '../types/auth';
 
 type DetailsTab = 'details' | 'blockchain';
 type DetailedProtocol = Protocol & { image_urls?: string[] };
@@ -70,6 +71,7 @@ export function ProtocolDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { role } = useApp();
+  const isOperationalAdmin = canAccessOperationalAdmin(role);
   const { invalidate: invalidateProtocols } = useProtocolsCache();
   const [protocol, setProtocol] = useState<DetailedProtocol | null>(null);
   const [loading, setLoading] = useState(true);
@@ -106,7 +108,7 @@ export function ProtocolDetails() {
   }, [protocol]);
 
   const loadAuditTrail = useCallback(async () => {
-    if (!id || role === 'citizen') {
+    if (!id || !isOperationalAdmin) {
       setAuditTrail(null);
       setAuditError('');
       setAuditLoading(false);
@@ -122,15 +124,15 @@ export function ProtocolDetails() {
     } finally {
       setAuditLoading(false);
     }
-  }, [id, role]);
+  }, [id, isOperationalAdmin]);
 
   useEffect(() => {
-    if (role === 'citizen') {
+    if (!isOperationalAdmin) {
       setActiveTab('details');
       return;
     }
     if (activeTab === 'blockchain') void loadAuditTrail();
-  }, [activeTab, loadAuditTrail, role]);
+  }, [activeTab, loadAuditTrail, isOperationalAdmin]);
 
   const handleStatusChange = async (newStatus: string, resolutionCost?: number) => {
     if (!id || !protocol) return;
@@ -166,7 +168,7 @@ export function ProtocolDetails() {
   };
 
   const handleGenerateCorrection = async () => {
-    if (!id || !protocol || role === 'citizen') return;
+    if (!id || !protocol || !isOperationalAdmin) return;
     setCorrectionGenerating(true);
     setCorrectionError('');
     try {
@@ -190,14 +192,14 @@ export function ProtocolDetails() {
         <AlertCircle size={48} className="mb-4 text-red-600" />
         <h1 className="text-2xl font-black text-[#111827]">Protocolo não encontrado</h1>
         <p className="mt-2 text-slate-600">O protocolo solicitado não existe ou você não tem acesso.</p>
-        <Link to={role !== 'citizen' ? '/admin/solicitacoes' : '/meus-protocolos'} className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-600 px-5 font-bold text-white"><ArrowLeft size={18} /> Voltar</Link>
+        <Link to={isOperationalAdmin ? '/admin/solicitacoes' : '/meus-protocolos'} className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-600 px-5 font-bold text-white"><ArrowLeft size={18} /> Voltar</Link>
       </div>
     );
   }
 
   const category = protocol.category || protocol.service || 'Outros';
   const categoryLabel = category.toLocaleLowerCase('pt-BR');
-  const backPath = role !== 'citizen' ? '/admin/solicitacoes' : '/meus-protocolos';
+  const backPath = isOperationalAdmin ? '/admin/solicitacoes' : '/meus-protocolos';
   const title = activeTab === 'blockchain' ? 'Auditoria do protocolo' : `Solicitação de acessibilidade ${categoryLabel}`;
   const timeline = buildTimeline(normalizeStatus(protocol.status), protocol.date);
 
@@ -205,18 +207,18 @@ export function ProtocolDetails() {
     <div className="flex h-full flex-1 flex-col overflow-y-auto bg-[#F4F8FC] text-[#111827]">
       <Header
         title={title}
-        subtitle={role !== 'citizen' ? 'Fila de Solicitações / Detalhes' : 'Meus Protocolos / Detalhes'}
-        action={role !== 'citizen' ? <HeaderActions protocol={protocol} onCopy={copyProtocol} onRefresh={loadProtocol} onOpenPublic={() => navigate(`/p/${protocol.id}`)} /> : undefined}
+        subtitle={isOperationalAdmin ? 'Fila de Solicitações / Detalhes' : 'Meus Protocolos / Detalhes'}
+        action={isOperationalAdmin ? <HeaderActions protocol={protocol} onCopy={copyProtocol} onRefresh={loadProtocol} onOpenPublic={() => navigate(`/p/${protocol.id}`)} /> : undefined}
       />
       <div className="w-full px-4 pb-8 sm:px-6 lg:px-8">
         <div className="flex justify-end md:hidden"><StatusPill status={protocol.status} /></div>
         <Link to={backPath} className="mt-4 inline-flex items-center gap-2 font-bold text-[#0758BD] hover:text-blue-800"><ArrowLeft size={18} /> Voltar</Link>
-        {role !== 'citizen' && <ProtocolTabs activeTab={activeTab} onChange={setActiveTab} auditCount={auditTrail?.blocks.length ?? 0} />}
-        {role !== 'citizen' && activeTab === 'blockchain' ? (
+        {isOperationalAdmin && <ProtocolTabs activeTab={activeTab} onChange={setActiveTab} auditCount={auditTrail?.blocks.length ?? 0} />}
+        {isOperationalAdmin && activeTab === 'blockchain' ? (
           <BlockchainAuditPanel auditTrail={auditTrail} loading={auditLoading} error={auditError} onRefresh={loadAuditTrail} />
         ) : (
           <>
-            {role !== 'citizen' && protocol.location_grouped && <LocationGroupBanner protocol={protocol} />}
+            {isOperationalAdmin && protocol.location_grouped && <LocationGroupBanner protocol={protocol} />}
             <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)]">
               <div className="flex min-w-0 flex-col gap-4">
                 <ProtocolSummary protocol={protocol} category={category} />
@@ -227,14 +229,14 @@ export function ProtocolDetails() {
                   correctionStatus={protocol.correction_status || 'idle'}
                   correctionError={correctionError || protocol.correction_error || ''}
                   correctionReport={protocol.correction_report || ''}
-                  canGenerate={role !== 'citizen'}
+                  canGenerate={isOperationalAdmin}
                   generating={correctionGenerating}
                   onGenerate={handleGenerateCorrection}
                 />
               </div>
               <div className="flex min-w-0 flex-col gap-4">
                 <RequesterCard protocol={protocol} />
-                {role !== 'citizen' && <>
+                {isOperationalAdmin && <>
                   <StatusControlCard status={protocol.status} resolutionCost={protocol.resolution_cost} groupCount={protocol.location_group_count} loading={statusUpdating} error={statusError} onSave={handleStatusChange} />
                   <PrioritySection protocolId={protocol.id} initialPriority={protocol.ai_priority} initialStatus={protocol.ai_status} />
                 </>}
@@ -245,7 +247,7 @@ export function ProtocolDetails() {
               <LocationCard
                 protocol={protocol}
                 position={mapPosition}
-                onOpenMap={() => navigate(`${role !== 'citizen' ? '/admin/mapa' : '/mapa'}?protocol=${encodeURIComponent(protocol.id)}`)}
+                onOpenMap={() => navigate(`${isOperationalAdmin ? '/admin/mapa' : '/mapa'}?protocol=${encodeURIComponent(protocol.id)}`)}
               />
             </div>
           </>

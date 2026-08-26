@@ -25,10 +25,19 @@ public class GetProtocolsUseCase {
      * ficam em base64 no banco, e devolve-las aqui tornava esta rota - chamada
      * por toda tela do app - uma resposta de dezenas de MB.
      */
-    public List<ProtocolSummaryOutputDto> execute(String userId) {
-        List<Protocol> protocols = userId != null && !userId.isBlank()
-                ? repository.getByUserId(userId)
-                : repository.getAll();
+    public List<ProtocolSummaryOutputDto> execute(
+            String userId,
+            String establishmentId,
+            boolean allEstablishments
+    ) {
+        List<Protocol> protocols;
+        if (userId != null && !userId.isBlank()) {
+            protocols = repository.getByUserId(userId);
+        } else if (!allEstablishments && establishmentId != null && !establishmentId.isBlank()) {
+            protocols = repository.getByEstablishmentId(establishmentId);
+        } else {
+            protocols = repository.getAll();
+        }
 
         return protocols.stream()
                 .map(ProtocolSummaryOutputDto::from)
@@ -37,5 +46,10 @@ public class GetProtocolsUseCase {
 
     public List<ProtocolSummaryOutputDto> executeForAdmin(Set<String> allowedStates) {
         return locationGroupService.summarizeForAdmin(repository.getByStates(allowedStates));
+    }
+
+    public List<ProtocolSummaryOutputDto> executeForAdminByEstablishment(String establishmentId) {
+        if (establishmentId == null || establishmentId.isBlank()) return List.of();
+        return locationGroupService.summarizeForAdmin(repository.getByEstablishmentId(establishmentId));
     }
 }

@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -64,6 +65,25 @@ public class ProtocolLocationGroupService {
         List<Protocol> members = findMembers(protocol).stream()
                 .filter(member -> member.getStateCode() != null
                         && allowedStates.contains(member.getStateCode().toUpperCase(Locale.ROOT)))
+                .toList();
+        if (members.isEmpty()) members = List.of(protocol);
+        GroupMetadata metadata = metadata(members);
+        List<LocationReportOutputDto> reports = metadata.grouped()
+                ? members.stream().map(LocationReportOutputDto::from).toList()
+                : List.of();
+        return ProtocolOutputDto.from(
+                protocol,
+                metadata.count(),
+                metadata.grouped(),
+                metadata.alert(),
+                metadata.primaryProtocolId(),
+                reports
+        );
+    }
+
+    public ProtocolOutputDto detailsForEstablishmentAdmin(Protocol protocol, String establishmentId) {
+        List<Protocol> members = findMembers(protocol).stream()
+                .filter(member -> Objects.equals(establishmentId, member.getEstablishmentId()))
                 .toList();
         if (members.isEmpty()) members = List.of(protocol);
         GroupMetadata metadata = metadata(members);

@@ -58,6 +58,13 @@ public class Protocol {
     @Column(name = "user_id", nullable = false)
     private String userId;
 
+    @Column(name = "establishment_id")
+    private String establishmentId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "establishment_id", referencedColumnName = "id", insertable = false, updatable = false)
+    private Establishment establishment;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", referencedColumnName = "id", insertable = false, updatable = false)
     private User user;
@@ -216,6 +223,22 @@ public class Protocol {
 
     public void setUserId(String userId) {
         this.userId = userId;
+    }
+
+    public String getEstablishmentId() {
+        return establishmentId;
+    }
+
+    public void setEstablishmentId(String establishmentId) {
+        this.establishmentId = establishmentId;
+    }
+
+    public Establishment getEstablishment() {
+        return establishment;
+    }
+
+    public void setEstablishment(Establishment establishment) {
+        this.establishment = establishment;
     }
 
     public User getUser() {

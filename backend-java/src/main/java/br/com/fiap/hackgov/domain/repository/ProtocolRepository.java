@@ -25,6 +25,8 @@ public interface ProtocolRepository {
     /** Mesma causa no mesmo local, em ordem cronologica para identificar o principal. */
     List<Protocol> getByLocationAndCause(String locationKey, String causeKey);
 
+    List<Protocol> getByEstablishmentId(String establishmentId);
+
     long countAll();
 
     long countByStatuses(List<String> statuses);
