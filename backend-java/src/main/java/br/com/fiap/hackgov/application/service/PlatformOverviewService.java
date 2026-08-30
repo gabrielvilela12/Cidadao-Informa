@@ -1,16 +1,20 @@
 package br.com.fiap.hackgov.application.service;
 
-import br.com.fiap.hackgov.application.dto.adminmaster.CreateSubscriptionInputDto;
 import br.com.fiap.hackgov.application.dto.adminmaster.EstablishmentDetailsOutputDto.PaymentOutputDto;
 import br.com.fiap.hackgov.application.dto.adminmaster.PlatformOverviewOutputDto;
 import br.com.fiap.hackgov.application.dto.adminmaster.PlatformOverviewOutputDto.EstablishmentSubscriptionOutputDto;
-import br.com.fiap.hackgov.application.util.AuthUtils;
+import br.com.fiap.hackgov.application.dto.onboarding.EstablishmentApplicationOutputDto;
+import br.com.fiap.hackgov.application.dto.onboarding.PlatformPlanOutputDto;
+import br.com.fiap.hackgov.domain.billing.PlatformPlan;
 import br.com.fiap.hackgov.domain.billing.Subscription;
 import br.com.fiap.hackgov.domain.campaign.RegionalCampaign;
 import br.com.fiap.hackgov.domain.entity.Establishment;
 import br.com.fiap.hackgov.domain.entity.User;
+import br.com.fiap.hackgov.domain.onboarding.EstablishmentApplication;
 import br.com.fiap.hackgov.domain.repository.UserRepository;
+import br.com.fiap.hackgov.infrastructure.persistence.repository.JpaEstablishmentApplicationRepository;
 import br.com.fiap.hackgov.infrastructure.persistence.repository.JpaEstablishmentRepository;
+import br.com.fiap.hackgov.infrastructure.persistence.repository.JpaPlatformPlanRepository;
 import br.com.fiap.hackgov.infrastructure.persistence.repository.JpaRegionalCampaignRepository;
 import br.com.fiap.hackgov.infrastructure.persistence.repository.JpaSubscriptionPaymentRepository;
 import br.com.fiap.hackgov.infrastructure.persistence.repository.JpaSubscriptionRepository;
@@ -20,23 +24,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.UUID;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class PlatformOverviewService {
-
-    private static final Set<String> SUBSCRIPTION_STATUSES = Set.of(
-            "active",
-            "trial",
-            "overdue",
-            "blocked",
-            "canceled"
-    );
 
     private final UserRepository userRepository;
     private final JpaUserRepository jpaUserRepository;
@@ -44,6 +38,8 @@ public class PlatformOverviewService {
     private final JpaRegionalCampaignRepository campaignRepository;
     private final JpaSubscriptionRepository subscriptionRepository;
     private final JpaSubscriptionPaymentRepository paymentRepository;
+    private final JpaPlatformPlanRepository planRepository;
+    private final JpaEstablishmentApplicationRepository applicationRepository;
 
     public PlatformOverviewService(
             UserRepository userRepository,
@@ -51,7 +47,9 @@ public class PlatformOverviewService {
             JpaEstablishmentRepository establishmentRepository,
             JpaRegionalCampaignRepository campaignRepository,
             JpaSubscriptionRepository subscriptionRepository,
-            JpaSubscriptionPaymentRepository paymentRepository
+            JpaSubscriptionPaymentRepository paymentRepository,
+            JpaPlatformPlanRepository planRepository,
+            JpaEstablishmentApplicationRepository applicationRepository
     ) {
         this.userRepository = userRepository;
         this.jpaUserRepository = jpaUserRepository;
@@ -59,8 +57,11 @@ public class PlatformOverviewService {
         this.campaignRepository = campaignRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.paymentRepository = paymentRepository;
+        this.planRepository = planRepository;
+        this.applicationRepository = applicationRepository;
     }
 
+    @Transactional(readOnly = true)
     public PlatformOverviewOutputDto getOverview() {
         List<Subscription> subscriptions = subscriptionRepository.findAllByOrderByCreatedAtDesc();
         BigDecimal monthlyRecurringRevenue = subscriptions.stream()
@@ -72,6 +73,12 @@ public class PlatformOverviewService {
                 .map(this::toOutput)
                 .toList();
         BigDecimal pendingRevenue = paymentRepository.sumAmountByStatusIn(List.of("pending", "overdue"));
+        List<PlatformPlanOutputDto> plans = planRepository
+                .findByStatusIgnoreCaseOrderBySortOrderAscNameAsc("active")
+                .stream()
+                .map(PlatformPlanOutputDto::from)
+                .toList();
+        List<EstablishmentApplicationOutputDto> establishmentApplications = applicationOutputs();
 
         return new PlatformOverviewOutputDto(
                 userRepository.countAll(),
@@ -85,95 +92,13 @@ public class PlatformOverviewService {
                 subscriptionRepository.countByStatusIgnoreCase("overdue"),
                 paymentRepository.countByStatusIgnoreCase("pending")
                         + paymentRepository.countByStatusIgnoreCase("overdue"),
+                applicationRepository.countByStatusIgnoreCase("pending"),
                 monthlyRecurringRevenue,
                 pendingRevenue == null ? BigDecimal.ZERO : pendingRevenue,
+                plans,
+                establishmentApplications,
                 establishmentSubscriptions
         );
-    }
-
-    @Transactional
-    public PlatformOverviewOutputDto createSubscription(CreateSubscriptionInputDto input) {
-        if (input == null) {
-            throw new IllegalArgumentException("Informe os dados da nova assinatura.");
-        }
-
-        String establishmentName = required(input.establishmentName(), "Informe o nome da prefeitura.");
-        String city = required(input.city(), "Informe a cidade da prefeitura.");
-        String state = required(input.state(), "Informe a UF da prefeitura.").toUpperCase(Locale.ROOT);
-        if (state.length() != 2) {
-            throw new IllegalArgumentException("A UF deve ter exatamente 2 letras.");
-        }
-
-        String primaryColor = defaultWhenBlank(input.primaryColor(), "#0758BD");
-        if (!primaryColor.matches("^#[0-9A-Fa-f]{6}$")) {
-            throw new IllegalArgumentException("A cor principal deve estar no formato hexadecimal, como #0758BD.");
-        }
-
-        String campaignScope = defaultWhenBlank(input.campaignScope(), "city").toLowerCase(Locale.ROOT);
-        if (!Set.of("city", "state").contains(campaignScope)) {
-            throw new IllegalArgumentException("A campanha deve ser por cidade ou por estado.");
-        }
-        String campaignName = defaultWhenBlank(
-                input.campaignName(),
-                "Campanha " + ("state".equals(campaignScope) ? state : city + "/" + state)
-        );
-
-        String planName = defaultWhenBlank(input.planName(), "Essencial Prefeitura");
-        String subscriptionStatus = defaultWhenBlank(input.subscriptionStatus(), "active").toLowerCase(Locale.ROOT);
-        if (!SUBSCRIPTION_STATUSES.contains(subscriptionStatus)) {
-            throw new IllegalArgumentException("Status de assinatura inválido.");
-        }
-
-        BigDecimal monthlyAmount = input.monthlyAmount() == null ? BigDecimal.ZERO : input.monthlyAmount();
-        if (monthlyAmount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("A mensalidade não pode ser negativa.");
-        }
-
-        int billingDay = input.billingDay() == null ? 10 : input.billingDay();
-        if (billingDay < 1 || billingDay > 28) {
-            throw new IllegalArgumentException("O vencimento deve ficar entre os dias 1 e 28.");
-        }
-
-        Establishment establishment = new Establishment();
-        establishment.setId(UUID.randomUUID().toString());
-        establishment.setName(establishmentName);
-        establishment.setType("city_hall");
-        establishment.setDocument(blankToNull(input.document()));
-        establishment.setCity(city);
-        establishment.setState(state);
-        establishment.setStatus("active");
-        establishment.setPrimaryColor(primaryColor);
-        establishment.setLogoUrl(blankToNull(input.logoUrl()));
-        Establishment createdEstablishment = establishmentRepository.save(establishment);
-
-        Instant now = Instant.now();
-        Subscription subscription = new Subscription();
-        subscription.setId(UUID.randomUUID().toString());
-        subscription.setEstablishmentId(createdEstablishment.getId());
-        subscription.setPlanName(planName);
-        subscription.setStatus(subscriptionStatus);
-        subscription.setMonthlyAmount(monthlyAmount);
-        subscription.setBillingDay(billingDay);
-        subscription.setStartedAt(now);
-        subscription.setCurrentPeriodEnd(now.plus(30, ChronoUnit.DAYS));
-        subscription.setCreatedAt(now);
-        subscriptionRepository.save(subscription);
-
-        RegionalCampaign campaign = new RegionalCampaign();
-        campaign.setId(UUID.randomUUID().toString());
-        campaign.setEstablishmentId(createdEstablishment.getId());
-        campaign.setName(campaignName);
-        campaign.setScopeType(campaignScope);
-        campaign.setCity("city".equals(campaignScope) ? city : null);
-        campaign.setState(state);
-        campaign.setStatus("active");
-        campaign.setStartsAt(now);
-        campaign.setCreatedAt(now);
-        campaignRepository.save(campaign);
-
-        createOwnerIfPresent(input, createdEstablishment.getId());
-
-        return getOverview();
     }
 
     @Transactional(readOnly = true)
@@ -229,6 +154,45 @@ public class PlatformOverviewService {
         );
     }
 
+    private List<EstablishmentApplicationOutputDto> applicationOutputs() {
+        Map<String, PlatformPlan> plans = planRepository.findAll()
+                .stream()
+                .collect(Collectors.toMap(PlatformPlan::getCode, Function.identity()));
+
+        return applicationRepository.findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(application -> toApplicationOutput(application, plans.get(application.getPlanCode())))
+                .toList();
+    }
+
+    private EstablishmentApplicationOutputDto toApplicationOutput(EstablishmentApplication application, PlatformPlan plan) {
+        User requester = userRepository.getById(application.getRequesterUserId()).orElse(null);
+        return new EstablishmentApplicationOutputDto(
+                application.getId(),
+                application.getEstablishmentName(),
+                application.getDocument(),
+                application.getCity(),
+                application.getState(),
+                application.getPrimaryColor(),
+                application.getLogoUrl(),
+                application.getCampaignName(),
+                application.getCampaignScope(),
+                application.getPlanCode(),
+                plan == null ? application.getPlanCode() : plan.getName(),
+                requester == null ? "" : requester.getName(),
+                requester == null ? "" : requester.getEmail(),
+                requester == null ? "" : requester.getCpf(),
+                requester == null ? "" : requester.getPhone(),
+                application.getStatus(),
+                application.getRejectionReason(),
+                application.getCreatedEstablishmentId(),
+                application.getCreatedSubscriptionId(),
+                application.getCreatedCampaignId(),
+                application.getReviewedAt(),
+                application.getCreatedAt()
+        );
+    }
+
     private long countRole(String establishmentId, String role) {
         if (establishmentId == null || establishmentId.isBlank()) {
             return 0;
@@ -247,81 +211,4 @@ public class PlatformOverviewService {
                 .orElse(null);
     }
 
-    private void createOwnerIfPresent(CreateSubscriptionInputDto input, String establishmentId) {
-        String ownerName = trim(input.ownerName());
-        String ownerEmail = trim(input.ownerEmail()).toLowerCase(Locale.ROOT);
-        String ownerCpf = onlyDigits(input.ownerCpf());
-        String ownerPhone = onlyDigits(input.ownerPhone());
-        String ownerPassword = trim(input.ownerPassword());
-
-        boolean hasOwnerData = !ownerName.isBlank()
-                || !ownerEmail.isBlank()
-                || !ownerCpf.isBlank()
-                || !ownerPhone.isBlank()
-                || !ownerPassword.isBlank();
-
-        if (!hasOwnerData) {
-            return;
-        }
-
-        if (ownerName.isBlank()) {
-            throw new IllegalArgumentException("Informe o nome do diretor responsável.");
-        }
-        if (ownerEmail.isBlank() || !ownerEmail.contains("@")) {
-            throw new IllegalArgumentException("Informe um e-mail válido para o diretor responsável.");
-        }
-        if (ownerCpf.length() != 11) {
-            throw new IllegalArgumentException("O CPF do diretor deve ter exatamente 11 dígitos.");
-        }
-        if (!ownerPhone.isBlank() && ownerPhone.length() != 10 && ownerPhone.length() != 11) {
-            throw new IllegalArgumentException("O telefone do diretor deve ter 10 ou 11 dígitos.");
-        }
-        if (ownerPassword.length() < 6) {
-            throw new IllegalArgumentException("A senha do diretor deve ter pelo menos 6 caracteres.");
-        }
-        if (userRepository.getByCpf(ownerCpf).isPresent()) {
-            throw new IllegalArgumentException("Já existe uma conta cadastrada com este CPF.");
-        }
-        if (userRepository.getByEmail(ownerEmail).isPresent()) {
-            throw new IllegalArgumentException("Já existe uma conta cadastrada com este E-mail.");
-        }
-
-        User owner = new User();
-        owner.setId(UUID.randomUUID().toString());
-        owner.setName(ownerName);
-        owner.setEmail(ownerEmail);
-        owner.setCpf(ownerCpf);
-        owner.setPhone(ownerPhone.isBlank() ? null : ownerPhone);
-        owner.setRole(RoleAccess.ESTABLISHMENT_OWNER);
-        owner.setEstablishmentId(establishmentId);
-        owner.setStatus("active");
-        owner.setPasswordHash(AuthUtils.hashPassword(ownerPassword));
-        userRepository.add(owner);
-    }
-
-    private String required(String value, String message) {
-        String normalized = trim(value);
-        if (normalized.isBlank()) {
-            throw new IllegalArgumentException(message);
-        }
-        return normalized;
-    }
-
-    private String defaultWhenBlank(String value, String fallback) {
-        String normalized = trim(value);
-        return normalized.isBlank() ? fallback : normalized;
-    }
-
-    private String blankToNull(String value) {
-        String normalized = trim(value);
-        return normalized.isBlank() ? null : normalized;
-    }
-
-    private String trim(String value) {
-        return value == null ? "" : value.trim();
-    }
-
-    private String onlyDigits(String value) {
-        return trim(value).replaceAll("\\D", "");
-    }
 }

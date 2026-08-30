@@ -1,5 +1,5 @@
 import React, { useId, useState } from 'react';
-import { User, Shield, Key, FileText, Loader2, ArrowRight, Eye, EyeOff, Home } from 'lucide-react';
+import { User, Shield, Key, FileText, Loader2, ArrowRight, Eye, EyeOff, Home, Crown, Building2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../services/api';
@@ -74,8 +74,10 @@ function authErrorMessage(error: unknown): string {
     return 'Não foi possível concluir o acesso agora. Tente novamente em instantes.';
 }
 
+type LoginPortal = 'citizen' | 'server' | 'owner';
+
 // ─── Main component ───────────────────────────────────────────────────────────
-export function Login({ initialMode = false }: { initialMode?: boolean }) {
+export function Login({ initialMode = false, portal = 'citizen' }: { initialMode?: boolean; portal?: LoginPortal }) {
     const { loginSuccess } = useApp();
     const navigate = useNavigate();
 
@@ -87,7 +89,7 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
     const [loading, setLoading] = useState(false);
     const [errorDesc, setErrorDesc] = useState('');
     const [acceptedTerms, setAcceptedTerms] = useState(false);
-    const [authMode, setAuthMode] = useState<'citizen' | 'admin'>('citizen');
+    const [authMode, setAuthMode] = useState<'citizen' | 'admin'>(portal === 'citizen' ? 'citizen' : 'admin');
 
     const sanitizeCPF = (raw: string) => raw.replace(/\D/g, '');
 
@@ -119,6 +121,9 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
             } else {
                 const data = await api.login(cleanCpf, password);
                 const role = normalizeRole(data.role);
+                if (role !== 'citizen') {
+                    throw new ApiError('Use o portal correto para acessar sua conta.', true);
+                }
                 loginSuccess(data.token, { id: data.userId, cpf: data.cpf, full_name: data.name, email: data.email, phone: data.phone, establishment_id: data.establishmentId, establishment_name: data.establishmentName, created_at: data.createdAt }, role);
                 navigate(getDefaultRouteForRole(role));
             }
@@ -141,7 +146,13 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
         try {
             const data = await api.login(cleanCpf, password);
             const role = normalizeRole(data.role);
-            if (!canAccessOperationalAdmin(role) && !isPlatformOwner(role)) {
+            if (portal === 'owner' && !isPlatformOwner(role)) {
+                throw new ApiError('Acesso restrito aos donos da plataforma.', true);
+            }
+            if (portal === 'server' && !canAccessOperationalAdmin(role)) {
+                throw new ApiError('Acesso restrito a diretores e servidores autorizados.', true);
+            }
+            if (portal === 'citizen' && !canAccessOperationalAdmin(role) && !isPlatformOwner(role)) {
                 throw new ApiError('Acesso restrito à equipe autorizada.', true);
             }
 
@@ -176,6 +187,11 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
 
     // Panel content config per authMode
     const isAdmin = authMode === 'admin';
+    const isOwnerPortal = portal === 'owner';
+    const isServerPortal = portal === 'server';
+    const portalLabel = isOwnerPortal ? 'Acesso dos donos' : isServerPortal ? 'Central do servidor' : 'Portal do cidadão';
+    const adminIcon = isOwnerPortal ? Crown : Building2;
+    const AdminIcon = adminIcon;
 
     return (
         <div className={`min-h-dvh text-slate-900 font-sans flex flex-col overflow-x-hidden ${isAdmin ? 'bg-[#f7faff]' : 'auth-citizen-gradient'}`}>
@@ -226,50 +242,56 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                             {/* Heading */}
                         <div className="flex flex-col items-center gap-2 text-center">
                                 <span className="text-blue-600 text-lg font-medium leading-snug">
-                                    {isAdmin ? 'Bem-vindo de volta' : isRegistering ? 'Preencha seus dados para' : 'Por favor, insira seu'}
+                                    {isAdmin ? portalLabel : isRegistering ? 'Preencha seus dados para' : 'Por favor, insira seu'}
                                 </span>
                                 <h1 className="text-xl font-black leading-snug text-slate-900">
                                     {isAdmin ? 'Acesse sua conta' : isRegistering ? 'criar sua conta' : 'CPF e Senha'}
                                 </h1>
                                 <p className="text-sm text-slate-500">
-                                    {isAdmin
-                                    ? 'Digite seu código e senha para continuar.'
+                                    {isOwnerPortal
+                                    ? 'Entrada exclusiva para Gabriel e Luis.'
+                                    : isServerPortal
+                                      ? 'Entrada para diretores e servidores das prefeituras.'
                                         : isRegistering
                                             ? 'Informe seus dados para acompanhar solicitações de acessibilidade.'
                                             : 'Acesse para reportar e acompanhar suas solicitações.'}
                                 </p>
                             </div>
 
-                            {/* Mode toggle: escolhe qual formulário aparece (o de cidadão
-                                permite criar conta; o de servidor é só acesso). NÃO define
-                                o nível de acesso, que vem do cadastro do usuário. */}
-                        <div>
-                            <div
-                                role="group"
-                                aria-label="Escolha o tipo de formulário de acesso"
-                                className="grid grid-cols-2 gap-1 rounded-full bg-slate-100 p-1"
-                            >
-                                <button
-                                    type="button"
-                                    aria-pressed={authMode === 'citizen'}
-                                    onClick={() => setAuthMode('citizen')}
-                                    className={`rounded-full py-2 text-sm font-bold transition-all flex justify-center items-center gap-2 ${authMode === 'citizen' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'text-slate-500 hover:text-slate-900'}`}
-                                >
-                                    <User size={15} aria-hidden="true" /> Cidadão
-                                </button>
-                                <button
-                                    type="button"
-                                    aria-pressed={authMode === 'admin'}
-                                    onClick={() => { setAuthMode('admin'); setIsRegistering(false); setAcceptedTerms(false); }}
-                                    className={`rounded-full py-2 text-sm font-bold transition-all flex justify-center items-center gap-2 ${authMode === 'admin' ? 'bg-amber-500 text-slate-900 shadow-md shadow-amber-500/20' : 'text-slate-500 hover:text-slate-900'}`}
-                                >
-                                    <Shield size={15} aria-hidden="true" /> Servidor
-                                </button>
-                            </div>
-                            <p className="mt-2 text-center text-xs leading-5 text-slate-500">
-                                Seu acesso é definido pelo seu cadastro, não por esta escolha.
-                            </p>
-                        </div>
+                            {portal === 'citizen' ? (
+                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                    <Link
+                                        to="/login-servidor"
+                                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 transition-colors hover:border-amber-300 hover:bg-amber-50 hover:text-slate-900"
+                                    >
+                                        <Shield size={14} /> Servidor
+                                    </Link>
+                                    <Link
+                                        to="/login-dono"
+                                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-slate-900"
+                                    >
+                                        <Crown size={14} /> Dono
+                                    </Link>
+                                    <Link
+                                        to="/cadastro-prefeitura"
+                                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-slate-900"
+                                    >
+                                        <Building2 size={14} /> Prefeitura
+                                    </Link>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                                    <span className={`flex size-10 items-center justify-center rounded-lg ${isOwnerPortal ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>
+                                        <AdminIcon size={18} />
+                                    </span>
+                                    <div>
+                                        <p className="text-sm font-black text-slate-900">{portalLabel}</p>
+                                        <Link to="/login" className="text-xs font-bold text-slate-500 transition-colors hover:text-blue-600">
+                                            Ir para acesso do cidadão
+                                        </Link>
+                                    </div>
+                                </div>
+                            )}
 
                         {/*
                           Error.
@@ -389,18 +411,28 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                         ) : (
                             /* Admin form */
                             <form onSubmit={handleAdminAuth} className="flex flex-col gap-4">
-                                <InputField label="Código do Servidor" icon={Shield} value={cpf}
+                                <InputField label={isOwnerPortal ? 'CPF do dono' : 'Código do Servidor'} icon={isOwnerPortal ? Crown : Shield} value={cpf}
                                     onChange={(e: any) => setCpf(sanitizeCPF(e.target.value).slice(0, 11))} placeholder="00000000000" autoComplete="username" />
                                 <InputField label="Senha" icon={Key} type="password" value={password}
                                     onChange={(e: any) => setPassword(e.target.value)} placeholder="••••••••" autoComplete="current-password" />
-                            <p className="text-center text-xs text-slate-600">Acesso restrito a donos, diretores e servidores autorizados.</p>
+                            <p className="text-center text-xs text-slate-600">
+                                {isOwnerPortal ? 'Apenas donos da plataforma autorizados.' : 'Acesso restrito a diretores e servidores autorizados.'}
+                            </p>
                                 <button
                                     type="submit"
                                     disabled={loading}
                                     className="mt-1 flex h-11 items-center justify-center gap-2 rounded-full border border-amber-500 bg-amber-500 text-sm font-bold text-slate-900 shadow-lg shadow-amber-500/20 transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
                                 >
-                                    {loading ? <Loader2 size={18} className="animate-spin" /> : <>Acessar Painel <ArrowRight size={16} /></>}
+                                    {loading ? <Loader2 size={18} className="animate-spin" /> : <>{isOwnerPortal ? 'Acessar Admin Master' : 'Acessar Central'} <ArrowRight size={16} /></>}
                                 </button>
+                                {isServerPortal && (
+                                    <Link
+                                        to="/cadastro-prefeitura"
+                                        className="flex items-center justify-center gap-1.5 text-sm font-semibold text-slate-500 transition-colors hover:text-slate-900"
+                                    >
+                                        <Building2 size={15} /> Cadastrar prefeitura
+                                    </Link>
+                                )}
                                 <Link
                                     to="/"
                                     className="flex items-center justify-center gap-1.5 text-sm font-semibold text-slate-500 transition-colors hover:text-slate-900"
@@ -423,7 +455,7 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
                     layout
                     transition={{ duration: 0.65, type: 'spring', stiffness: 60, damping: 18 }}
                     style={{ order: isAdmin ? 2 : 1 }}
-                    className={`hidden lg:flex flex-1 items-center justify-center overflow-hidden ${isAdmin ? 'bg-[#fff8dd]' : 'auth-citizen-gradient'}`}
+                    className={`hidden lg:flex flex-1 items-center justify-center overflow-hidden ${isAdmin ? isOwnerPortal ? 'bg-[#eaf2ff]' : 'bg-[#fff8dd]' : 'auth-citizen-gradient'}`}
                 >
                     {isAdmin ? (
                         <ServerLoginHero />

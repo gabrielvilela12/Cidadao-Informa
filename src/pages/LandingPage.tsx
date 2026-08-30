@@ -274,6 +274,9 @@ export function LandingPage() {
                         <Link to="/transparencia" className="text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]">
                             Transparência
                         </Link>
+                        <Link to="/cadastro-prefeitura" className="text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]">
+                            Prefeituras
+                        </Link>
                         <Link
                             to="/acessibilidade"
                             className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]"
@@ -358,6 +361,15 @@ export function LandingPage() {
                                 >
                                     Já tenho conta
                                     <ChevronRight size={19} aria-hidden="true" />
+                                </MotionLink>
+                                <MotionLink
+                                    whileHover={{ y: -2 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    to="/cadastro-prefeitura"
+                                    className="flex h-14 items-center justify-center gap-3 rounded-lg border border-emerald-200 bg-white/90 px-8 text-base font-bold text-emerald-800 shadow-sm transition-colors hover:border-emerald-400 hover:bg-emerald-50"
+                                >
+                                    Sou prefeitura
+                                    <Shield size={19} aria-hidden="true" />
                                 </MotionLink>
                             </div>
 

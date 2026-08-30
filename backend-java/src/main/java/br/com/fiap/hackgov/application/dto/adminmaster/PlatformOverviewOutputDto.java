@@ -1,5 +1,8 @@
 package br.com.fiap.hackgov.application.dto.adminmaster;
 
+import br.com.fiap.hackgov.application.dto.onboarding.EstablishmentApplicationOutputDto;
+import br.com.fiap.hackgov.application.dto.onboarding.PlatformPlanOutputDto;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -15,8 +18,11 @@ public record PlatformOverviewOutputDto(
         long activeSubscriptions,
         long overdueSubscriptions,
         long pendingPayments,
+        long pendingApplications,
         BigDecimal monthlyRecurringRevenue,
         BigDecimal pendingRevenue,
+        List<PlatformPlanOutputDto> plans,
+        List<EstablishmentApplicationOutputDto> establishmentApplications,
         List<EstablishmentSubscriptionOutputDto> establishmentSubscriptions
 ) {
     public record EstablishmentSubscriptionOutputDto(

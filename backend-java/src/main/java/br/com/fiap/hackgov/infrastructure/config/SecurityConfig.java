@@ -66,6 +66,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/protocols/stats").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/transparency").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/protocols/public/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/public/platform-plans").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/public/establishment-applications").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/cron/daily-reports").permitAll()
                         .anyRequest().authenticated()
                 )

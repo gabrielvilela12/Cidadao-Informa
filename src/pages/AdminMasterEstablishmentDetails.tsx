@@ -5,8 +5,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Building2,
-  CalendarClock,
-  CreditCard,
   FileText,
   Loader2,
   MapPin,
@@ -20,7 +18,6 @@ import {
 import type { Protocol } from '../constants';
 import { useApp } from '../context/AppContext';
 import { api, type PlatformEstablishmentDetails, type PlatformPaymentRecord } from '../services/api';
-import { formatCurrency } from '../utils/currency';
 import { canonicalStatus, type CanonicalStatus } from '../utils/protocolStatus';
 
 type DetailTab = 'protocols' | 'payments';
@@ -151,10 +148,6 @@ export function AdminMasterEstablishmentDetails() {
   }
 
   const { establishment, protocols, payments } = details;
-  const pendingPayments = payments.filter((payment) => ['pending', 'overdue'].includes(payment.status.toLowerCase()));
-  const paidRevenue = payments
-    .filter((payment) => payment.status.toLowerCase() === 'paid')
-    .reduce((total, payment) => total + payment.amount, 0);
 
   return (
     <div className="h-full flex-1 overflow-y-auto bg-[#F4F8FC] text-[#0B1B33]">
@@ -218,16 +211,16 @@ export function AdminMasterEstablishmentDetails() {
         )}
 
         <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <Metric icon={<Building2 size={21} />} label="Plano" value={establishment.planName} hint={`Vencimento dia ${establishment.billingDay}`} tone="blue" />
-          <Metric icon={<CreditCard size={21} />} label="Mensalidade" value={formatCurrency(establishment.monthlyAmount)} hint={`Ciclo até ${periodLabel(establishment.currentPeriodEnd)}`} tone="emerald" />
-          <Metric icon={<ReceiptText size={21} />} label="Pagamentos" value={String(payments.length)} hint={`${pendingPayments.length} pendente(s)`} tone="amber" />
+          <Metric icon={<Building2 size={21} />} label="Plano" value={establishment.planName} hint="Base sem valor definido" tone="blue" />
+          <Metric icon={<ShieldCheck size={21} />} label="Assinatura" value={subscriptionStatusLabel(establishment.subscriptionStatus)} hint={`Ciclo até ${periodLabel(establishment.currentPeriodEnd)}`} tone="emerald" />
+          <Metric icon={<ReceiptText size={21} />} label="Registros" value={String(payments.length)} hint="Pagamentos ficam para a próxima etapa" tone="amber" />
           <Metric icon={<FileText size={21} />} label="Protocolos" value={String(protocols.length)} hint={`${establishment.admins} servidor(es), ${establishment.citizens} cidadão(s)`} tone="slate" />
         </section>
 
         <section className="rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-[0_7px_20px_rgba(15,45,85,0.035)]">
           <div className="grid gap-4 lg:grid-cols-3">
             <InfoBlock label="Campanha" value={establishment.campaignName || 'Sem campanha'} detail={establishment.campaignScope === 'state' ? `Estado: ${establishment.campaignState || establishment.state}` : `Cidade: ${establishment.campaignCity || establishment.city}/${establishment.campaignState || establishment.state}`} />
-            <InfoBlock label="Receita paga" value={formatCurrency(paidRevenue)} detail={`${payments.length} registro(s) de pagamento`} />
+            <InfoBlock label="Modelo" value="Sem valores" detail="Plano vinculado apenas à base operacional" />
             <InfoBlock label="Equipe" value={`${establishment.owners} diretor(es)`} detail={`${establishment.admins} servidor(es) vinculados`} />
           </div>
         </section>
@@ -236,11 +229,11 @@ export function AdminMasterEstablishmentDetails() {
           <div className="flex flex-col gap-3 border-b border-[#E3EAF3] px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="font-black">Registros do estabelecimento</h2>
-              <p className="mt-1 text-sm text-slate-600">Protocolos recebidos por região atendida e cobranças da assinatura.</p>
+              <p className="mt-1 text-sm text-slate-600">Protocolos recebidos por região atendida e histórico administrativo.</p>
             </div>
             <div className="inline-flex rounded-lg border border-[#CDD8E7] bg-[#F7F9FC] p-1">
               <TabButton active={activeTab === 'protocols'} icon={<FileText size={16} />} label="Protocolos" onClick={() => setActiveTab('protocols')} />
-              <TabButton active={activeTab === 'payments'} icon={<ReceiptText size={16} />} label="Pagamentos" onClick={() => setActiveTab('payments')} />
+              <TabButton active={activeTab === 'payments'} icon={<ReceiptText size={16} />} label="Registros" onClick={() => setActiveTab('payments')} />
             </div>
           </div>
 
@@ -447,7 +440,7 @@ function PaymentRecords({ payments }: { payments: PlatformPaymentRecord[] }) {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar pagamento"
+            placeholder="Buscar registro"
             className="h-11 w-full rounded-lg border border-[#CDD8E7] bg-white pl-10 pr-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400"
           />
         </label>
@@ -464,15 +457,14 @@ function PaymentRecords({ payments }: { payments: PlatformPaymentRecord[] }) {
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState icon={<ReceiptText size={38} />} title="Nenhum pagamento encontrado." />
+        <EmptyState icon={<ReceiptText size={38} />} title="Nenhum registro encontrado." />
       ) : (
         <div className="overflow-x-auto border-t border-[#E3EAF3]">
-          <table className="w-full min-w-[940px] text-left text-sm">
+          <table className="w-full min-w-[840px] text-left text-sm">
             <thead className="bg-[#F7F9FC] text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-5 py-3">Registro</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Valor</th>
                 <th className="px-4 py-3">Vencimento</th>
                 <th className="px-4 py-3">Pago em</th>
                 <th className="px-5 py-3">Método / referência</th>
@@ -490,7 +482,6 @@ function PaymentRecords({ payments }: { payments: PlatformPaymentRecord[] }) {
                       {paymentStatusLabel(payment.status)}
                     </span>
                   </td>
-                  <td className="px-4 py-4 font-black text-emerald-700">{formatCurrency(payment.amount)}</td>
                   <td className="px-4 py-4 text-slate-600">{dateLabel(payment.dueDate)}</td>
                   <td className="px-4 py-4 text-slate-600">{payment.paidAt ? dateTimeLabel(payment.paidAt) : 'Em aberto'}</td>
                   <td className="px-5 py-4">

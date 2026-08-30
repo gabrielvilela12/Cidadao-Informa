@@ -22,6 +22,7 @@ import { AdminCitizenDetails } from './pages/AdminCitizenDetails';
 import { AdminPermissions } from './pages/AdminPermissions';
 import { ProtocolDetails } from './pages/ProtocolDetails';
 import { Login } from './pages/Login';
+import { PrefeituraRegistration } from './pages/PrefeituraRegistration';
 import { LandingPage } from './pages/LandingPage';
 import { Profile } from './pages/Profile';
 import { Accessibility } from './pages/Accessibility';
@@ -98,13 +99,25 @@ function AppContent() {
     );
   }
 
+  if (routeLocation.pathname === '/cadastro-prefeitura') {
+    return (
+      <>
+        <PrefeituraRegistration />
+        <AiChatbot />
+      </>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <>
         <Routes location={routeLocation}>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login initialMode={false} />} />
+          <Route path="/login-servidor" element={<Login portal="server" />} />
+          <Route path="/login-dono" element={<Login portal="owner" />} />
           <Route path="/cadastro" element={<Login initialMode={true} />} />
+          <Route path="/cadastro-prefeitura" element={<PrefeituraRegistration />} />
           <Route path="/termos-de-uso" element={<TermsOfUse />} />
           <Route path="/privacidade" element={<PrivacyPolicy />} />
           <Route path="/acessibilidade" element={<Accessibility />} />
@@ -134,6 +147,9 @@ function AppContent() {
         <Routes location={routeLocation}>
           {/* Default Route when authenticated */}
           <Route path="/login" element={<Navigate to={getDefaultRouteForRole(role)} replace />} />
+          <Route path="/login-servidor" element={<Navigate to={getDefaultRouteForRole(role)} replace />} />
+          <Route path="/login-dono" element={<Navigate to={getDefaultRouteForRole(role)} replace />} />
+          <Route path="/cadastro" element={<Navigate to={getDefaultRouteForRole(role)} replace />} />
 
           {/* Citizen Routes */}
           <Route path="/" element={role === 'citizen' ? <CitizenDashboard /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />

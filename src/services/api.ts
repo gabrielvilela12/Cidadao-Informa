@@ -208,8 +208,11 @@ export interface PlatformOverview {
     activeSubscriptions: number;
     overdueSubscriptions: number;
     pendingPayments: number;
+    pendingApplications: number;
     monthlyRecurringRevenue: number;
     pendingRevenue: number;
+    plans: PlatformPlan[];
+    establishmentApplications: EstablishmentApplication[];
     establishmentSubscriptions: Array<{
         establishmentId: string;
         establishmentName: string;
@@ -234,6 +237,38 @@ export interface PlatformOverview {
     }>;
 }
 
+export interface PlatformPlan {
+    code: string;
+    name: string;
+    description: string;
+    sortOrder: number;
+}
+
+export interface EstablishmentApplication {
+    id: string;
+    establishmentName: string;
+    document?: string | null;
+    city: string;
+    state: string;
+    primaryColor: string;
+    logoUrl?: string | null;
+    campaignName?: string | null;
+    campaignScope: string;
+    planCode: string;
+    planName: string;
+    requesterName: string;
+    requesterEmail: string;
+    requesterCpf: string;
+    requesterPhone?: string | null;
+    status: string;
+    rejectionReason?: string | null;
+    createdEstablishmentId?: string | null;
+    createdSubscriptionId?: string | null;
+    createdCampaignId?: string | null;
+    reviewedAt?: string | null;
+    createdAt: string;
+}
+
 export interface PlatformPaymentRecord {
     id: string;
     subscriptionId: string;
@@ -252,7 +287,7 @@ export interface PlatformEstablishmentDetails {
     payments: PlatformPaymentRecord[];
 }
 
-export interface CreatePlatformSubscriptionInput {
+export interface CreateEstablishmentApplicationInput {
     establishmentName: string;
     document?: string;
     city: string;
@@ -260,16 +295,13 @@ export interface CreatePlatformSubscriptionInput {
     primaryColor?: string;
     logoUrl?: string;
     campaignName?: string;
-    campaignScope?: string;
-    planName: string;
-    subscriptionStatus: string;
-    monthlyAmount: number;
-    billingDay: number;
-    ownerName?: string;
-    ownerEmail?: string;
-    ownerCpf?: string;
-    ownerPhone?: string;
-    ownerPassword?: string;
+    campaignScope: string;
+    planCode: string;
+    requesterName: string;
+    requesterEmail: string;
+    requesterCpf: string;
+    requesterPhone?: string;
+    requesterPassword: string;
 }
 
 function mapProtocol(item: ApiProtocol): Protocol {
@@ -450,10 +482,27 @@ export const api = {
         return apiRequest<PlatformOverview>('/api/admin-master/overview');
     },
 
-    createPlatformSubscription(input: CreatePlatformSubscriptionInput) {
-        return apiRequest<PlatformOverview>('/api/admin-master/subscriptions', {
+    getPlatformPlans() {
+        return apiRequest<PlatformPlan[]>('/api/public/platform-plans');
+    },
+
+    createEstablishmentApplication(input: CreateEstablishmentApplicationInput) {
+        return apiRequest<EstablishmentApplication>('/api/public/establishment-applications', {
             method: 'POST',
             body: JSON.stringify(input),
+        });
+    },
+
+    approveEstablishmentApplication(applicationId: string) {
+        return apiRequest<PlatformOverview>(`/api/admin-master/applications/${encodeURIComponent(applicationId)}/approve`, {
+            method: 'POST',
+        });
+    },
+
+    rejectEstablishmentApplication(applicationId: string, reason?: string) {
+        return apiRequest<PlatformOverview>(`/api/admin-master/applications/${encodeURIComponent(applicationId)}/reject`, {
+            method: 'POST',
+            body: JSON.stringify({ reason }),
         });
     },
 

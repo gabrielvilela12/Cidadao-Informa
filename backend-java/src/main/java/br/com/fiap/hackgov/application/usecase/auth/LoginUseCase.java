@@ -27,6 +27,13 @@ public class LoginUseCase {
             throw new IllegalArgumentException("CPF ou senha inválidos.");
         }
 
+        if (!"active".equalsIgnoreCase(user.getStatus())) {
+            if ("pending".equalsIgnoreCase(user.getStatus())) {
+                throw new IllegalArgumentException("Sua conta ainda está aguardando aprovação.");
+            }
+            throw new IllegalArgumentException("Esta conta não possui acesso ativo.");
+        }
+
         String token = jwtService.generateToken(user);
 
         return new AuthOutputDto(

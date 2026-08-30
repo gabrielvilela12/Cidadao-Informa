@@ -1,8 +1,9 @@
 package br.com.fiap.hackgov.api.controller;
 
 import br.com.fiap.hackgov.api.response.ErrorResponse;
-import br.com.fiap.hackgov.application.dto.adminmaster.CreateSubscriptionInputDto;
 import br.com.fiap.hackgov.application.dto.adminmaster.EstablishmentDetailsOutputDto;
+import br.com.fiap.hackgov.application.dto.onboarding.ReviewEstablishmentApplicationInputDto;
+import br.com.fiap.hackgov.application.service.PlatformOnboardingService;
 import br.com.fiap.hackgov.application.service.PlatformOverviewService;
 import br.com.fiap.hackgov.application.usecase.protocol.GetProtocolsUseCase;
 import br.com.fiap.hackgov.infrastructure.security.AuthenticatedUser;
@@ -22,13 +23,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminMasterController {
 
     private final PlatformOverviewService platformOverviewService;
+    private final PlatformOnboardingService onboardingService;
     private final GetProtocolsUseCase getProtocolsUseCase;
 
     public AdminMasterController(
             PlatformOverviewService platformOverviewService,
+            PlatformOnboardingService onboardingService,
             GetProtocolsUseCase getProtocolsUseCase
     ) {
         this.platformOverviewService = platformOverviewService;
+        this.onboardingService = onboardingService;
         this.getProtocolsUseCase = getProtocolsUseCase;
     }
 
@@ -61,15 +65,15 @@ public class AdminMasterController {
         }
     }
 
-    @PostMapping("/subscriptions")
-    public ResponseEntity<?> createSubscription(
-            @RequestBody CreateSubscriptionInputDto input,
+    @PostMapping("/applications/{applicationId}/approve")
+    public ResponseEntity<?> approveApplication(
+            @PathVariable String applicationId,
             Authentication authentication
     ) {
         try {
-            requirePlatformOwner(authentication);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(platformOverviewService.createSubscription(input));
+            AuthenticatedUser user = requirePlatformOwner(authentication);
+            onboardingService.approve(applicationId, user.userId());
+            return ResponseEntity.ok(platformOverviewService.getOverview());
         } catch (IllegalArgumentException exception) {
             HttpStatus status = "Acesso restrito aos donos da plataforma.".equals(exception.getMessage())
                     ? HttpStatus.FORBIDDEN
@@ -79,11 +83,31 @@ public class AdminMasterController {
         }
     }
 
-    private void requirePlatformOwner(Authentication authentication) {
+    @PostMapping("/applications/{applicationId}/reject")
+    public ResponseEntity<?> rejectApplication(
+            @PathVariable String applicationId,
+            @RequestBody(required = false) ReviewEstablishmentApplicationInputDto input,
+            Authentication authentication
+    ) {
+        try {
+            AuthenticatedUser user = requirePlatformOwner(authentication);
+            onboardingService.reject(applicationId, user.userId(), input);
+            return ResponseEntity.ok(platformOverviewService.getOverview());
+        } catch (IllegalArgumentException exception) {
+            HttpStatus status = "Acesso restrito aos donos da plataforma.".equals(exception.getMessage())
+                    ? HttpStatus.FORBIDDEN
+                    : HttpStatus.BAD_REQUEST;
+            return ResponseEntity.status(status)
+                    .body(new ErrorResponse(exception.getMessage()));
+        }
+    }
+
+    private AuthenticatedUser requirePlatformOwner(Authentication authentication) {
         if (authentication == null
                 || !(authentication.getPrincipal() instanceof AuthenticatedUser user)
                 || !RoleAccess.isPlatformOwner(user.role())) {
             throw new IllegalArgumentException("Acesso restrito aos donos da plataforma.");
         }
+        return user;
     }
 }
