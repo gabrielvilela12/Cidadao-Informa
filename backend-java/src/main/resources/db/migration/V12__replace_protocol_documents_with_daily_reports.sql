@@ -1,6 +1,6 @@
 DROP TABLE IF EXISTS protocol_documents;
 
-CREATE TABLE daily_operational_reports (
+CREATE TABLE IF NOT EXISTS daily_operational_reports (
     id UUID PRIMARY KEY,
     report_date DATE NOT NULL UNIQUE,
     period_start TIMESTAMPTZ NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE daily_operational_reports (
     CHECK (period_end > period_start)
 );
 
-CREATE TABLE daily_operational_report_protocols (
+CREATE TABLE IF NOT EXISTS daily_operational_report_protocols (
     id UUID PRIMARY KEY,
     report_id UUID NOT NULL REFERENCES daily_operational_reports(id) ON DELETE CASCADE,
     protocol_id TEXT NOT NULL REFERENCES protocols(id) ON DELETE RESTRICT,
@@ -32,11 +32,11 @@ CREATE TABLE daily_operational_report_protocols (
     UNIQUE (report_id, protocol_id)
 );
 
-CREATE INDEX idx_daily_operational_reports_date
+CREATE INDEX IF NOT EXISTS idx_daily_operational_reports_date
     ON daily_operational_reports (report_date DESC);
-CREATE INDEX idx_daily_report_protocols_report
+CREATE INDEX IF NOT EXISTS idx_daily_report_protocols_report
     ON daily_operational_report_protocols (report_id);
-CREATE INDEX idx_daily_report_protocols_protocol
+CREATE INDEX IF NOT EXISTS idx_daily_report_protocols_protocol
     ON daily_operational_report_protocols (protocol_id);
 
 ALTER TABLE daily_operational_reports ENABLE ROW LEVEL SECURITY;

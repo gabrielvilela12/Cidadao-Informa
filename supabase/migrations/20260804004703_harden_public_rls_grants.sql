@@ -5,14 +5,12 @@ ALTER TABLE IF EXISTS public.protocols ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.ai_priority_jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.ai_job_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.protocol_audit_chain ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.flyway_schema_history ENABLE ROW LEVEL SECURITY;
 
 REVOKE ALL ON TABLE public.users FROM anon, authenticated;
 REVOKE ALL ON TABLE public.protocols FROM anon, authenticated;
 REVOKE ALL ON TABLE public.ai_priority_jobs FROM anon, authenticated;
 REVOKE ALL ON TABLE public.ai_job_logs FROM anon, authenticated;
 REVOKE ALL ON TABLE public.protocol_audit_chain FROM anon, authenticated;
-REVOKE ALL ON TABLE public.flyway_schema_history FROM anon, authenticated;
 
 DROP POLICY IF EXISTS "Allow update protocols ai fields" ON public.protocols;
 DROP POLICY IF EXISTS "Allow insert to authenticated" ON public.ai_job_logs;

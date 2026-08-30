@@ -30,6 +30,8 @@ type CreateSubscriptionForm = {
   state: string;
   primaryColor: string;
   logoUrl: string;
+  campaignName: string;
+  campaignScope: string;
   planName: string;
   subscriptionStatus: string;
   monthlyAmount: string;
@@ -48,6 +50,8 @@ const initialCreateSubscriptionForm: CreateSubscriptionForm = {
   state: '',
   primaryColor: '#0758BD',
   logoUrl: '',
+  campaignName: '',
+  campaignScope: 'city',
   planName: 'Essencial Prefeitura',
   subscriptionStatus: 'active',
   monthlyAmount: '1490',
@@ -191,6 +195,8 @@ export function AdminMasterDashboard() {
         state: createForm.state.trim().toUpperCase(),
         primaryColor: createForm.primaryColor,
         logoUrl: createForm.logoUrl.trim() || undefined,
+        campaignName: createForm.campaignName.trim() || undefined,
+        campaignScope: createForm.campaignScope,
         planName: createForm.planName.trim(),
         subscriptionStatus: createForm.subscriptionStatus,
         monthlyAmount,
@@ -387,12 +393,13 @@ export function AdminMasterDashboard() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] text-left text-sm">
+            <table className="w-full min-w-[1120px] text-left text-sm">
               <thead className="bg-[#F7F9FC] text-xs uppercase text-slate-500">
                 <tr>
                   <th className="px-5 py-3">Estabelecimento</th>
                   <th className="px-4 py-3">Plano</th>
                   <th className="px-4 py-3">Assinatura</th>
+                  <th className="px-4 py-3">Campanha</th>
                   <th className="px-4 py-3">Mensalidade</th>
                   <th className="px-4 py-3">Ciclo</th>
                   <th className="px-4 py-3">Usuários</th>
@@ -405,7 +412,7 @@ export function AdminMasterDashboard() {
                 ))}
                 {!loading && rows.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-5 py-10 text-center text-sm font-semibold text-slate-500">
+                    <td colSpan={8} className="px-5 py-10 text-center text-sm font-semibold text-slate-500">
                       Nenhum white-label encontrado.
                     </td>
                   </tr>
@@ -580,6 +587,32 @@ function CreateSubscriptionModal({
           </section>
 
           <section className="mt-6 border-t border-[#E3EAF3] pt-4">
+            <h3 className="text-sm font-black">Campanha regional</h3>
+            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-4">
+              <label className="space-y-1.5 md:col-span-2">
+                <span className={labelClassName}>Nome da campanha</span>
+                <input
+                  value={form.campaignName}
+                  onChange={(event) => onChange('campaignName', event.target.value)}
+                  className={inputClassName}
+                  placeholder="Campanha Ribeirão Acessível"
+                />
+              </label>
+              <label className="space-y-1.5 md:col-span-2">
+                <span className={labelClassName}>Cobertura</span>
+                <select
+                  value={form.campaignScope}
+                  onChange={(event) => onChange('campaignScope', event.target.value)}
+                  className={inputClassName}
+                >
+                  <option value="city">Cidade da prefeitura</option>
+                  <option value="state">Estado inteiro</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section className="mt-6 border-t border-[#E3EAF3] pt-4">
             <h3 className="text-sm font-black">Assinatura</h3>
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-4">
               <label className="space-y-1.5 md:col-span-2">
@@ -731,6 +764,14 @@ function SubscriptionTableRow({ row }: { row: SubscriptionRow }) {
         <span className={`inline-flex rounded border px-2.5 py-1 text-xs font-black ${statusClass(row.subscriptionStatus)}`}>
           {statusLabel(row.subscriptionStatus)}
         </span>
+      </td>
+      <td className="px-4 py-4">
+        <p className="font-bold">{row.campaignName || 'Sem campanha'}</p>
+        <p className="text-xs text-slate-500">
+          {row.campaignScope === 'state'
+            ? `Estado: ${row.campaignState || row.state}`
+            : `Cidade: ${row.campaignCity || row.city}/${row.campaignState || row.state}`}
+        </p>
       </td>
       <td className="px-4 py-4 font-black text-emerald-700">{formatCurrency(row.monthlyAmount)}</td>
       <td className="px-4 py-4 text-slate-600">{periodLabel(row.currentPeriodEnd)}</td>

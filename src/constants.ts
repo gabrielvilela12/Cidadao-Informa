@@ -18,6 +18,8 @@ export interface Protocol {
   state_code?: string | null;
   date: string;
   status: Status;
+  establishment_id?: string | null;
+  campaign_id?: string | null;
   /** Custo público em reais registrado ao concluir a correção. */
   resolution_cost?: number | null;
   category: string;

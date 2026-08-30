@@ -17,6 +17,7 @@ public record ProtocolOutputDto(
         BigDecimal resolutionCost,
         String userId,
         String establishmentId,
+        String campaignId,
         String requester,
         String phone,
         String aiPriority,
@@ -47,6 +48,7 @@ public record ProtocolOutputDto(
                 protocol.getResolutionCost(),
                 protocol.getUserId(),
                 protocol.getEstablishmentId(),
+                protocol.getCampaignId(),
                 protocol.getRequester(),
                 protocol.getUser() != null ? protocol.getUser().getPhone() : null,
                 protocol.getAiPriority(),
@@ -79,7 +81,7 @@ public record ProtocolOutputDto(
         return new ProtocolOutputDto(
                 base.id(), base.category(), base.description(), base.address(), base.stateCode(),
                 base.createdAt(), base.status(), base.resolutionCost(), base.userId(), base.establishmentId(),
-                base.requester(), base.phone(), base.aiPriority(), base.aiStatus(), base.latitude(), base.longitude(),
+                base.campaignId(), base.requester(), base.phone(), base.aiPriority(), base.aiStatus(), base.latitude(), base.longitude(),
                 base.imageUrls(), base.correctedImageUrls(), base.correctionStatus(), base.correctionError(),
                 base.correctionGeneratedAt(), base.correctionReport(), locationGroupCount, locationGrouped,
                 locationAlert, primaryProtocolId, locationReports == null ? List.of() : List.copyOf(locationReports)

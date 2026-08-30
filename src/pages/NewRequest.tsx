@@ -404,6 +404,7 @@ export function NewRequest() {
         category: category,
         description: serviceDesc + (description ? ` - ${description}` : ''),
         address: fullAddress,
+        city: addressObj.city,
         stateCode: addressObj.state,
         userId: user?.id,
         // Posicao que o solicitante confirmou no mapa. E o que a equipe usa

@@ -59,6 +59,7 @@ public interface JpaProtocolRepository extends JpaRepository<Protocol, String> {
         BigDecimal getResolutionCost();
         String getUserId();
         String getEstablishmentId();
+        String getCampaignId();
         String getRequester();
         UserPhoneProjection getUser();
         String getAiPriority();

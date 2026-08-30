@@ -9,6 +9,8 @@ public record CreateSubscriptionInputDto(
         String state,
         String primaryColor,
         String logoUrl,
+        String campaignName,
+        String campaignScope,
         String planName,
         String subscriptionStatus,
         BigDecimal monthlyAmount,

@@ -5,10 +5,12 @@ import br.com.fiap.hackgov.application.dto.adminmaster.PlatformOverviewOutputDto
 import br.com.fiap.hackgov.application.dto.adminmaster.PlatformOverviewOutputDto.EstablishmentSubscriptionOutputDto;
 import br.com.fiap.hackgov.application.util.AuthUtils;
 import br.com.fiap.hackgov.domain.billing.Subscription;
+import br.com.fiap.hackgov.domain.campaign.RegionalCampaign;
 import br.com.fiap.hackgov.domain.entity.Establishment;
 import br.com.fiap.hackgov.domain.entity.User;
 import br.com.fiap.hackgov.domain.repository.UserRepository;
 import br.com.fiap.hackgov.infrastructure.persistence.repository.JpaEstablishmentRepository;
+import br.com.fiap.hackgov.infrastructure.persistence.repository.JpaRegionalCampaignRepository;
 import br.com.fiap.hackgov.infrastructure.persistence.repository.JpaSubscriptionPaymentRepository;
 import br.com.fiap.hackgov.infrastructure.persistence.repository.JpaSubscriptionRepository;
 import br.com.fiap.hackgov.infrastructure.persistence.repository.JpaUserRepository;
@@ -38,6 +40,7 @@ public class PlatformOverviewService {
     private final UserRepository userRepository;
     private final JpaUserRepository jpaUserRepository;
     private final JpaEstablishmentRepository establishmentRepository;
+    private final JpaRegionalCampaignRepository campaignRepository;
     private final JpaSubscriptionRepository subscriptionRepository;
     private final JpaSubscriptionPaymentRepository paymentRepository;
 
@@ -45,12 +48,14 @@ public class PlatformOverviewService {
             UserRepository userRepository,
             JpaUserRepository jpaUserRepository,
             JpaEstablishmentRepository establishmentRepository,
+            JpaRegionalCampaignRepository campaignRepository,
             JpaSubscriptionRepository subscriptionRepository,
             JpaSubscriptionPaymentRepository paymentRepository
     ) {
         this.userRepository = userRepository;
         this.jpaUserRepository = jpaUserRepository;
         this.establishmentRepository = establishmentRepository;
+        this.campaignRepository = campaignRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.paymentRepository = paymentRepository;
     }
@@ -103,6 +108,15 @@ public class PlatformOverviewService {
             throw new IllegalArgumentException("A cor principal deve estar no formato hexadecimal, como #0758BD.");
         }
 
+        String campaignScope = defaultWhenBlank(input.campaignScope(), "city").toLowerCase(Locale.ROOT);
+        if (!Set.of("city", "state").contains(campaignScope)) {
+            throw new IllegalArgumentException("A campanha deve ser por cidade ou por estado.");
+        }
+        String campaignName = defaultWhenBlank(
+                input.campaignName(),
+                "Campanha " + ("state".equals(campaignScope) ? state : city + "/" + state)
+        );
+
         String planName = defaultWhenBlank(input.planName(), "Essencial Prefeitura");
         String subscriptionStatus = defaultWhenBlank(input.subscriptionStatus(), "active").toLowerCase(Locale.ROOT);
         if (!SUBSCRIPTION_STATUSES.contains(subscriptionStatus)) {
@@ -144,6 +158,18 @@ public class PlatformOverviewService {
         subscription.setCreatedAt(now);
         subscriptionRepository.save(subscription);
 
+        RegionalCampaign campaign = new RegionalCampaign();
+        campaign.setId(UUID.randomUUID().toString());
+        campaign.setEstablishmentId(createdEstablishment.getId());
+        campaign.setName(campaignName);
+        campaign.setScopeType(campaignScope);
+        campaign.setCity("city".equals(campaignScope) ? city : null);
+        campaign.setState(state);
+        campaign.setStatus("active");
+        campaign.setStartsAt(now);
+        campaign.setCreatedAt(now);
+        campaignRepository.save(campaign);
+
         createOwnerIfPresent(input, createdEstablishment.getId());
 
         return getOverview();
@@ -152,6 +178,7 @@ public class PlatformOverviewService {
     private EstablishmentSubscriptionOutputDto toOutput(Subscription subscription) {
         Establishment establishment = subscription.getEstablishment();
         String establishmentId = subscription.getEstablishmentId();
+        RegionalCampaign campaign = activeCampaign(establishmentId);
 
         return new EstablishmentSubscriptionOutputDto(
                 establishmentId,
@@ -161,6 +188,10 @@ public class PlatformOverviewService {
                 establishment == null ? "" : establishment.getState(),
                 establishment == null ? "inactive" : establishment.getStatus(),
                 establishment == null ? "#0758BD" : establishment.getPrimaryColor(),
+                campaign == null ? null : campaign.getName(),
+                campaign == null ? null : campaign.getScopeType(),
+                campaign == null ? null : campaign.getCity(),
+                campaign == null ? null : campaign.getState(),
                 subscription.getId(),
                 subscription.getPlanName(),
                 subscription.getStatus(),
@@ -178,6 +209,17 @@ public class PlatformOverviewService {
             return 0;
         }
         return jpaUserRepository.countByEstablishmentIdAndRoleIgnoreCase(establishmentId, role);
+    }
+
+    private RegionalCampaign activeCampaign(String establishmentId) {
+        if (establishmentId == null || establishmentId.isBlank()) {
+            return null;
+        }
+        return campaignRepository
+                .findByEstablishmentIdAndStatusIgnoreCaseOrderByCreatedAtDesc(establishmentId, "active")
+                .stream()
+                .findFirst()
+                .orElse(null);
     }
 
     private void createOwnerIfPresent(CreateSubscriptionInputDto input, String establishmentId) {

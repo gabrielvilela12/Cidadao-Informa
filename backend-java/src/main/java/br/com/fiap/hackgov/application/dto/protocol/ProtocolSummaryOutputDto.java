@@ -34,6 +34,7 @@ public record ProtocolSummaryOutputDto(
         BigDecimal resolutionCost,
         String userId,
         String establishmentId,
+        String campaignId,
         String requester,
         String phone,
         String aiPriority,
@@ -60,6 +61,7 @@ public record ProtocolSummaryOutputDto(
                 protocol.getResolutionCost(),
                 protocol.getUserId(),
                 protocol.getEstablishmentId(),
+                protocol.getCampaignId(),
                 protocol.getRequester(),
                 protocol.getUser() != null ? protocol.getUser().getPhone() : null,
                 protocol.getAiPriority(),
@@ -87,7 +89,7 @@ public record ProtocolSummaryOutputDto(
         return new ProtocolSummaryOutputDto(
                 base.id(), base.category(), base.description(), base.address(), base.stateCode(),
                 base.createdAt(), base.status(), base.resolutionCost(), base.userId(), base.establishmentId(),
-                base.requester(), base.phone(), base.aiPriority(), base.aiStatus(), base.latitude(), base.longitude(),
+                base.campaignId(), base.requester(), base.phone(), base.aiPriority(), base.aiStatus(), base.latitude(), base.longitude(),
                 base.correctionStatus(), base.correctionError(), base.correctionGeneratedAt(),
                 locationGroupCount, locationGrouped, locationAlert, primaryProtocolId
         );
@@ -106,6 +108,7 @@ public record ProtocolSummaryOutputDto(
                 protocol.resolutionCost(),
                 protocol.userId(),
                 protocol.establishmentId(),
+                protocol.campaignId(),
                 protocol.requester(),
                 protocol.phone(),
                 protocol.aiPriority(),

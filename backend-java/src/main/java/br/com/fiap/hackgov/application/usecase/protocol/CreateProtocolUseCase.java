@@ -2,7 +2,9 @@ package br.com.fiap.hackgov.application.usecase.protocol;
 
 import br.com.fiap.hackgov.application.dto.protocol.ProtocolInputDto;
 import br.com.fiap.hackgov.application.dto.protocol.ProtocolOutputDto;
+import br.com.fiap.hackgov.application.service.RegionalCampaignRoutingService;
 import br.com.fiap.hackgov.domain.entity.Protocol;
+import br.com.fiap.hackgov.domain.campaign.RegionalCampaign;
 import br.com.fiap.hackgov.domain.repository.ProtocolRepository;
 import br.com.fiap.hackgov.application.service.ServerStatePermissionService;
 import br.com.fiap.hackgov.domain.util.ProtocolLocationKey;
@@ -19,26 +21,20 @@ public class CreateProtocolUseCase {
 
     private final ProtocolRepository repository;
     private final ServerStatePermissionService permissionService;
+    private final RegionalCampaignRoutingService campaignRoutingService;
 
     public CreateProtocolUseCase(ProtocolRepository repository,
-                                 ServerStatePermissionService permissionService) {
+                                 ServerStatePermissionService permissionService,
+                                 RegionalCampaignRoutingService campaignRoutingService) {
         this.repository = repository;
         this.permissionService = permissionService;
+        this.campaignRoutingService = campaignRoutingService;
     }
 
     public ProtocolOutputDto execute(
             ProtocolInputDto input,
             String userId,
             String requester
-    ) {
-        return execute(input, userId, requester, null);
-    }
-
-    public ProtocolOutputDto execute(
-            ProtocolInputDto input,
-            String userId,
-            String requester,
-            String establishmentId
     ) {
         if (input.category() == null || input.category().isBlank()
                 || input.description() == null || input.description().isBlank()
@@ -48,6 +44,12 @@ public class CreateProtocolUseCase {
 
         validateCoordinates(input.latitude(), input.longitude());
         List<String> imageUrls = validateImages(input.imageUrls());
+        String stateCode = permissionService.resolveState(input.stateCode(), input.address());
+        RegionalCampaign campaign = campaignRoutingService.resolveActiveCampaign(
+                input.city(),
+                input.address(),
+                stateCode
+        );
 
         Protocol protocol = new Protocol();
         protocol.setCategory(input.category().trim());
@@ -59,9 +61,10 @@ public class CreateProtocolUseCase {
                 || protocol.getCauseKey() == null || protocol.getCauseKey().isBlank()) {
             throw new IllegalArgumentException("Informe um endereço e uma causa válidos.");
         }
-        protocol.setStateCode(permissionService.resolveState(input.stateCode(), input.address()));
+        protocol.setStateCode(stateCode);
         protocol.setUserId(userId);
-        protocol.setEstablishmentId(establishmentId);
+        protocol.setEstablishmentId(campaign.getEstablishmentId());
+        protocol.setCampaignId(campaign.getId());
         protocol.setRequester(requester);
         // Um novo relato da mesma causa no mesmo local entra no andamento que
         // ja existe. A partir do segundo protocolo o grupo nasce sincronizado.

@@ -11,6 +11,7 @@ interface ApiProtocol {
     resolutionCost?: number | null;
     userId?: string;
     establishmentId?: string | null;
+    campaignId?: string | null;
     requester?: string;
     phone?: string;
     createdAt: string;
@@ -217,6 +218,10 @@ export interface PlatformOverview {
         state: string;
         establishmentStatus: string;
         primaryColor: string;
+        campaignName?: string | null;
+        campaignScope?: string | null;
+        campaignCity?: string | null;
+        campaignState?: string | null;
         subscriptionId: string;
         planName: string;
         subscriptionStatus: string;
@@ -236,6 +241,8 @@ export interface CreatePlatformSubscriptionInput {
     state: string;
     primaryColor?: string;
     logoUrl?: string;
+    campaignName?: string;
+    campaignScope?: string;
     planName: string;
     subscriptionStatus: string;
     monthlyAmount: number;
@@ -252,6 +259,8 @@ function mapProtocol(item: ApiProtocol): Protocol {
         ...item,
         created_at: item.createdAt,
         state_code: item.stateCode ?? null,
+        establishment_id: item.establishmentId ?? null,
+        campaign_id: item.campaignId ?? null,
         ai_priority: item.aiPriority,
         ai_status: item.aiStatus,
         service: item.category || 'Outros',
@@ -437,6 +446,7 @@ export const api = {
                 category: data.category,
                 description: data.description,
                 address: data.address,
+                city: data.city ?? null,
                 stateCode: data.stateCode ?? data.state ?? null,
                 // Posição que o solicitante confirmou no mapa. É o que a equipe
                 // usa para chegar ao local, então precisa ser persistida.
