@@ -439,6 +439,13 @@ export const api = {
         });
     },
 
+    async getAdminMasterEstablishmentProtocols(establishmentId: string) {
+        const data = await apiRequest<ApiProtocol[]>(
+            `/api/admin-master/establishments/${encodeURIComponent(establishmentId)}/protocols`,
+        );
+        return data.map(mapProtocol);
+    },
+
     async createProtocol(data: any) {
         return apiRequest<ApiProtocol>('/api/protocols', {
             method: 'POST',

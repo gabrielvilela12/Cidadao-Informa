@@ -3,12 +3,14 @@ package br.com.fiap.hackgov.api.controller;
 import br.com.fiap.hackgov.api.response.ErrorResponse;
 import br.com.fiap.hackgov.application.dto.adminmaster.CreateSubscriptionInputDto;
 import br.com.fiap.hackgov.application.service.PlatformOverviewService;
+import br.com.fiap.hackgov.application.usecase.protocol.GetProtocolsUseCase;
 import br.com.fiap.hackgov.infrastructure.security.AuthenticatedUser;
 import br.com.fiap.hackgov.infrastructure.security.RoleAccess;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,9 +21,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminMasterController {
 
     private final PlatformOverviewService platformOverviewService;
+    private final GetProtocolsUseCase getProtocolsUseCase;
 
-    public AdminMasterController(PlatformOverviewService platformOverviewService) {
+    public AdminMasterController(
+            PlatformOverviewService platformOverviewService,
+            GetProtocolsUseCase getProtocolsUseCase
+    ) {
         this.platformOverviewService = platformOverviewService;
+        this.getProtocolsUseCase = getProtocolsUseCase;
     }
 
     @GetMapping("/overview")
@@ -29,6 +36,20 @@ public class AdminMasterController {
         try {
             requirePlatformOwner(authentication);
             return ResponseEntity.ok(platformOverviewService.getOverview());
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ErrorResponse(exception.getMessage()));
+        }
+    }
+
+    @GetMapping("/establishments/{establishmentId}/protocols")
+    public ResponseEntity<?> establishmentProtocols(
+            @PathVariable String establishmentId,
+            Authentication authentication
+    ) {
+        try {
+            requirePlatformOwner(authentication);
+            return ResponseEntity.ok(getProtocolsUseCase.executeForAdminByEstablishment(establishmentId));
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse(exception.getMessage()));
