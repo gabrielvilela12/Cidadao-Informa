@@ -1,6 +1,7 @@
 package br.com.fiap.hackgov.application.service;
 
 import br.com.fiap.hackgov.application.dto.adminmaster.CreateSubscriptionInputDto;
+import br.com.fiap.hackgov.application.dto.adminmaster.EstablishmentDetailsOutputDto.PaymentOutputDto;
 import br.com.fiap.hackgov.application.dto.adminmaster.PlatformOverviewOutputDto;
 import br.com.fiap.hackgov.application.dto.adminmaster.PlatformOverviewOutputDto.EstablishmentSubscriptionOutputDto;
 import br.com.fiap.hackgov.application.util.AuthUtils;
@@ -173,6 +174,30 @@ public class PlatformOverviewService {
         createOwnerIfPresent(input, createdEstablishment.getId());
 
         return getOverview();
+    }
+
+    @Transactional(readOnly = true)
+    public EstablishmentSubscriptionOutputDto getEstablishmentSubscription(String establishmentId) {
+        return subscriptionRepository.findFirstByEstablishmentIdOrderByCreatedAtDesc(establishmentId)
+                .map(this::toOutput)
+                .orElseThrow(() -> new IllegalArgumentException("Estabelecimento não encontrado."));
+    }
+
+    @Transactional(readOnly = true)
+    public List<PaymentOutputDto> getEstablishmentPayments(String establishmentId) {
+        List<String> subscriptionIds = subscriptionRepository
+                .findByEstablishmentIdOrderByCreatedAtDesc(establishmentId)
+                .stream()
+                .map(Subscription::getId)
+                .toList();
+        if (subscriptionIds.isEmpty()) {
+            return List.of();
+        }
+        return paymentRepository
+                .findBySubscriptionIdInOrderByDueDateDescCreatedAtDesc(subscriptionIds)
+                .stream()
+                .map(PaymentOutputDto::from)
+                .toList();
     }
 
     private EstablishmentSubscriptionOutputDto toOutput(Subscription subscription) {

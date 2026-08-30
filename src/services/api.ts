@@ -234,6 +234,24 @@ export interface PlatformOverview {
     }>;
 }
 
+export interface PlatformPaymentRecord {
+    id: string;
+    subscriptionId: string;
+    amount: number;
+    status: string;
+    dueDate: string;
+    paidAt?: string | null;
+    paymentMethod?: string | null;
+    externalReference?: string | null;
+    createdAt: string;
+}
+
+export interface PlatformEstablishmentDetails {
+    establishment: PlatformOverview['establishmentSubscriptions'][number];
+    protocols: Protocol[];
+    payments: PlatformPaymentRecord[];
+}
+
 export interface CreatePlatformSubscriptionInput {
     establishmentName: string;
     document?: string;
@@ -439,11 +457,18 @@ export const api = {
         });
     },
 
-    async getAdminMasterEstablishmentProtocols(establishmentId: string) {
-        const data = await apiRequest<ApiProtocol[]>(
-            `/api/admin-master/establishments/${encodeURIComponent(establishmentId)}/protocols`,
+    async getAdminMasterEstablishmentDetails(establishmentId: string): Promise<PlatformEstablishmentDetails> {
+        const data = await apiRequest<{
+            establishment: PlatformOverview['establishmentSubscriptions'][number];
+            protocols: ApiProtocol[];
+            payments: PlatformPaymentRecord[];
+        }>(
+            `/api/admin-master/establishments/${encodeURIComponent(establishmentId)}`,
         );
-        return data.map(mapProtocol);
+        return {
+            ...data,
+            protocols: data.protocols.map(mapProtocol),
+        };
     },
 
     async createProtocol(data: any) {

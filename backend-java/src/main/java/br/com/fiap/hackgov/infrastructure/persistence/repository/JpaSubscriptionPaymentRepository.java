@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.util.Collection;
+import java.util.List;
 
 public interface JpaSubscriptionPaymentRepository extends JpaRepository<SubscriptionPayment, String> {
 
@@ -18,4 +19,6 @@ public interface JpaSubscriptionPaymentRepository extends JpaRepository<Subscrip
              where lower(payment.status) in :statuses
             """)
     BigDecimal sumAmountByStatusIn(@Param("statuses") Collection<String> statuses);
+
+    List<SubscriptionPayment> findBySubscriptionIdInOrderByDueDateDescCreatedAtDesc(Collection<String> subscriptionIds);
 }

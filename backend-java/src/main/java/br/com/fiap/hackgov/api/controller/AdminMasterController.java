@@ -2,6 +2,7 @@ package br.com.fiap.hackgov.api.controller;
 
 import br.com.fiap.hackgov.api.response.ErrorResponse;
 import br.com.fiap.hackgov.application.dto.adminmaster.CreateSubscriptionInputDto;
+import br.com.fiap.hackgov.application.dto.adminmaster.EstablishmentDetailsOutputDto;
 import br.com.fiap.hackgov.application.service.PlatformOverviewService;
 import br.com.fiap.hackgov.application.usecase.protocol.GetProtocolsUseCase;
 import br.com.fiap.hackgov.infrastructure.security.AuthenticatedUser;
@@ -42,14 +43,18 @@ public class AdminMasterController {
         }
     }
 
-    @GetMapping("/establishments/{establishmentId}/protocols")
-    public ResponseEntity<?> establishmentProtocols(
+    @GetMapping("/establishments/{establishmentId}")
+    public ResponseEntity<?> establishmentDetails(
             @PathVariable String establishmentId,
             Authentication authentication
     ) {
         try {
             requirePlatformOwner(authentication);
-            return ResponseEntity.ok(getProtocolsUseCase.executeForAdminByEstablishment(establishmentId));
+            return ResponseEntity.ok(new EstablishmentDetailsOutputDto(
+                    platformOverviewService.getEstablishmentSubscription(establishmentId),
+                    getProtocolsUseCase.executeForAdminByEstablishment(establishmentId),
+                    platformOverviewService.getEstablishmentPayments(establishmentId)
+            ));
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse(exception.getMessage()));

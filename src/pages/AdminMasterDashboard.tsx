@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type React from 'react';
+import { Link } from 'react-router-dom';
 import {
+  ArrowRight,
   AlertTriangle,
   Building2,
   CalendarClock,
   Crown,
   CreditCard,
-  FileText,
   Loader2,
-  MapPin,
   Menu,
   Plus,
   RefreshCw,
@@ -19,13 +19,10 @@ import {
   Users,
 } from 'lucide-react';
 import { api, type CreatePlatformSubscriptionInput, type PlatformOverview } from '../services/api';
-import type { Protocol } from '../constants';
 import { useApp } from '../context/AppContext';
 import { formatCurrency } from '../utils/currency';
-import { canonicalStatus, type CanonicalStatus } from '../utils/protocolStatus';
 
 type SubscriptionRow = PlatformOverview['establishmentSubscriptions'][number];
-type ProtocolStatusFilter = 'all' | CanonicalStatus;
 
 type CreateSubscriptionForm = {
   establishmentName: string;
@@ -67,14 +64,6 @@ const initialCreateSubscriptionForm: CreateSubscriptionForm = {
   ownerPassword: '',
 };
 
-const protocolStatusFilters: Array<{ value: ProtocolStatusFilter; label: string }> = [
-  { value: 'all', label: 'Todos os status' },
-  { value: 'Aberto', label: 'Abertos' },
-  { value: 'Em análise', label: 'Em análise' },
-  { value: 'Concluído', label: 'Concluídos' },
-  { value: 'Atrasado', label: 'Atrasados' },
-];
-
 function statusLabel(status: string) {
   const normalized = status.toLowerCase();
   if (normalized === 'active') return 'Ativa';
@@ -103,24 +92,6 @@ function periodLabel(value: string | null) {
   });
 }
 
-function dateTimeLabel(value?: string | null) {
-  if (!value) return 'Sem data';
-  return new Date(value).toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function protocolStatusClass(status: CanonicalStatus) {
-  if (status === 'Aberto') return 'border-blue-200 bg-blue-50 text-blue-700';
-  if (status === 'Em análise') return 'border-amber-200 bg-amber-50 text-amber-800';
-  if (status === 'Concluído') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  return 'border-red-200 bg-red-50 text-red-700';
-}
-
 export function AdminMasterDashboard() {
   const { toggleMobileMenu } = useApp();
   const [overview, setOverview] = useState<PlatformOverview | null>(null);
@@ -132,10 +103,6 @@ export function AdminMasterDashboard() {
   const [createSaving, setCreateSaving] = useState(false);
   const [createError, setCreateError] = useState('');
   const [createForm, setCreateForm] = useState<CreateSubscriptionForm>(initialCreateSubscriptionForm);
-  const [selectedEstablishment, setSelectedEstablishment] = useState<SubscriptionRow | null>(null);
-  const [establishmentProtocols, setEstablishmentProtocols] = useState<Protocol[]>([]);
-  const [protocolsLoading, setProtocolsLoading] = useState(false);
-  const [protocolsError, setProtocolsError] = useState('');
 
   const loadOverview = useCallback(async () => {
     setLoading(true);
@@ -149,32 +116,6 @@ export function AdminMasterDashboard() {
       setLoading(false);
     }
   }, []);
-
-  const loadEstablishmentProtocols = useCallback(async (row: SubscriptionRow) => {
-    setSelectedEstablishment(row);
-    setProtocolsLoading(true);
-    setProtocolsError('');
-    try {
-      setEstablishmentProtocols(await api.getAdminMasterEstablishmentProtocols(row.establishmentId));
-    } catch (err) {
-      console.error('Erro ao carregar protocolos do estabelecimento:', err);
-      setEstablishmentProtocols([]);
-      setProtocolsError(err instanceof Error ? err.message : 'Não foi possível carregar os protocolos.');
-    } finally {
-      setProtocolsLoading(false);
-    }
-  }, []);
-
-  const closeEstablishmentProtocols = () => {
-    setSelectedEstablishment(null);
-    setEstablishmentProtocols([]);
-    setProtocolsError('');
-  };
-
-  const refreshEstablishmentProtocols = () => {
-    if (!selectedEstablishment) return;
-    void loadEstablishmentProtocols(selectedEstablishment);
-  };
 
   const openCreateForm = () => {
     setCreateError('');
@@ -415,11 +356,7 @@ export function AdminMasterDashboard() {
               </thead>
               <tbody className="divide-y divide-[#E8EDF4]">
                 {rows.map((row) => (
-                  <SubscriptionTableRow
-                    key={row.subscriptionId}
-                    row={row}
-                    onViewProtocols={() => { void loadEstablishmentProtocols(row); }}
-                  />
+                  <SubscriptionTableRow key={row.subscriptionId} row={row} />
                 ))}
                 {!loading && rows.length === 0 && (
                   <tr>
@@ -463,16 +400,6 @@ export function AdminMasterDashboard() {
           onChange={updateCreateForm}
           onClose={closeCreateForm}
           onSubmit={handleCreateSubscription}
-        />
-      )}
-      {selectedEstablishment && (
-        <EstablishmentProtocolsModal
-          establishment={selectedEstablishment}
-          error={protocolsError}
-          loading={protocolsLoading}
-          protocols={establishmentProtocols}
-          onClose={closeEstablishmentProtocols}
-          onRefresh={refreshEstablishmentProtocols}
         />
       )}
     </div>
@@ -765,7 +692,7 @@ function CreateSubscriptionModal({
   );
 }
 
-function SubscriptionTableRow({ row, onViewProtocols }: { row: SubscriptionRow; onViewProtocols: () => void }) {
+function SubscriptionTableRow({ row }: { row: SubscriptionRow }) {
   return (
     <tr className="hover:bg-blue-50/40">
       <td className="px-5 py-4">
@@ -804,205 +731,15 @@ function SubscriptionTableRow({ row, onViewProtocols }: { row: SubscriptionRow; 
         </div>
       </td>
       <td className="px-5 py-4">
-        <button
-          type="button"
-          onClick={onViewProtocols}
+        <Link
+          to={`/admin-master/estabelecimentos/${encodeURIComponent(row.establishmentId)}`}
           className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#B9CBE2] bg-white px-3 font-bold text-[#0758BD] transition-colors hover:bg-blue-50"
         >
-          <FileText size={16} />
-          Protocolos
-        </button>
+          Abrir
+          <ArrowRight size={16} />
+        </Link>
       </td>
     </tr>
-  );
-}
-
-function EstablishmentProtocolsModal({
-  establishment,
-  error,
-  loading,
-  protocols,
-  onClose,
-  onRefresh,
-}: {
-  establishment: SubscriptionRow;
-  error: string;
-  loading: boolean;
-  protocols: Protocol[];
-  onClose: () => void;
-  onRefresh: () => void;
-}) {
-  const [protocolQuery, setProtocolQuery] = useState('');
-  const [protocolStatus, setProtocolStatus] = useState<ProtocolStatusFilter>('all');
-
-  const filteredProtocols = useMemo(() => {
-    const normalizedQuery = protocolQuery.trim().toLowerCase();
-    return protocols.filter((protocol) => {
-      const status = canonicalStatus(protocol);
-      const matchesStatus = protocolStatus === 'all' || status === protocolStatus;
-      const matchesQuery = !normalizedQuery
-        || protocol.id.toLowerCase().includes(normalizedQuery)
-        || protocol.category.toLowerCase().includes(normalizedQuery)
-        || protocol.address.toLowerCase().includes(normalizedQuery)
-        || (protocol.requester ?? '').toLowerCase().includes(normalizedQuery);
-      return matchesStatus && matchesQuery;
-    });
-  }, [protocolQuery, protocolStatus, protocols]);
-
-  const metrics = useMemo(() => ({
-    total: protocols.length,
-    open: protocols.filter((protocol) => canonicalStatus(protocol) === 'Aberto').length,
-    analysis: protocols.filter((protocol) => canonicalStatus(protocol) === 'Em análise').length,
-    resolved: protocols.filter((protocol) => canonicalStatus(protocol) === 'Concluído').length,
-  }), [protocols]);
-
-  return (
-    <div className="fixed inset-0 z-[900] flex items-center justify-center bg-slate-950/45 px-4 py-6">
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="establishment-protocols-title"
-        className="flex max-h-[calc(100dvh-3rem)] w-full max-w-6xl flex-col overflow-hidden rounded-lg bg-white text-[#0B1B33] shadow-2xl"
-      >
-        <div className="flex flex-col gap-4 border-b border-[#E3EAF3] px-5 py-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
-            <p className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-              <Building2 size={16} className="text-[#0758BD]" />
-              {establishment.establishmentName}
-            </p>
-            <h2 id="establishment-protocols-title" className="mt-1 text-xl font-black">Protocolos do estabelecimento</h2>
-            <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-600">
-              <MapPin size={15} />
-              {establishment.city}/{establishment.state}
-            </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={onRefresh}
-              disabled={loading}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#B9CBE2] bg-white px-3 text-sm font-bold text-[#0758BD] transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <RefreshCw size={16} className={loading ? 'animate-spin' : undefined} />
-              Atualizar
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-[#CDD8E7] text-slate-600 transition-colors hover:bg-slate-50"
-              title="Fechar"
-              aria-label="Fechar"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-
-        <div className="overflow-y-auto px-5 py-4">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <ProtocolMetric label="Total" value={metrics.total} />
-            <ProtocolMetric label="Abertos" value={metrics.open} />
-            <ProtocolMetric label="Em análise" value={metrics.analysis} />
-            <ProtocolMetric label="Concluídos" value={metrics.resolved} />
-          </div>
-
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <label className="relative min-w-0 flex-1 sm:max-w-md">
-              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={17} />
-              <input
-                value={protocolQuery}
-                onChange={(event) => setProtocolQuery(event.target.value)}
-                placeholder="Buscar protocolo"
-                className="h-11 w-full rounded-lg border border-[#CDD8E7] bg-white pl-10 pr-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400"
-              />
-            </label>
-            <select
-              value={protocolStatus}
-              onChange={(event) => setProtocolStatus(event.target.value as ProtocolStatusFilter)}
-              className="h-11 rounded-lg border border-[#CDD8E7] bg-white px-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400"
-            >
-              {protocolStatusFilters.map((item) => (
-                <option key={item.value} value={item.value}>{item.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {error && (
-            <div role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-              {error}
-            </div>
-          )}
-
-          <div className="mt-4 overflow-hidden rounded-lg border border-[#CDD8E7]">
-            {loading ? (
-              <div className="flex min-h-60 items-center justify-center text-sm font-semibold text-slate-600">
-                <Loader2 className="mr-3 animate-spin text-[#0758BD]" size={22} />
-                Carregando protocolos...
-              </div>
-            ) : filteredProtocols.length === 0 ? (
-              <div className="flex min-h-60 flex-col items-center justify-center px-6 text-center text-slate-500">
-                <FileText className="mb-3 text-[#87A9D8]" size={38} />
-                <p className="font-semibold">Nenhum protocolo encontrado.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[900px] text-left text-sm">
-                  <thead className="bg-[#F7F9FC] text-xs uppercase text-slate-500">
-                    <tr>
-                      <th className="px-5 py-3">Protocolo</th>
-                      <th className="px-4 py-3">Ocorrência</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3">Solicitante</th>
-                      <th className="px-5 py-3">Prioridade</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#E8EDF4]">
-                    {filteredProtocols.map((protocol) => {
-                      const status = canonicalStatus(protocol);
-                      return (
-                        <tr key={protocol.id} className="align-top hover:bg-blue-50/40">
-                          <td className="px-5 py-4">
-                            <p className="font-mono font-black text-[#0758BD]">#{protocol.id.slice(0, 8).toUpperCase()}</p>
-                            <p className="mt-1 text-xs text-slate-500">{dateTimeLabel(protocol.created_at)}</p>
-                          </td>
-                          <td className="px-4 py-4">
-                            <p className="font-bold">{protocol.category}</p>
-                            <p className="mt-1 max-w-xl text-xs leading-5 text-slate-500">{protocol.address}</p>
-                          </td>
-                          <td className="px-4 py-4">
-                            <span className={`inline-flex rounded border px-2.5 py-1 text-xs font-black ${protocolStatusClass(status)}`}>
-                              {status}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4">
-                            <p className="font-semibold">{protocol.requester || 'Cidadão'}</p>
-                            {protocol.phone && <p className="mt-1 text-xs text-slate-500">{protocol.phone}</p>}
-                          </td>
-                          <td className="px-5 py-4">
-                            <span className="rounded border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700">
-                              {protocol.ai_priority || 'Processando'}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function ProtocolMetric({ label, value }: { label: string; value: number }) {
-  return (
-    <article className="rounded-lg border border-[#CDD8E7] bg-white p-3">
-      <p className="text-2xl font-black">{value}</p>
-      <p className="mt-1 text-xs font-bold uppercase text-slate-500">{label}</p>
-    </article>
   );
 }
 

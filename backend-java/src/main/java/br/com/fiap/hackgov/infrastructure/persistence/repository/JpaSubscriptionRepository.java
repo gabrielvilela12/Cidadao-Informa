@@ -8,11 +8,18 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface JpaSubscriptionRepository extends JpaRepository<Subscription, String> {
 
     @EntityGraph(attributePaths = "establishment")
     List<Subscription> findAllByOrderByCreatedAtDesc();
+
+    @EntityGraph(attributePaths = "establishment")
+    List<Subscription> findByEstablishmentIdOrderByCreatedAtDesc(String establishmentId);
+
+    @EntityGraph(attributePaths = "establishment")
+    Optional<Subscription> findFirstByEstablishmentIdOrderByCreatedAtDesc(String establishmentId);
 
     long countByStatusIgnoreCase(String status);
 

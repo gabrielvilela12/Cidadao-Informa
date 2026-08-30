@@ -9,6 +9,7 @@ import { CitizenMap } from './pages/CitizenMap';
 import { CitizenProtocols } from './pages/CitizenProtocols';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminMasterDashboard } from './pages/AdminMasterDashboard';
+import { AdminMasterEstablishmentDetails } from './pages/AdminMasterEstablishmentDetails';
 import { AdminOwnerDashboard } from './pages/AdminOwnerDashboard';
 import { AdminMap } from './pages/AdminMap';
 import { AdminRequestsQueue } from './pages/AdminRequestsQueue';
@@ -143,6 +144,7 @@ function AppContent() {
 
           {/* Owner Routes */}
           <Route path="/admin-master" element={isPlatformOwner(role) ? <AdminMasterDashboard /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
+          <Route path="/admin-master/estabelecimentos/:establishmentId" element={isPlatformOwner(role) ? <AdminMasterEstablishmentDetails /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
           <Route path="/admin-dono" element={role === 'establishment_owner' ? <AdminOwnerDashboard /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
 
           <Route path="/admin" element={canAccessOperationalAdmin(role) ? <AdminDashboard /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
