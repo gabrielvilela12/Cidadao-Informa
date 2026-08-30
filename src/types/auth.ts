@@ -30,7 +30,7 @@ export function isPlatformOwner(role: UserRole) {
 }
 
 export function canAccessOperationalAdmin(role: UserRole) {
-  return role === 'platform_owner' || role === 'establishment_owner' || role === 'admin';
+  return role === 'establishment_owner' || role === 'admin';
 }
 
 export function getDefaultRouteForRole(role: UserRole) {

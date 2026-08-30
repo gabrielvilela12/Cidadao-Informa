@@ -21,11 +21,11 @@ export const CITIZEN_SHORTCUTS: ShortcutDefinition[] = [
 ];
 
 export const ADMIN_SHORTCUTS: ShortcutDefinition[] = [
-  { key: 'Alt+1', label: 'Alt + 1', description: 'Dashboard', path: '/admin', roles: ['admin', 'establishment_owner', 'platform_owner'] },
-  { key: 'Alt+2', label: 'Alt + 2', description: 'Solicitações', path: '/admin/solicitacoes', roles: ['admin', 'establishment_owner', 'platform_owner'] },
-  { key: 'Alt+3', label: 'Alt + 3', description: 'Mapa', path: '/admin/mapa', roles: ['admin', 'establishment_owner', 'platform_owner'] },
-  { key: 'Alt+4', label: 'Alt + 4', description: 'Relatórios', path: '/admin/relatorios', roles: ['admin', 'establishment_owner', 'platform_owner'], permission: 'REPORTS' },
-  { key: 'Alt+5', label: 'Alt + 5', description: 'Alertas', path: '/admin/alertas', roles: ['admin', 'establishment_owner', 'platform_owner'] },
+  { key: 'Alt+1', label: 'Alt + 1', description: 'Dashboard', path: '/admin', roles: ['admin', 'establishment_owner'] },
+  { key: 'Alt+2', label: 'Alt + 2', description: 'Solicitações', path: '/admin/solicitacoes', roles: ['admin', 'establishment_owner'] },
+  { key: 'Alt+3', label: 'Alt + 3', description: 'Mapa', path: '/admin/mapa', roles: ['admin', 'establishment_owner'] },
+  { key: 'Alt+4', label: 'Alt + 4', description: 'Relatórios', path: '/admin/relatorios', roles: ['admin', 'establishment_owner'], permission: 'REPORTS' },
+  { key: 'Alt+5', label: 'Alt + 5', description: 'Alertas', path: '/admin/alertas', roles: ['admin', 'establishment_owner'] },
 ];
 
 export const OWNER_SHORTCUTS: ShortcutDefinition[] = [
@@ -42,7 +42,7 @@ export const SHARED_SHORTCUTS: ShortcutDefinition[] = [
 ];
 
 export function getShortcutsForRole(role: UserRole) {
-  if (role === 'platform_owner') return [...MASTER_SHORTCUTS, ...ADMIN_SHORTCUTS];
+  if (role === 'platform_owner') return MASTER_SHORTCUTS;
   if (role === 'establishment_owner') return [...OWNER_SHORTCUTS, ...ADMIN_SHORTCUTS];
   if (role === 'admin') return ADMIN_SHORTCUTS;
   return CITIZEN_SHORTCUTS;

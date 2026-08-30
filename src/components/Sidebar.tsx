@@ -138,7 +138,31 @@ export function Sidebar() {
                 <link.icon size={18} />
                 <span>{link.label}</span>
               </NavLink>
-            )) : (
+            )) : role === 'platform_owner' ? (
+              <>
+                {ownerLinks.map((link) => (
+                  <NavLink
+                    key={link.to}
+                    to={link.to}
+                    end
+                    onClick={closeMobileMenu}
+                    className={({ isActive }) => linkClassName(isActive)}
+                  >
+                    <link.icon size={18} />
+                    <span>{link.label}</span>
+                  </NavLink>
+                ))}
+
+                <NavLink
+                  to="/acessibilidade"
+                  onClick={closeMobileMenu}
+                  className={({ isActive }) => `${linkClassName(isActive)} mt-auto`}
+                >
+                  <A11yIcon size={18} />
+                  <span>Acessibilidade</span>
+                </NavLink>
+              </>
+            ) : (
               <>
                 {ownerLinks.map((link) => (
                   <NavLink

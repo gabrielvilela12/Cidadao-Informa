@@ -229,6 +229,24 @@ export interface PlatformOverview {
     }>;
 }
 
+export interface CreatePlatformSubscriptionInput {
+    establishmentName: string;
+    document?: string;
+    city: string;
+    state: string;
+    primaryColor?: string;
+    logoUrl?: string;
+    planName: string;
+    subscriptionStatus: string;
+    monthlyAmount: number;
+    billingDay: number;
+    ownerName?: string;
+    ownerEmail?: string;
+    ownerCpf?: string;
+    ownerPhone?: string;
+    ownerPassword?: string;
+}
+
 function mapProtocol(item: ApiProtocol): Protocol {
     return {
         ...item,
@@ -403,6 +421,13 @@ export const api = {
 
     getPlatformOverview() {
         return apiRequest<PlatformOverview>('/api/admin-master/overview');
+    },
+
+    createPlatformSubscription(input: CreatePlatformSubscriptionInput) {
+        return apiRequest<PlatformOverview>('/api/admin-master/subscriptions', {
+            method: 'POST',
+            body: JSON.stringify(input),
+        });
     },
 
     async createProtocol(data: any) {

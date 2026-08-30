@@ -6,31 +6,71 @@ import {
   CalendarClock,
   Crown,
   CreditCard,
+  Loader2,
   Menu,
+  Plus,
   RefreshCw,
+  Save,
   Search,
   ShieldCheck,
+  X,
   UserCog,
   Users,
 } from 'lucide-react';
-import { api, type PlatformOverview } from '../services/api';
+import { api, type CreatePlatformSubscriptionInput, type PlatformOverview } from '../services/api';
 import { useApp } from '../context/AppContext';
 import { formatCurrency } from '../utils/currency';
 
 type SubscriptionRow = PlatformOverview['establishmentSubscriptions'][number];
 
+type CreateSubscriptionForm = {
+  establishmentName: string;
+  document: string;
+  city: string;
+  state: string;
+  primaryColor: string;
+  logoUrl: string;
+  planName: string;
+  subscriptionStatus: string;
+  monthlyAmount: string;
+  billingDay: string;
+  ownerName: string;
+  ownerEmail: string;
+  ownerCpf: string;
+  ownerPhone: string;
+  ownerPassword: string;
+};
+
+const initialCreateSubscriptionForm: CreateSubscriptionForm = {
+  establishmentName: '',
+  document: '',
+  city: '',
+  state: '',
+  primaryColor: '#0758BD',
+  logoUrl: '',
+  planName: 'Essencial Prefeitura',
+  subscriptionStatus: 'active',
+  monthlyAmount: '1490',
+  billingDay: '10',
+  ownerName: '',
+  ownerEmail: '',
+  ownerCpf: '',
+  ownerPhone: '',
+  ownerPassword: '',
+};
+
 const roleModel = [
   {
     label: 'Donos',
     route: '/admin-master',
-    description: 'Dono da plataforma, controla assinaturas, pagamentos e usuários globais.',
+    description: 'Dono da plataforma, cadastra white-labels, assinaturas, pagamentos e usuários globais.',
     icon: Crown,
     color: 'bg-amber-50 text-amber-700',
   },
   {
     label: 'Admin-dono',
     route: '/admin-dono',
-    description: 'Diretor ou dono do estabelecimento, gerencia equipe e operação local.',
+    description: 'Dono da assinatura, acompanha o executivo e gerencia equipe e operação local.',
     icon: UserCog,
     color: 'bg-emerald-50 text-emerald-700',
   },
@@ -85,6 +125,10 @@ export function AdminMasterDashboard() {
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('all');
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [createSaving, setCreateSaving] = useState(false);
+  const [createError, setCreateError] = useState('');
+  const [createForm, setCreateForm] = useState<CreateSubscriptionForm>(initialCreateSubscriptionForm);
 
   const loadOverview = useCallback(async () => {
     setLoading(true);
@@ -98,6 +142,79 @@ export function AdminMasterDashboard() {
       setLoading(false);
     }
   }, []);
+
+  const openCreateForm = () => {
+    setCreateError('');
+    setShowCreateForm(true);
+  };
+
+  const closeCreateForm = () => {
+    if (createSaving) return;
+    setShowCreateForm(false);
+    setCreateError('');
+  };
+
+  const updateCreateForm = (field: keyof CreateSubscriptionForm, value: string) => {
+    setCreateForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleCreateSubscription = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setCreateSaving(true);
+    setCreateError('');
+
+    try {
+      const monthlyAmount = Number(createForm.monthlyAmount.replace(',', '.'));
+      const billingDay = Number.parseInt(createForm.billingDay, 10);
+
+      if (!Number.isFinite(monthlyAmount)) {
+        throw new Error('Informe uma mensalidade válida.');
+      }
+      if (!Number.isInteger(billingDay)) {
+        throw new Error('Informe um dia de vencimento válido.');
+      }
+
+      const ownerCpf = createForm.ownerCpf.replace(/\D/g, '');
+      const ownerPhone = createForm.ownerPhone.replace(/\D/g, '');
+      const hasOwnerData = Boolean(
+        createForm.ownerName.trim()
+        || createForm.ownerEmail.trim()
+        || ownerCpf
+        || ownerPhone
+        || createForm.ownerPassword.trim(),
+      );
+
+      const payload: CreatePlatformSubscriptionInput = {
+        establishmentName: createForm.establishmentName.trim(),
+        document: createForm.document.trim() || undefined,
+        city: createForm.city.trim(),
+        state: createForm.state.trim().toUpperCase(),
+        primaryColor: createForm.primaryColor,
+        logoUrl: createForm.logoUrl.trim() || undefined,
+        planName: createForm.planName.trim(),
+        subscriptionStatus: createForm.subscriptionStatus,
+        monthlyAmount,
+        billingDay,
+        ...(hasOwnerData ? {
+          ownerName: createForm.ownerName.trim(),
+          ownerEmail: createForm.ownerEmail.trim(),
+          ownerCpf,
+          ownerPhone: ownerPhone || undefined,
+          ownerPassword: createForm.ownerPassword,
+        } : {}),
+      };
+
+      const updatedOverview = await api.createPlatformSubscription(payload);
+      setOverview(updatedOverview);
+      setCreateForm({ ...initialCreateSubscriptionForm });
+      setShowCreateForm(false);
+    } catch (err) {
+      console.error('Erro ao cadastrar assinatura:', err);
+      setCreateError(err instanceof Error ? err.message : 'Não foi possível cadastrar a assinatura.');
+    } finally {
+      setCreateSaving(false);
+    }
+  };
 
   useEffect(() => {
     void loadOverview();
@@ -168,15 +285,25 @@ export function AdminMasterDashboard() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={loadOverview}
-            disabled={loading}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[#B9CBE2] bg-white px-4 text-sm font-bold text-[#0758BD] shadow-sm transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <RefreshCw size={17} className={loading ? 'animate-spin' : undefined} />
-            Atualizar
-          </button>
+          <div className="flex flex-col gap-2 sm:flex-row xl:justify-end">
+            <button
+              type="button"
+              onClick={openCreateForm}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#0758BD] px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
+            >
+              <Plus size={17} />
+              Nova assinatura
+            </button>
+            <button
+              type="button"
+              onClick={loadOverview}
+              disabled={loading}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[#B9CBE2] bg-white px-4 text-sm font-bold text-[#0758BD] shadow-sm transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RefreshCw size={17} className={loading ? 'animate-spin' : undefined} />
+              Atualizar
+            </button>
+          </div>
         </header>
 
         {error && (
@@ -309,6 +436,277 @@ export function AdminMasterDashboard() {
           />
         </section>
       </div>
+
+      {showCreateForm && (
+        <CreateSubscriptionModal
+          error={createError}
+          form={createForm}
+          saving={createSaving}
+          onChange={updateCreateForm}
+          onClose={closeCreateForm}
+          onSubmit={handleCreateSubscription}
+        />
+      )}
+    </div>
+  );
+}
+
+function CreateSubscriptionModal({
+  error,
+  form,
+  saving,
+  onChange,
+  onClose,
+  onSubmit,
+}: {
+  error: string;
+  form: CreateSubscriptionForm;
+  saving: boolean;
+  onChange: (field: keyof CreateSubscriptionForm, value: string) => void;
+  onClose: () => void;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+}) {
+  const inputClassName = 'h-11 w-full rounded-lg border border-[#CDD8E7] bg-white px-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-400';
+  const labelClassName = 'text-xs font-black uppercase tracking-[0.08em] text-slate-500';
+  const colorPickerValue = /^#[0-9A-Fa-f]{6}$/.test(form.primaryColor) ? form.primaryColor : '#0758BD';
+
+  return (
+    <div className="fixed inset-0 z-[900] flex items-center justify-center bg-slate-950/45 px-4 py-6">
+      <form
+        onSubmit={onSubmit}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-subscription-title"
+        className="flex max-h-[calc(100dvh-3rem)] w-full max-w-4xl flex-col overflow-hidden rounded-lg bg-white text-[#0B1B33] shadow-2xl"
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-[#E3EAF3] px-5 py-4">
+          <div>
+            <p className="text-sm font-medium text-slate-600">Admin Master</p>
+            <h2 id="create-subscription-title" className="mt-1 text-xl font-black">Nova assinatura</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-[#CDD8E7] text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            title="Fechar cadastro"
+            aria-label="Fechar cadastro"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto px-5 py-4">
+          {error && (
+            <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              {error}
+            </div>
+          )}
+
+          <section>
+            <h3 className="text-sm font-black">White-label</h3>
+            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+              <label className="space-y-1.5">
+                <span className={labelClassName}>Prefeitura</span>
+                <input
+                  required
+                  value={form.establishmentName}
+                  onChange={(event) => onChange('establishmentName', event.target.value)}
+                  className={inputClassName}
+                  placeholder="Prefeitura de Ribeirão Preto"
+                />
+              </label>
+              <label className="space-y-1.5">
+                <span className={labelClassName}>CNPJ ou documento</span>
+                <input
+                  value={form.document}
+                  onChange={(event) => onChange('document', event.target.value)}
+                  className={inputClassName}
+                  placeholder="Somente se já tiver"
+                />
+              </label>
+              <label className="space-y-1.5">
+                <span className={labelClassName}>Cidade</span>
+                <input
+                  required
+                  value={form.city}
+                  onChange={(event) => onChange('city', event.target.value)}
+                  className={inputClassName}
+                  placeholder="Ribeirão Preto"
+                />
+              </label>
+              <label className="space-y-1.5">
+                <span className={labelClassName}>UF</span>
+                <input
+                  required
+                  maxLength={2}
+                  value={form.state}
+                  onChange={(event) => onChange('state', event.target.value.toUpperCase())}
+                  className={inputClassName}
+                  placeholder="SP"
+                />
+              </label>
+              <label className="space-y-1.5">
+                <span className={labelClassName}>Cor principal</span>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={colorPickerValue}
+                    onChange={(event) => onChange('primaryColor', event.target.value)}
+                    className="h-11 w-14 shrink-0 rounded-lg border border-[#CDD8E7] bg-white p-1"
+                    title="Selecionar cor principal"
+                    aria-label="Selecionar cor principal"
+                  />
+                  <input
+                    required
+                    value={form.primaryColor}
+                    onChange={(event) => onChange('primaryColor', event.target.value)}
+                    className={inputClassName}
+                    placeholder="#0758BD"
+                  />
+                </div>
+              </label>
+              <label className="space-y-1.5">
+                <span className={labelClassName}>Logo URL</span>
+                <input
+                  type="url"
+                  value={form.logoUrl}
+                  onChange={(event) => onChange('logoUrl', event.target.value)}
+                  className={inputClassName}
+                  placeholder="https://..."
+                />
+              </label>
+            </div>
+          </section>
+
+          <section className="mt-6 border-t border-[#E3EAF3] pt-4">
+            <h3 className="text-sm font-black">Assinatura</h3>
+            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-4">
+              <label className="space-y-1.5 md:col-span-2">
+                <span className={labelClassName}>Plano</span>
+                <input
+                  required
+                  value={form.planName}
+                  onChange={(event) => onChange('planName', event.target.value)}
+                  className={inputClassName}
+                />
+              </label>
+              <label className="space-y-1.5">
+                <span className={labelClassName}>Mensalidade</span>
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.monthlyAmount}
+                  onChange={(event) => onChange('monthlyAmount', event.target.value)}
+                  className={inputClassName}
+                />
+              </label>
+              <label className="space-y-1.5">
+                <span className={labelClassName}>Vencimento</span>
+                <input
+                  required
+                  type="number"
+                  min="1"
+                  max="28"
+                  value={form.billingDay}
+                  onChange={(event) => onChange('billingDay', event.target.value)}
+                  className={inputClassName}
+                />
+              </label>
+              <label className="space-y-1.5 md:col-span-2">
+                <span className={labelClassName}>Status</span>
+                <select
+                  value={form.subscriptionStatus}
+                  onChange={(event) => onChange('subscriptionStatus', event.target.value)}
+                  className={inputClassName}
+                >
+                  <option value="active">Ativa</option>
+                  <option value="trial">Teste</option>
+                  <option value="overdue">Inadimplente</option>
+                  <option value="blocked">Bloqueada</option>
+                  <option value="canceled">Cancelada</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section className="mt-6 border-t border-[#E3EAF3] pt-4">
+            <h3 className="text-sm font-black">Diretor responsável opcional</h3>
+            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+              <label className="space-y-1.5">
+                <span className={labelClassName}>Nome</span>
+                <input
+                  value={form.ownerName}
+                  onChange={(event) => onChange('ownerName', event.target.value)}
+                  className={inputClassName}
+                  placeholder="Nome do admin-dono"
+                />
+              </label>
+              <label className="space-y-1.5">
+                <span className={labelClassName}>E-mail</span>
+                <input
+                  type="email"
+                  value={form.ownerEmail}
+                  onChange={(event) => onChange('ownerEmail', event.target.value)}
+                  className={inputClassName}
+                  placeholder="diretor@prefeitura.gov.br"
+                />
+              </label>
+              <label className="space-y-1.5">
+                <span className={labelClassName}>CPF</span>
+                <input
+                  inputMode="numeric"
+                  value={form.ownerCpf}
+                  onChange={(event) => onChange('ownerCpf', event.target.value)}
+                  className={inputClassName}
+                  placeholder="Somente números"
+                />
+              </label>
+              <label className="space-y-1.5">
+                <span className={labelClassName}>Telefone</span>
+                <input
+                  inputMode="tel"
+                  value={form.ownerPhone}
+                  onChange={(event) => onChange('ownerPhone', event.target.value)}
+                  className={inputClassName}
+                  placeholder="DDD + número"
+                />
+              </label>
+              <label className="space-y-1.5 md:col-span-2">
+                <span className={labelClassName}>Senha inicial</span>
+                <input
+                  type="password"
+                  value={form.ownerPassword}
+                  onChange={(event) => onChange('ownerPassword', event.target.value)}
+                  className={inputClassName}
+                  placeholder="Mínimo de 6 caracteres"
+                />
+              </label>
+            </div>
+          </section>
+        </div>
+
+        <div className="flex flex-col-reverse gap-2 border-t border-[#E3EAF3] px-5 py-4 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="inline-flex h-11 items-center justify-center rounded-lg border border-[#B9CBE2] bg-white px-4 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#0758BD] px-4 text-sm font-bold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {saving ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />}
+            Salvar assinatura
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

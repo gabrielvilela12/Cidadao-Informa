@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CidadaoBrand } from '../components/CidadaoBrand';
 import { CitizenLoginHero } from '../components/CitizenLoginHero';
 import { ServerLoginHero } from '../components/ServerLoginHero';
-import { canAccessOperationalAdmin, getDefaultRouteForRole, normalizeRole } from '../types/auth';
+import { canAccessOperationalAdmin, getDefaultRouteForRole, isPlatformOwner, normalizeRole } from '../types/auth';
 
 // ─── InputField — must be at module level to avoid remounting on each render ──
 function InputField({ label, icon: Icon, type = 'text', value, onChange, placeholder, autoComplete }: any) {
@@ -141,7 +141,7 @@ export function Login({ initialMode = false }: { initialMode?: boolean }) {
         try {
             const data = await api.login(cleanCpf, password);
             const role = normalizeRole(data.role);
-            if (!canAccessOperationalAdmin(role)) {
+            if (!canAccessOperationalAdmin(role) && !isPlatformOwner(role)) {
                 throw new ApiError('Acesso restrito à equipe autorizada.', true);
             }
 

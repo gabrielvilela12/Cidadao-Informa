@@ -143,7 +143,7 @@ function AppContent() {
 
           {/* Owner Routes */}
           <Route path="/admin-master" element={isPlatformOwner(role) ? <AdminMasterDashboard /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
-          <Route path="/admin-dono" element={role === 'establishment_owner' || isPlatformOwner(role) ? <AdminOwnerDashboard /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
+          <Route path="/admin-dono" element={role === 'establishment_owner' ? <AdminOwnerDashboard /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
 
           <Route path="/admin" element={canAccessOperationalAdmin(role) ? <AdminDashboard /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
           <Route path="/admin/solicitacoes" element={canAccessOperationalAdmin(role) ? <AdminRequestsQueue /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
