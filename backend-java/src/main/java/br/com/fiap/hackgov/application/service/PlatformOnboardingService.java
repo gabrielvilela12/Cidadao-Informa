@@ -86,6 +86,10 @@ public class PlatformOnboardingService {
         }
 
         String establishmentName = required(input.establishmentName(), "Informe o nome da prefeitura.");
+        String document = onlyDigits(input.document());
+        if (document.length() != 14) {
+            throw new IllegalArgumentException("Informe um CNPJ válido com 14 dígitos.");
+        }
         String city = required(input.city(), "Informe a cidade da prefeitura.");
         String state = required(input.state(), "Informe a UF da prefeitura.").toUpperCase(Locale.ROOT);
         if (state.length() != 2) {
@@ -145,7 +149,7 @@ public class PlatformOnboardingService {
         EstablishmentApplication application = new EstablishmentApplication();
         application.setId(UUID.randomUUID().toString());
         application.setEstablishmentName(establishmentName);
-        application.setDocument(blankToNull(input.document()));
+        application.setDocument(document);
         application.setCity(city);
         application.setState(state);
         application.setPrimaryColor(primaryColor);

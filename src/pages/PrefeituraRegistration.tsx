@@ -81,6 +81,15 @@ function formatCpf(value: string) {
     .slice(0, 14);
 }
 
+function formatCnpj(value: string) {
+  return onlyDigits(value)
+    .replace(/^(\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+    .replace(/(\d{4})(\d)/, '$1-$2')
+    .slice(0, 18);
+}
+
 export function PrefeituraRegistration() {
   const [plans, setPlans] = useState<PlatformPlan[]>(fallbackPlans);
   const [form, setForm] = useState<FormState>(initialForm);
@@ -133,7 +142,11 @@ export function PrefeituraRegistration() {
     try {
       const requesterCpf = onlyDigits(form.requesterCpf);
       const requesterPhone = onlyDigits(form.requesterPhone);
+      const document = onlyDigits(form.document);
 
+      if (document.length !== 14) {
+        throw new Error('Informe um CNPJ válido com 14 dígitos.');
+      }
       if (requesterCpf.length !== 11) {
         throw new Error('O CPF do responsavel deve ter 11 digitos.');
       }
@@ -146,7 +159,7 @@ export function PrefeituraRegistration() {
 
       await api.createEstablishmentApplication({
         establishmentName: form.establishmentName.trim(),
-        document: form.document.trim() || undefined,
+        document,
         city: form.city.trim(),
         state: form.state.trim().toUpperCase(),
         primaryColor: form.primaryColor,
@@ -280,12 +293,14 @@ export function PrefeituraRegistration() {
                   />
                 </label>
                 <label className="space-y-1.5">
-                  <span className={labelClassName}>CNPJ ou documento</span>
+                  <span className={labelClassName}>CNPJ</span>
                   <input
+                    required
+                    inputMode="numeric"
                     value={form.document}
-                    onChange={(event) => updateForm('document', event.target.value)}
+                    onChange={(event) => updateForm('document', formatCnpj(event.target.value))}
                     className={inputClassName}
-                    placeholder="Opcional"
+                    placeholder="00.000.000/0001-00"
                   />
                 </label>
                 <label className="space-y-1.5">
@@ -443,10 +458,11 @@ export function PrefeituraRegistration() {
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#0758BD] px-5 text-sm font-bold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#0758BD] px-5 text-sm font-bold !text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              style={{ color: '#FFFFFF' }}
             >
-              {saving ? <Loader2 size={17} className="animate-spin" /> : <ArrowRight size={17} />}
-              Enviar cadastro
+              {saving ? <Loader2 size={17} className="animate-spin text-white" /> : <ArrowRight size={17} className="text-white" />}
+              <span className="text-white">Enviar cadastro</span>
             </button>
           </div>
         </form>
