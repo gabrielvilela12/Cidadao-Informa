@@ -215,13 +215,21 @@ export function PrefeituraRegistration() {
       </header>
 
       <main className="mx-auto grid max-w-[1280px] grid-cols-1 gap-5 px-5 py-6 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:py-8">
-        <section className="flex flex-col justify-between rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-[0_7px_20px_rgba(15,45,85,0.035)]">
+        <section className="flex flex-col rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-[0_7px_20px_rgba(15,45,85,0.035)]">
           <div>
             <p className="text-sm font-bold text-[#0758BD]">Cadastro institucional</p>
             <h1 className="mt-2 text-3xl font-black leading-tight">Prefeitura na plataforma</h1>
             <p className="mt-3 text-sm leading-6 text-slate-600">
               A prefeitura escolhe um plano, registra seus dados e aguarda a liberacao dos donos da plataforma.
             </p>
+          </div>
+
+          <div className="mt-7 overflow-hidden rounded-lg border border-[#E3EAF3] bg-[#F7F9FC]">
+            <img
+              src="/hero-dashboard-mockup.png"
+              alt="Painel do Cidadao Informa com mapa e protocolos"
+              className="aspect-[16/10] w-full object-cover object-center"
+            />
           </div>
 
           <div className="mt-7 grid gap-3">

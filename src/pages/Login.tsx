@@ -259,25 +259,21 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
                             </div>
 
                             {portal === 'citizen' ? (
-                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                <div className={`grid grid-cols-1 gap-2 ${isRegistering ? '' : 'sm:grid-cols-2'}`}>
                                     <Link
                                         to="/login-servidor"
                                         className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 transition-colors hover:border-amber-300 hover:bg-amber-50 hover:text-slate-900"
                                     >
                                         <Shield size={14} /> Servidor
                                     </Link>
-                                    <Link
-                                        to="/login-dono"
-                                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-slate-900"
-                                    >
-                                        <Crown size={14} /> Dono
-                                    </Link>
-                                    <Link
-                                        to="/cadastro-prefeitura"
-                                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-slate-900"
-                                    >
-                                        <Building2 size={14} /> Prefeitura
-                                    </Link>
+                                    {!isRegistering && (
+                                        <Link
+                                            to="/login-dono"
+                                            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-slate-900"
+                                        >
+                                            <Crown size={14} /> Dono
+                                        </Link>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
