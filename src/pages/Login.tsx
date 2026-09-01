@@ -89,7 +89,7 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
     const [loading, setLoading] = useState(false);
     const [errorDesc, setErrorDesc] = useState('');
     const [acceptedTerms, setAcceptedTerms] = useState(false);
-    const [authMode, setAuthMode] = useState<'citizen' | 'admin'>(portal === 'citizen' ? 'citizen' : 'admin');
+    const authMode: 'citizen' | 'admin' = portal === 'citizen' ? 'citizen' : 'admin';
 
     const sanitizeCPF = (raw: string) => raw.replace(/\D/g, '');
 
@@ -190,8 +190,12 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
     const isOwnerPortal = portal === 'owner';
     const isServerPortal = portal === 'server';
     const portalLabel = isOwnerPortal ? 'Acesso dos donos' : isServerPortal ? 'Central do servidor' : 'Portal do cidadão';
-    const adminIcon = isOwnerPortal ? Crown : Building2;
-    const AdminIcon = adminIcon;
+    const citizenAccessPath = isRegistering ? '/cadastro' : '/login';
+    const platformAccessPath = isOwnerPortal ? '/login-dono' : '/login-servidor';
+    const accessChoiceBase = 'inline-flex h-10 items-center justify-center gap-2 rounded-xl px-3 text-sm font-black transition-all';
+    const accessChoiceActive = 'bg-white text-slate-950 shadow-sm';
+    const accessChoiceInactive = 'text-slate-500 hover:bg-white/70 hover:text-slate-900';
+    const platformProfileBase = 'inline-flex h-10 items-center justify-center gap-2 rounded-lg border px-3 text-xs font-bold transition-colors';
 
     return (
         <div className={`min-h-dvh text-slate-900 font-sans flex flex-col overflow-x-hidden ${isAdmin ? 'bg-[#f7faff]' : 'auth-citizen-gradient'}`}>
@@ -258,36 +262,57 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
                                 </p>
                             </div>
 
-                            {portal === 'citizen' ? (
-                                <div className={`grid grid-cols-1 gap-2 ${isRegistering ? '' : 'sm:grid-cols-2'}`}>
+                            <div className="flex flex-col gap-2">
+                                <div
+                                    role="group"
+                                    aria-label="Escolha entre cidadão e plataforma"
+                                    className="grid grid-cols-2 gap-1 rounded-2xl bg-slate-100 p-1"
+                                >
                                     <Link
-                                        to="/login-servidor"
-                                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 transition-colors hover:border-amber-300 hover:bg-amber-50 hover:text-slate-900"
+                                        to={citizenAccessPath}
+                                        aria-current={!isAdmin ? 'page' : undefined}
+                                        className={`${accessChoiceBase} ${!isAdmin ? accessChoiceActive : accessChoiceInactive}`}
                                     >
-                                        <Shield size={14} /> Servidor
+                                        <User size={15} /> Cidadão
                                     </Link>
-                                    {!isRegistering && (
+                                    <Link
+                                        to={platformAccessPath}
+                                        aria-current={isAdmin ? 'page' : undefined}
+                                        className={`${accessChoiceBase} ${isAdmin ? accessChoiceActive : accessChoiceInactive}`}
+                                    >
+                                        <Building2 size={15} /> Plataforma
+                                    </Link>
+                                </div>
+
+                                {isAdmin && (
+                                    <div
+                                        role="group"
+                                        aria-label="Escolha o perfil da plataforma"
+                                        className="grid grid-cols-2 gap-2"
+                                    >
+                                        <Link
+                                            to="/login-servidor"
+                                            aria-current={isServerPortal ? 'page' : undefined}
+                                            className={`${platformProfileBase} ${isServerPortal
+                                                ? 'border-amber-300 bg-amber-50 text-slate-950'
+                                                : 'border-slate-200 bg-white text-slate-600 hover:border-amber-300 hover:bg-amber-50 hover:text-slate-900'
+                                                }`}
+                                        >
+                                            <Shield size={14} /> Servidor
+                                        </Link>
                                         <Link
                                             to="/login-dono"
-                                            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-slate-900"
+                                            aria-current={isOwnerPortal ? 'page' : undefined}
+                                            className={`${platformProfileBase} ${isOwnerPortal
+                                                ? 'border-blue-300 bg-blue-50 text-slate-950'
+                                                : 'border-slate-200 bg-white text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-slate-900'
+                                                }`}
                                         >
                                             <Crown size={14} /> Dono
                                         </Link>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                                    <span className={`flex size-10 items-center justify-center rounded-lg ${isOwnerPortal ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>
-                                        <AdminIcon size={18} />
-                                    </span>
-                                    <div>
-                                        <p className="text-sm font-black text-slate-900">{portalLabel}</p>
-                                        <Link to="/login" className="text-xs font-bold text-slate-500 transition-colors hover:text-blue-600">
-                                            Ir para acesso do cidadão
-                                        </Link>
                                     </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
 
                         {/*
                           Error.
