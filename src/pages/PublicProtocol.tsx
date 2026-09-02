@@ -8,7 +8,7 @@ import { api } from '../services/api';
 import { CidadaoBrand } from '../components/CidadaoBrand';
 import { ImageLightbox } from '../components/ImageLightbox';
 import { formatCurrency } from '../utils/currency';
-import { getMarkerPosition } from '../utils/mapUtils';
+import { getMarkerPosition, MAP_TILE_ATTRIBUTION, MAP_TILE_URL } from '../utils/mapUtils';
 
 // Fix leaflet icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -157,8 +157,8 @@ export function PublicProtocol() {
                                         <MapContainer center={publicPosition} zoom={15}
                                             style={{ height: '100%', width: '100%', zIndex: 0 }} zoomControl={false}>
                                             <TileLayer
-                                                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                                                attribution='© OpenStreetMap contributors © CARTO'
+                                                url={MAP_TILE_URL}
+                                                attribution={MAP_TILE_ATTRIBUTION}
                                             />
                                             <Marker position={publicPosition}>
                                                 <Popup>{protocol.address || 'Local do incidente'}</Popup>

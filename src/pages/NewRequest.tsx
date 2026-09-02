@@ -6,7 +6,7 @@ import { useApp } from '../context/AppContext';
 import { useProtocolsCache } from '../context/ProtocolsContext';
 import { api } from '../services/api';
 import { buildFullAddress, validateAddress } from '../utils/address';
-import { DEFAULT_MAP_CENTER } from '../utils/mapUtils';
+import { DEFAULT_MAP_CENTER, MAP_TILE_ATTRIBUTION, MAP_TILE_URL } from '../utils/mapUtils';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -789,7 +789,7 @@ function MapGuide({ mapCenter, position, setPosition, setAddressObj, onUseLocati
       </div>
       <div className="h-[390px] w-full bg-slate-100">
         <MapContainer center={mapCenter} zoom={14} style={{ height: '100%', width: '100%', zIndex: 1 }}>
-          <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
+          <TileLayer attribution={MAP_TILE_ATTRIBUTION} url={MAP_TILE_URL} />
           <LocationMarker position={position} setPosition={setPosition} setAddressObj={setAddressObj} />
           <MapController center={mapCenter} />
         </MapContainer>

@@ -21,7 +21,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Protocol } from '../constants';
 import { useApp } from '../context/AppContext';
 import { useProtocols } from '../hooks/useProtocols';
-import { DEFAULT_MAP_CENTER, getMarkerPosition } from '../utils/mapUtils';
+import { DEFAULT_MAP_CENTER, getMarkerPosition, MAP_TILE_ATTRIBUTION, MAP_TILE_URL } from '../utils/mapUtils';
 import { canonicalStatus, CANONICAL_STATUSES, type CanonicalStatus } from '../utils/protocolStatus';
 import { StatusBadge } from './CitizenDashboard';
 
@@ -230,8 +230,8 @@ export function CitizenMap() {
           <MapController center={mapCenter} />
           <MapInstanceTracker onReady={setMapInstance} />
           <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            url={MAP_TILE_URL}
+            attribution={MAP_TILE_ATTRIBUTION}
           />
           {!loading && filteredProtocols.map((protocol, index) => (
             <ProtocolMarker

@@ -17,7 +17,7 @@ import { useApp } from '../context/AppContext';
 import { useProtocolsCache } from '../context/ProtocolsContext';
 import type { Protocol } from '../constants';
 import { api, type ProtocolAuditTrail } from '../services/api';
-import { getMarkerPosition } from '../utils/mapUtils';
+import { getMarkerPosition, MAP_TILE_ATTRIBUTION, MAP_TILE_URL } from '../utils/mapUtils';
 import { canAccessOperationalAdmin } from '../types/auth';
 
 type DetailsTab = 'details' | 'blockchain';
@@ -369,7 +369,7 @@ function LocationCard({ protocol, position, onOpenMap }: { protocol: DetailedPro
           {position ? (
             <MapContainer center={position} zoom={15} zoomControl={false} style={{ width: '100%', height: '100%' }}>
               <MapCenter position={position} />
-              <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" attribution='&copy; OpenStreetMap contributors &copy; CARTO' />
+              <TileLayer url={MAP_TILE_URL} attribution={MAP_TILE_ATTRIBUTION} />
               <Marker position={position} icon={markerIcon} />
             </MapContainer>
           ) : (

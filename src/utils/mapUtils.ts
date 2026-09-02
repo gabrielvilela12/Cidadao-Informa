@@ -24,6 +24,9 @@
 /** Centro padrao unico da aplicacao (Praca dos Tres Poderes, Brasilia). */
 export const DEFAULT_MAP_CENTER: [number, number] = [-15.7942, -47.8822];
 
+export const MAP_TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+export const MAP_TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
 /** Subconjunto de Protocol suficiente para posicionar no mapa. */
 export interface GeoLocatableProtocol {
     latitude?: number | null;

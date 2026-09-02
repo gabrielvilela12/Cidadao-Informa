@@ -1,4 +1,5 @@
 import { CircleMarker, MapContainer, Popup, TileLayer } from 'react-leaflet';
+import { MAP_TILE_ATTRIBUTION, MAP_TILE_URL } from '../utils/mapUtils';
 
 interface TransparencyMapProps {
     clusters: Array<{
@@ -19,8 +20,8 @@ export function TransparencyMap({ clusters }: TransparencyMapProps) {
             aria-label="Mapa com volume agregado de solicitações"
         >
             <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution={MAP_TILE_ATTRIBUTION}
+                url={MAP_TILE_URL}
             />
             {clusters.map((cluster) => (
                 <CircleMarker

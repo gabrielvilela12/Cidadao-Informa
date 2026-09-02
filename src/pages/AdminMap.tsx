@@ -30,7 +30,7 @@ import { AccessibilityIcon } from '../components/AccessibilityIcon';
 import { type Protocol } from '../constants';
 import { useProtocols } from '../hooks/useProtocols';
 import { exportProtocolsToExcel } from '../utils/exportUtils';
-import { countWithoutLocation, DEFAULT_MAP_CENTER, getMarkerPosition } from '../utils/mapUtils';
+import { countWithoutLocation, DEFAULT_MAP_CENTER, getMarkerPosition, MAP_TILE_ATTRIBUTION, MAP_TILE_URL } from '../utils/mapUtils';
 import { canonicalStatus, CANONICAL_STATUSES, type CanonicalStatus } from '../utils/protocolStatus';
 import {
   buildHeatPoints,
@@ -520,8 +520,8 @@ export function AdminMap() {
         <MapController center={mapCenter} />
         <MapTracker onReady={setMap} />
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url={MAP_TILE_URL}
+          attribution={MAP_TILE_ATTRIBUTION}
         />
         {!loading && protocols.flatMap((protocol) => {
           if (!newProtocolIds.has(protocol.id)) return [];
