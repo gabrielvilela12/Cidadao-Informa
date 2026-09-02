@@ -33,7 +33,7 @@ export const OWNER_SHORTCUTS: ShortcutDefinition[] = [
 ];
 
 export const MASTER_SHORTCUTS: ShortcutDefinition[] = [
-  { key: 'Alt+0', label: 'Alt + 0', description: 'Admin Master', path: '/admin-master', roles: ['platform_owner'] },
+  { key: 'Alt+0', label: 'Alt + 0', description: 'Backoffice', path: '/backoffice', roles: ['platform_owner'] },
 ];
 
 export const SHARED_SHORTCUTS: ShortcutDefinition[] = [

@@ -179,7 +179,7 @@ export function AdminMasterDashboard() {
               <Menu size={20} />
             </button>
             <div>
-              <p className="text-sm font-medium text-slate-600">Admin Master</p>
+              <p className="text-sm font-medium text-slate-600">Backoffice</p>
               <h1 className="mt-1 text-2xl font-black leading-tight sm:text-3xl">Controle da Plataforma</h1>
               <p className="mt-1 text-sm text-slate-600">Gabriel e Luis acompanham cadastros, white-labels e usuários globais.</p>
             </div>
@@ -429,7 +429,7 @@ function ApplicationTableRow({
           </div>
         ) : application.createdEstablishmentId ? (
           <Link
-            to={`/admin-master/estabelecimentos/${encodeURIComponent(application.createdEstablishmentId)}`}
+            to={`/backoffice/estabelecimentos/${encodeURIComponent(application.createdEstablishmentId)}`}
             className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#B9CBE2] bg-white px-3 font-bold text-[#0758BD] transition-colors hover:bg-blue-50"
           >
             Abrir
@@ -481,7 +481,7 @@ function SubscriptionTableRow({ row }: { row: SubscriptionRow }) {
       </td>
       <td className="px-5 py-4">
         <Link
-          to={`/admin-master/estabelecimentos/${encodeURIComponent(row.establishmentId)}`}
+          to={`/backoffice/estabelecimentos/${encodeURIComponent(row.establishmentId)}`}
           className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#B9CBE2] bg-white px-3 font-bold text-[#0758BD] transition-colors hover:bg-blue-50"
         >
           Abrir

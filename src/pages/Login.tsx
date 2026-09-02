@@ -265,7 +265,7 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
     const isServerPortal = portal === 'server';
     const portalLabel = isOwnerPortal ? 'Acesso dos donos' : isServerPortal ? 'Central do servidor' : 'Portal do cidadão';
     const citizenAccessPath = isRegistering ? '/cadastro' : '/login';
-    const platformAccessPath = isOwnerPortal ? '/login-dono' : '/login-servidor';
+    const platformAccessPath = isOwnerPortal ? '/dono' : '/login-servidor';
     const accessChoiceBase = 'inline-flex h-10 items-center justify-center gap-2 rounded-xl px-3 text-sm font-black transition-all';
     const accessChoiceActive = 'bg-white text-slate-950 shadow-sm';
     const accessChoiceInactive = 'text-slate-500 hover:bg-white/70 hover:text-slate-900';
@@ -375,7 +375,7 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
                                             <Shield size={14} /> Servidor
                                         </Link>
                                         <Link
-                                            to="/login-dono"
+                                            to="/dono"
                                             aria-current={isOwnerPortal ? 'page' : undefined}
                                             className={`${platformProfileBase} ${isOwnerPortal
                                                 ? 'border-blue-300 bg-blue-50 text-slate-950'
@@ -543,7 +543,7 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
                                     disabled={loading}
                                     className="mt-1 flex h-11 items-center justify-center gap-2 rounded-full border border-amber-500 bg-amber-500 text-sm font-bold text-slate-900 shadow-lg shadow-amber-500/20 transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
                                 >
-                                    {loading ? <Loader2 size={18} className="animate-spin" /> : <>{isOwnerPortal ? 'Acessar Admin Master' : 'Acessar Central'} <ArrowRight size={16} /></>}
+                                    {loading ? <Loader2 size={18} className="animate-spin" /> : <>{isOwnerPortal ? 'Acessar Backoffice' : 'Acessar Central'} <ArrowRight size={16} /></>}
                                 </button>
                                 {isServerPortal && (
                                     <Link

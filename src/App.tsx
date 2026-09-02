@@ -22,6 +22,7 @@ import { AdminCitizenDetails } from './pages/AdminCitizenDetails';
 import { AdminPermissions } from './pages/AdminPermissions';
 import { ProtocolDetails } from './pages/ProtocolDetails';
 import { Login } from './pages/Login';
+import { OwnerBackofficeLanding } from './pages/OwnerBackofficeLanding';
 import { PrefeituraRegistration } from './pages/PrefeituraRegistration';
 import { LandingPage } from './pages/LandingPage';
 import { Profile } from './pages/Profile';
@@ -108,6 +109,15 @@ function AppContent() {
     );
   }
 
+  if (routeLocation.pathname === '/dono') {
+    return (
+      <>
+        <OwnerBackofficeLanding />
+        <AiChatbot />
+      </>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <>
@@ -116,6 +126,8 @@ function AppContent() {
           <Route path="/login" element={<Login initialMode={false} />} />
           <Route path="/login-servidor" element={<Login portal="server" />} />
           <Route path="/login-dono" element={<Login portal="owner" />} />
+          <Route path="/dono" element={<OwnerBackofficeLanding />} />
+          <Route path="/backoffice" element={<Login portal="owner" />} />
           <Route path="/cadastro" element={<Login initialMode={true} />} />
           <Route path="/cadastro-prefeitura" element={<PrefeituraRegistration />} />
           <Route path="/termos-de-uso" element={<TermsOfUse />} />
@@ -149,6 +161,7 @@ function AppContent() {
           <Route path="/login" element={<Navigate to={getDefaultRouteForRole(role)} replace />} />
           <Route path="/login-servidor" element={<Navigate to={getDefaultRouteForRole(role)} replace />} />
           <Route path="/login-dono" element={<Navigate to={getDefaultRouteForRole(role)} replace />} />
+          <Route path="/dono" element={<OwnerBackofficeLanding />} />
           <Route path="/cadastro" element={<Navigate to={getDefaultRouteForRole(role)} replace />} />
 
           {/* Citizen Routes */}
@@ -159,6 +172,8 @@ function AppContent() {
           <Route path="/servicos" element={role === 'citizen' ? <Navigate to="/nova-solicitacao" replace /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
 
           {/* Owner Routes */}
+          <Route path="/backoffice" element={isPlatformOwner(role) ? <AdminMasterDashboard /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
+          <Route path="/backoffice/estabelecimentos/:establishmentId" element={isPlatformOwner(role) ? <AdminMasterEstablishmentDetails /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
           <Route path="/admin-master" element={isPlatformOwner(role) ? <AdminMasterDashboard /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
           <Route path="/admin-master/estabelecimentos/:establishmentId" element={isPlatformOwner(role) ? <AdminMasterEstablishmentDetails /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
           <Route path="/admin-dono" element={role === 'establishment_owner' ? <AdminOwnerDashboard /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />

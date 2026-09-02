@@ -137,7 +137,7 @@ export function AdminMasterEstablishmentDetails() {
         <p className="mt-2 text-sm text-slate-600">{error || 'Não foi possível abrir este registro.'}</p>
         <button
           type="button"
-          onClick={() => navigate('/admin-master')}
+          onClick={() => navigate('/backoffice')}
           className="mt-6 inline-flex h-11 items-center gap-2 rounded-lg bg-[#0758BD] px-5 text-sm font-bold text-white"
         >
           <ArrowLeft size={18} />
@@ -164,7 +164,7 @@ export function AdminMasterEstablishmentDetails() {
             </button>
             <button
               type="button"
-              onClick={() => navigate('/admin-master')}
+              onClick={() => navigate('/backoffice')}
               className="mt-1 hidden size-11 shrink-0 items-center justify-center rounded-lg border border-[#CDD8E7] bg-white text-[#0758BD] transition-colors hover:bg-blue-50 md:flex"
               title="Voltar"
               aria-label="Voltar"
@@ -172,7 +172,7 @@ export function AdminMasterEstablishmentDetails() {
               <ArrowLeft size={20} />
             </button>
             <div className="min-w-0">
-              <p className="text-sm font-medium text-slate-600">Admin Master / Estabelecimento</p>
+              <p className="text-sm font-medium text-slate-600">Backoffice / Estabelecimento</p>
               <h1 className="mt-1 truncate text-2xl font-black leading-tight sm:text-3xl">{establishment.establishmentName}</h1>
               <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600">
                 <span className="inline-flex items-center gap-1.5"><MapPin size={15} />{establishment.city}/{establishment.state}</span>
@@ -186,7 +186,7 @@ export function AdminMasterEstablishmentDetails() {
           <div className="flex flex-col gap-2 sm:flex-row xl:justify-end">
             <button
               type="button"
-              onClick={() => navigate('/admin-master')}
+              onClick={() => navigate('/backoffice')}
               className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[#B9CBE2] bg-white px-4 text-sm font-bold text-[#0758BD] shadow-sm transition-colors hover:bg-blue-50 md:hidden"
             >
               <ArrowLeft size={17} />

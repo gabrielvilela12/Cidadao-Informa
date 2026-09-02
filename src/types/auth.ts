@@ -34,7 +34,7 @@ export function canAccessOperationalAdmin(role: UserRole) {
 }
 
 export function getDefaultRouteForRole(role: UserRole) {
-  if (role === 'platform_owner') return '/admin-master';
+  if (role === 'platform_owner') return '/backoffice';
   if (role === 'establishment_owner') return '/admin-dono';
   if (role === 'admin') return '/admin';
   return '/';
@@ -48,7 +48,7 @@ export function getRoleDisplayName(role: UserRole) {
 }
 
 export function getRolePortalLabel(role: UserRole) {
-  if (role === 'platform_owner') return 'Admin Master';
+  if (role === 'platform_owner') return 'Backoffice';
   if (role === 'establishment_owner') return 'Portal do Diretor';
   if (role === 'admin') return 'Portal do Servidor';
   return 'Portal do Cidadão';

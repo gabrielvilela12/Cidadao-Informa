@@ -458,7 +458,7 @@ export function PrefeituraRegistration() {
 
           <div className="flex flex-col gap-2 border-t border-[#E3EAF3] px-5 py-4 sm:flex-row sm:justify-end">
             <Link
-              to="/login-dono"
+              to="/dono"
               className="inline-flex h-11 items-center justify-center rounded-lg border border-[#B9CBE2] bg-white px-4 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50"
             >
               Acesso dos donos

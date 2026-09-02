@@ -277,6 +277,9 @@ export function LandingPage() {
                         <Link to="/cadastro-prefeitura" className="text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]">
                             Prefeituras
                         </Link>
+                        <Link to="/dono" className="text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]">
+                            Backoffice
+                        </Link>
                         <Link
                             to="/acessibilidade"
                             className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]"
@@ -718,6 +721,7 @@ export function LandingPage() {
                                 <a href="#como-funciona" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Como funciona</a>
                                 <a href="#beneficios" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Benefícios</a>
                                 <Link to="/transparencia" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Transparência</Link>
+                                <Link to="/dono" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Backoffice</Link>
                                 <Link to="/login" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Entrar</Link>
                             </div>
                         </nav>

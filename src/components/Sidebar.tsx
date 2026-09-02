@@ -58,7 +58,7 @@ export function Sidebar() {
     inteligencia: true,
   });
   const ownerLinks = role === 'platform_owner'
-    ? [{ to: '/admin-master', icon: Crown, label: 'Admin Master' }]
+    ? [{ to: '/backoffice', icon: Crown, label: 'Backoffice' }]
     : role === 'establishment_owner'
       ? [{ to: '/admin-dono', icon: Building2, label: 'Painel do Diretor' }]
       : [];
