@@ -1,5 +1,5 @@
 import React, { useId, useState } from 'react';
-import { User, Shield, Key, FileText, Loader2, ArrowRight, Eye, EyeOff, Home, Crown, Building2 } from 'lucide-react';
+import { User, Shield, Key, FileText, Loader2, ArrowRight, Eye, EyeOff, Home, Crown, Building2, type LucideIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../services/api';
@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CidadaoBrand } from '../components/CidadaoBrand';
 import { CitizenLoginHero } from '../components/CitizenLoginHero';
 import { ServerLoginHero } from '../components/ServerLoginHero';
-import { canAccessOperationalAdmin, getDefaultRouteForRole, isPlatformOwner, normalizeRole } from '../types/auth';
+import { canAccessOperationalAdmin, getDefaultRouteForRole, isPlatformOwner, normalizeRole, type UserRole } from '../types/auth';
 
 // ─── InputField — must be at module level to avoid remounting on each render ──
 function InputField({ label, icon: Icon, type = 'text', value, onChange, placeholder, autoComplete }: any) {
@@ -75,6 +75,43 @@ function authErrorMessage(error: unknown): string {
 }
 
 type LoginPortal = 'citizen' | 'server' | 'owner';
+
+type DemoAccount = {
+    label: string;
+    cpf: string;
+    password: string;
+    role: UserRole;
+    icon: LucideIcon;
+    className: string;
+};
+
+const DEMO_PASSWORD = 'Demo@123';
+const DEMO_ACCOUNTS: DemoAccount[] = [
+    {
+        label: 'Cidadão',
+        cpf: '11122233344',
+        password: DEMO_PASSWORD,
+        role: 'citizen',
+        icon: User,
+        className: 'border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-300 hover:bg-blue-100',
+    },
+    {
+        label: 'Servidor',
+        cpf: '22233344455',
+        password: DEMO_PASSWORD,
+        role: 'admin',
+        icon: Shield,
+        className: 'border-amber-200 bg-amber-50 text-amber-800 hover:border-amber-300 hover:bg-amber-100',
+    },
+    {
+        label: 'Dono',
+        cpf: '33344455566',
+        password: DEMO_PASSWORD,
+        role: 'platform_owner',
+        icon: Crown,
+        className: 'border-violet-200 bg-violet-50 text-violet-700 hover:border-violet-300 hover:bg-violet-100',
+    },
+];
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export function Login({ initialMode = false, portal = 'citizen' }: { initialMode?: boolean; portal?: LoginPortal }) {
@@ -169,6 +206,43 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
                     created_at: data.createdAt
                 },
                 role
+            );
+            navigate(getDefaultRouteForRole(role));
+        } catch (err) {
+            setErrorDesc(authErrorMessage(err));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDemoAccess = async (account: DemoAccount) => {
+        setIsRegistering(false);
+        setCpf(formatCPF(account.cpf));
+        setPassword(account.password);
+        setErrorDesc('');
+        setAcceptedTerms(false);
+        setLoading(true);
+
+        try {
+            const data = await api.login(account.cpf, account.password);
+            const role = normalizeRole(data.role);
+            if (role !== account.role) {
+                throw new ApiError('Conta de demonstração configurada para outro perfil.', true);
+            }
+
+            loginSuccess(
+                data.token,
+                {
+                    id: data.userId,
+                    cpf: data.cpf,
+                    full_name: data.name,
+                    email: data.email,
+                    phone: data.phone,
+                    establishment_id: data.establishmentId,
+                    establishment_name: data.establishmentName,
+                    created_at: data.createdAt,
+                },
+                role,
             );
             navigate(getDefaultRouteForRole(role));
         } catch (err) {
@@ -313,6 +387,31 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
                                     </div>
                                 )}
                             </div>
+
+                            {!isRegistering && (
+                                <div className="flex flex-col gap-2">
+                                    <p className="text-center text-[11px] font-black uppercase tracking-[0.08em] text-slate-500">
+                                        Entrar como demonstração
+                                    </p>
+                                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                        {DEMO_ACCOUNTS.map((account) => {
+                                            const Icon = account.icon;
+                                            return (
+                                                <button
+                                                    key={account.cpf}
+                                                    type="button"
+                                                    disabled={loading}
+                                                    onClick={() => handleDemoAccess(account)}
+                                                    className={`inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-black transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${account.className}`}
+                                                >
+                                                    <Icon size={14} aria-hidden="true" />
+                                                    <span>{account.label}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
 
                         {/*
                           Error.
