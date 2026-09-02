@@ -274,12 +274,6 @@ export function LandingPage() {
                         <Link to="/transparencia" className="text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]">
                             Transparência
                         </Link>
-                        <Link to="/cadastro-prefeitura" className="text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]">
-                            Prefeituras
-                        </Link>
-                        <Link to="/dono" className="text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]">
-                            Backoffice
-                        </Link>
                         <Link
                             to="/acessibilidade"
                             className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]"
@@ -351,6 +345,7 @@ export function LandingPage() {
                                     whileHover={{ y: -2 }}
                                     whileTap={{ scale: 0.98 }}
                                     to="/cadastro"
+                                    aria-label="Criar conta gratuita"
                                     className="flex min-h-14 w-full items-center justify-center gap-3 rounded-lg bg-blue-600 px-5 py-3 text-center text-base font-bold text-white shadow-xl shadow-blue-900/20 transition-colors hover:bg-[#0C326F]"
                                 >
                                     <span className="whitespace-nowrap">Criar conta gratuita</span>
