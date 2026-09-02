@@ -15,7 +15,13 @@ exec /opt/java/openjdk/bin/java \
   -XX:+UseSerialGC \
   -XX:TieredStopAtLevel=1 \
   -jar /app/app.jar \
+  --spring.datasource.hikari.maximum-pool-size=1 \
+  --spring.datasource.hikari.minimum-idle=0 \
+  --spring.datasource.hikari.idle-timeout=30000 \
+  --spring.datasource.hikari.keepalive-time=0 \
+  --spring.datasource.hikari.connection-timeout=10000 \
   --spring.flyway.enabled=false \
   --spring.jpa.hibernate.ddl-auto=none \
   --springdoc.api-docs.enabled=false \
-  --springdoc.swagger-ui.enabled=false
+  --springdoc.swagger-ui.enabled=false \
+  --app.scheduling.enabled=false

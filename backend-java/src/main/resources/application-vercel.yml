@@ -4,6 +4,13 @@
 spring:
   main:
     banner-mode: off
+  datasource:
+    hikari:
+      maximum-pool-size: 1
+      minimum-idle: 0
+      idle-timeout: 30000
+      keepalive-time: 0
+      connection-timeout: 10000
   flyway:
     enabled: false
   sql:
@@ -26,4 +33,8 @@ springdoc:
   api-docs:
     enabled: false
   swagger-ui:
+    enabled: false
+
+app:
+  scheduling:
     enabled: false
