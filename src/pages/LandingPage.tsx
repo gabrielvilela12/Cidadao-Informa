@@ -346,12 +346,12 @@ export function LandingPage() {
                                 Reporte problemas de acessibilidade, acompanhe cada etapa e contribua para uma cidade mais inclusiva.
                             </p>
 
-                            <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:mt-6">
+                            <div className="mt-8 flex max-w-md flex-col gap-3 lg:mt-6">
                                 <MotionLink
                                     whileHover={{ y: -2 }}
                                     whileTap={{ scale: 0.98 }}
                                     to="/cadastro"
-                                    className="flex min-h-14 items-center justify-center gap-3 rounded-lg bg-blue-600 px-5 py-3 text-center text-sm font-bold text-white shadow-xl shadow-blue-900/20 transition-colors hover:bg-[#0C326F] sm:col-span-2 sm:text-base"
+                                    className="flex min-h-14 w-full items-center justify-center gap-3 rounded-lg bg-blue-600 px-5 py-3 text-center text-base font-bold text-white shadow-xl shadow-blue-900/20 transition-colors hover:bg-[#0C326F]"
                                 >
                                     <span className="whitespace-nowrap">Criar conta gratuita</span>
                                     <ArrowRight size={19} aria-hidden="true" />
@@ -360,7 +360,7 @@ export function LandingPage() {
                                     whileHover={{ y: -2 }}
                                     whileTap={{ scale: 0.98 }}
                                     to="/login"
-                                    className="flex min-h-14 items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white/90 px-5 py-3 text-center text-sm font-bold text-slate-800 shadow-sm transition-colors hover:border-[#1351B4] hover:text-[#1351B4] sm:text-base"
+                                    className="flex min-h-14 w-full items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white/90 px-5 py-3 text-center text-base font-bold text-slate-800 shadow-sm transition-colors hover:border-[#1351B4] hover:text-[#1351B4]"
                                 >
                                     <span className="whitespace-nowrap">Já tenho conta</span>
                                     <ChevronRight size={19} aria-hidden="true" />
@@ -369,7 +369,7 @@ export function LandingPage() {
                                     whileHover={{ y: -2 }}
                                     whileTap={{ scale: 0.98 }}
                                     to="/cadastro-prefeitura"
-                                    className="flex min-h-14 items-center justify-center gap-3 rounded-lg border border-emerald-200 bg-white/90 px-5 py-3 text-center text-sm font-bold text-emerald-800 shadow-sm transition-colors hover:border-emerald-400 hover:bg-emerald-50 sm:text-base"
+                                    className="flex min-h-14 w-full items-center justify-center gap-3 rounded-lg border border-emerald-200 bg-white/90 px-5 py-3 text-center text-base font-bold text-emerald-800 shadow-sm transition-colors hover:border-emerald-400 hover:bg-emerald-50"
                                 >
                                     <span className="whitespace-nowrap">Sou prefeitura</span>
                                     <Shield size={19} aria-hidden="true" />
