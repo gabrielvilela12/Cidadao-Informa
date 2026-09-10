@@ -11,6 +11,7 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminMasterDashboard } from './pages/AdminMasterDashboard';
 import { AdminMasterEstablishmentDetails } from './pages/AdminMasterEstablishmentDetails';
 import { AdminOwnerDashboard } from './pages/AdminOwnerDashboard';
+import { AiBillingPage } from './pages/AiBillingPage';
 import { AdminMap } from './pages/AdminMap';
 import { AdminRequestsQueue } from './pages/AdminRequestsQueue';
 import { AdminRecurringAlerts } from './pages/AdminRecurringAlerts';
@@ -174,9 +175,11 @@ function AppContent() {
           {/* Owner Routes */}
           <Route path="/backoffice" element={isPlatformOwner(role) ? <AdminMasterDashboard /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
           <Route path="/backoffice/estabelecimentos/:establishmentId" element={isPlatformOwner(role) ? <AdminMasterEstablishmentDetails /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
+          <Route path="/backoffice/estabelecimentos/:establishmentId/ia" element={isPlatformOwner(role) ? <AiBillingPage /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
           <Route path="/admin-master" element={isPlatformOwner(role) ? <AdminMasterDashboard /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
           <Route path="/admin-master/estabelecimentos/:establishmentId" element={isPlatformOwner(role) ? <AdminMasterEstablishmentDetails /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
           <Route path="/admin-dono" element={role === 'establishment_owner' ? <AdminOwnerDashboard /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
+          <Route path="/admin-dono/ia" element={role === 'establishment_owner' ? <AiBillingPage /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
 
           <Route path="/admin" element={canAccessOperationalAdmin(role) ? <AdminDashboard /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />
           <Route path="/admin/solicitacoes" element={canAccessOperationalAdmin(role) ? <AdminRequestsQueue /> : <Navigate to={getDefaultRouteForRole(role)} replace />} />

@@ -278,6 +278,7 @@ export interface PlatformPaymentRecord {
     paidAt?: string | null;
     paymentMethod?: string | null;
     externalReference?: string | null;
+    purpose?: string;
     createdAt: string;
 }
 

@@ -107,8 +107,9 @@ export function AiChatbot() {
       const errorMessage: ChatMessage = {
         id: `error-${Date.now()}`,
         role: 'assistant',
-        content:
-          'Desculpe, ocorreu um erro temporário ao processar sua pergunta. Por favor, tente novamente.',
+        content: error instanceof Error
+          ? error.message
+          : 'Desculpe, ocorreu um erro temporário ao processar sua pergunta. Por favor, tente novamente.',
         timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, errorMessage]);

@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   Timer,
   Users,
+  WalletCards,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
@@ -70,6 +71,13 @@ export function AdminOwnerDashboard() {
           </div>
 
           <div className="flex flex-wrap gap-2">
+            <Link
+              to="/admin-dono/ia"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[#B9CBE2] bg-white px-4 text-sm font-bold text-[#0758BD] hover:bg-blue-50"
+            >
+              <WalletCards size={17} />
+              Créditos de IA
+            </Link>
             <Link
               to="/admin"
               className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white shadow-[0_8px_18px_rgba(19,81,180,0.18)] hover:bg-blue-700"

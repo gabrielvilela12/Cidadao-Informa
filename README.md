@@ -95,6 +95,10 @@ SUPABASE_ANON_KEY=<supabase-anon-key>
 SUPABASE_CORRECTED_IMAGE_FUNCTION_URL=https://<project-ref>.supabase.co/functions/v1/generate-corrected-image
 AI_IMAGE_FUNCTION_SECRET=<segredo-compartilhado-com-a-edge-function>
 AI_IMAGE_STORAGE_BUCKET=ai-corrections
+AI_CHAT_RESERVATION_BRL=0.10
+AI_USD_TO_BRL_RATE=5.50
+AI_MARKUP_PERCENT=20.00
+AI_MINIMUM_TOP_UP_BRL=10.00
 ```
 
 `.env.example` traz ainda as variáveis operacionais, com os mesmos valores que a
@@ -107,6 +111,12 @@ Se `SUPABASE_CORRECTED_IMAGE_FUNCTION_URL` ficar vazia, a API deriva o endereço
 trocando `classify-priority` por `generate-corrected-image` na URL da outra
 função. `AI_IMAGE_FUNCTION_SECRET` também tem fallback: sem ele, a API usa
 `SUPABASE_ANON_KEY`.
+
+O chatbot pago usa uma carteira pré-paga por estabelecimento. Antes da chamada,
+a API reserva `AI_CHAT_RESERVATION_BRL`; depois mantém debitado apenas o custo
+real informado em `usage.cost`, convertido pela cotação `AI_USD_TO_BRL_RATE` e
+pela margem `AI_MARKUP_PERCENT`. Visitantes recebem o RAG local gratuito e nunca
+chamam o OpenRouter diretamente pelo navegador.
 
 Para habilitar a simulação de correção por IA, publique a função
 `generate-corrected-image` e configure nela os segredos `OPENROUTER_API_KEY` e
@@ -213,6 +223,9 @@ interface:
 | `GET /api/protocols/{id}/audit` | Dono do protocolo ou admin |
 | `GET /api/protocols/audit/verify` | Admin; revalida a cadeia de hashes |
 | `GET /api/ai-priority/{protocolId}` | Qualquer sessão válida |
+| `POST /api/ai/chat` | Usuário vinculado a um assinante com saldo de IA |
+| `GET /api/ai-billing` | Dono do assinante; saldo, tokens, custos e extrato |
+| `POST /api/ai-billing/top-ups` | Dono do assinante; solicita recarga pendente |
 | `POST /api/ai-priority/regenerate/{protocolId}` | Admin |
 | `GET /api/ai-priority/logs` | Admin (aba Logs de IA em `/admin/ia`) |
 | `GET /api/ai-priority/jobs/failed` | Admin |
@@ -249,6 +262,8 @@ minutos, desligável por `APP_SCHEDULING_ENABLED=false`.
 | `/admin/relatorios` | Relatórios (admin) |
 | `/admin/ia` | Prompts dos agentes e logs da triagem por IA (admin) |
 | `/admin/ai-logs` | Redirecionamento legado para `/admin/ia` |
+| `/admin-dono/ia` | Dono do assinante; carteira, consumo e recargas de IA |
+| `/backoffice/estabelecimentos/:id/ia` | Dono da plataforma; auditoria e crédito de IA do assinante |
 
 Rota de admin acessada por cidadão redireciona para `/`. A verificação vale como
 navegação; a autorização de verdade é a do backend.
@@ -371,7 +386,7 @@ e a validação antes de virar o tráfego, está em `backend-java/DEPLOY-FLY.md`
 ## Banco e migrations
 
 O schema é versionado em dois lugares equivalentes: as migrations Flyway da API,
-em `backend-java/src/main/resources/db/migration/` (V1 a V17), e os SQLs
+em `backend-java/src/main/resources/db/migration/` (V1 a V23), e os SQLs
 correspondentes em `supabase/migrations/`, para aplicar pelo painel do Supabase.
 
 Localmente, o Flyway roda na inicialização da API
@@ -384,8 +399,8 @@ uma migration nova deve ser aplicada primeiro pelos SQLs em
 Além do schema base, as migrations cobrem prioridade por IA e seus logs, os prompts
 configuráveis dos agentes, a cadeia
 de auditoria dos protocolos, coordenadas, imagens, imagens corrigidas por IA,
-unicidade de identidade dos usuários e o fechamento de permissões/RLS do schema
-`public`.
+unicidade de identidade dos usuários, assinaturas, carteira pré-paga e razão de
+consumo de IA, além do fechamento de permissões/RLS do schema `public`.
 
 ## Estrutura
 

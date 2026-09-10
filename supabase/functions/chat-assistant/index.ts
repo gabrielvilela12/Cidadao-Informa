@@ -261,8 +261,20 @@ Deno.serve(async (req) => {
     return jsonResponse({
       success: true,
       reply,
-      model: MODEL,
+      model: data.model || MODEL,
       topics,
+      generationId: data.id || null,
+      usage: data.usage
+        ? {
+            promptTokens: data.usage.prompt_tokens || 0,
+            completionTokens: data.usage.completion_tokens || 0,
+            totalTokens: data.usage.total_tokens || 0,
+            reasoningTokens: data.usage.completion_tokens_details?.reasoning_tokens || 0,
+            cachedTokens: data.usage.prompt_tokens_details?.cached_tokens || 0,
+            upstreamInferenceCost: data.usage.cost_details?.upstream_inference_cost || 0,
+            cost: data.usage.cost || 0,
+          }
+        : null,
     });
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);

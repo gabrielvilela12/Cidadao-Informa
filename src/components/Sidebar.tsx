@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, User, LogOut, BarChart3, List, X, Sparkles, ChevronDown, ChevronLeft, Users, ShieldCheck, BellRing, Crown, Building2 } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, User, LogOut, BarChart3, List, X, Sparkles, ChevronDown, ChevronLeft, Users, ShieldCheck, BellRing, Crown, Building2, WalletCards } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { CidadaoBrand } from './CidadaoBrand';
 import { AccessibilityIcon as A11yIcon } from './AccessibilityIcon';
@@ -60,7 +60,10 @@ export function Sidebar() {
   const ownerLinks = role === 'platform_owner'
     ? [{ to: '/backoffice', icon: Crown, label: 'Backoffice' }]
     : role === 'establishment_owner'
-      ? [{ to: '/admin-dono', icon: Building2, label: 'Painel do Diretor' }]
+      ? [
+          { to: '/admin-dono', icon: Building2, label: 'Painel do Diretor' },
+          { to: '/admin-dono/ia', icon: WalletCards, label: 'Créditos de IA' },
+        ]
       : [];
   const initials = user?.full_name ? user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'U';
 

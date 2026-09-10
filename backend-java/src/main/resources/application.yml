@@ -71,3 +71,10 @@ app:
     chat-function-url: ${SUPABASE_CHAT_FUNCTION_URL:}
   ai:
     image-function-secret: ${AI_IMAGE_FUNCTION_SECRET:${SUPABASE_ANON_KEY}}
+    billing:
+      # Reserva curta para impedir chamadas concorrentes acima do saldo. Ao fim,
+      # somente o custo real devolvido pelo OpenRouter permanece debitado.
+      chat-reservation-brl: ${AI_CHAT_RESERVATION_BRL:0.10}
+      usd-to-brl-rate: ${AI_USD_TO_BRL_RATE:5.50}
+      markup-percent: ${AI_MARKUP_PERCENT:20.00}
+      minimum-top-up-brl: ${AI_MINIMUM_TOP_UP_BRL:10.00}

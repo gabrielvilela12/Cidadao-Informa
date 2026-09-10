@@ -40,6 +40,9 @@ public class SubscriptionPayment {
     @Column(name = "external_reference")
     private String externalReference;
 
+    @Column(name = "purpose", nullable = false)
+    private String purpose;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -53,6 +56,9 @@ public class SubscriptionPayment {
         }
         if (status == null || status.isBlank()) {
             status = "pending";
+        }
+        if (purpose == null || purpose.isBlank()) {
+            purpose = "subscription";
         }
         if (createdAt == null) {
             createdAt = Instant.now();
@@ -121,6 +127,14 @@ public class SubscriptionPayment {
 
     public void setExternalReference(String externalReference) {
         this.externalReference = externalReference;
+    }
+
+    public String getPurpose() {
+        return purpose;
+    }
+
+    public void setPurpose(String purpose) {
+        this.purpose = purpose;
     }
 
     public Instant getCreatedAt() {

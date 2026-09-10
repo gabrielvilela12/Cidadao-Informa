@@ -14,6 +14,7 @@ import {
   Search,
   ShieldCheck,
   Users,
+  WalletCards,
 } from 'lucide-react';
 import type { Protocol } from '../constants';
 import { useApp } from '../context/AppContext';
@@ -184,6 +185,13 @@ export function AdminMasterEstablishmentDetails() {
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row xl:justify-end">
+            <Link
+              to={`/backoffice/estabelecimentos/${encodeURIComponent(establishment.establishmentId)}/ia`}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white hover:bg-blue-700"
+            >
+              <WalletCards size={17} />
+              IA e créditos
+            </Link>
             <button
               type="button"
               onClick={() => navigate('/backoffice')}

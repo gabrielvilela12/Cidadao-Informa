@@ -23,6 +23,7 @@ public record EstablishmentDetailsOutputDto(
             Instant paidAt,
             String paymentMethod,
             String externalReference,
+            String purpose,
             Instant createdAt
     ) {
         public static PaymentOutputDto from(SubscriptionPayment payment) {
@@ -35,6 +36,7 @@ public record EstablishmentDetailsOutputDto(
                     payment.getPaidAt(),
                     payment.getPaymentMethod(),
                     payment.getExternalReference(),
+                    payment.getPurpose(),
                     payment.getCreatedAt()
             );
         }

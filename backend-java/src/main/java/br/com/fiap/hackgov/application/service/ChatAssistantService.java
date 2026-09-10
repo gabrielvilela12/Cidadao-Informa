@@ -12,11 +12,17 @@ import org.springframework.web.client.RestClient;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.math.BigDecimal;
 
 @Service
 public class ChatAssistantService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ChatAssistantService.class);
+    private static final int MAX_MESSAGE_LENGTH = 2_000;
+    private static final int MAX_HISTORY_MESSAGES = 6;
+    private static final int MAX_HISTORY_ITEMS_ACCEPTED = 20;
+    private static final int MAX_HISTORY_CONTENT_LENGTH = 2_000;
+    private static final int MAX_CONTEXT_VALUE_LENGTH = 200;
     private static final String MODEL = "google/gemini-3.7-flash";
     private static final String OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
     private static final String DEFAULT_SYSTEM_PROMPT = "Você é o Assistente Virtual Oficial do Cidadão Informa, uma IA prestativa, acolhedora e inteligente especializada em orientar moradores sobre zeladoria urbana e serviços da cidade (como buracos no asfalto, iluminação pública, poda de árvores, descarte de lixo, calçadas, bueiros, acompanhamento de protocolos e transparência pública).\n\n"
@@ -50,6 +56,22 @@ public class ChatAssistantService {
         if (request == null || request.message() == null || request.message().isBlank()) {
             throw new IllegalArgumentException("A mensagem não pode ser vazia.");
         }
+        validateRequestLimits(request);
+        if (request.message().length() > 4_000) {
+            throw new IllegalArgumentException("A mensagem deve ter no máximo 4.000 caracteres.");
+        }
+        if (request.history() != null) {
+            if (request.history().size() > 12) {
+                throw new IllegalArgumentException("O histórico deve ter no máximo 12 mensagens.");
+            }
+            int historyCharacters = request.history().stream()
+                    .filter(message -> message != null && message.content() != null)
+                    .mapToInt(message -> message.content().length())
+                    .sum();
+            if (historyCharacters > 16_000) {
+                throw new IllegalArgumentException("O histórico da conversa excedeu o limite permitido.");
+            }
+        }
 
         // 1. Tenta chamar a Edge Function do Supabase (onde estão os segredos da nuvem)
         if (chatFunctionUrl != null && !chatFunctionUrl.isBlank()) {
@@ -74,9 +96,21 @@ public class ChatAssistantService {
         // 2. Tenta chamada direta ao OpenRouter com Gemini 3.7 Flash se houver chave configurada no servidor Java
         if (openRouterApiKey != null && !openRouterApiKey.isBlank()) {
             try {
-                String reply = callOpenRouterDirect(request);
+                OpenRouterResponse completion = callOpenRouterDirect(request);
+                String reply = completion == null || completion.choices() == null || completion.choices().isEmpty()
+                        ? null
+                        : completion.choices().get(0).message().content();
                 if (reply != null && !reply.isBlank()) {
-                    return new ChatResponse(true, reply, MODEL, List.of("Atendimento com IA"), null);
+                    return new ChatResponse(
+                            true,
+                            reply,
+                            completion.model() == null ? MODEL : completion.model(),
+                            List.of("Atendimento com IA"),
+                            null,
+                            completion.id(),
+                            completion.usage() == null ? null : completion.usage().normalized(),
+                            null
+                    );
                 }
             } catch (Exception exception) {
                 LOGGER.warn("Falha ao consultar OpenRouter direto: {}", exception.getMessage());
@@ -87,14 +121,15 @@ public class ChatAssistantService {
         return buildLocalResponse(request.message());
     }
 
-    private String callOpenRouterDirect(ChatRequest request) {
+    private OpenRouterResponse callOpenRouterDirect(ChatRequest request) {
         String systemPrompt = aiPromptService.getPromptOrDefault("chatbot", DEFAULT_SYSTEM_PROMPT);
 
         List<Map<String, String>> messages = new ArrayList<>();
         messages.add(Map.of("role", "system", "content", systemPrompt));
 
         if (request.history() != null) {
-            for (ChatMessageDto msg : request.history()) {
+            int firstMessage = Math.max(0, request.history().size() - MAX_HISTORY_MESSAGES);
+            for (ChatMessageDto msg : request.history().subList(firstMessage, request.history().size())) {
                 if (msg != null && msg.content() != null && !msg.content().isBlank()) {
                     messages.add(Map.of(
                             "role", "assistant".equalsIgnoreCase(msg.role()) ? "assistant" : "user",
@@ -123,11 +158,7 @@ public class ChatAssistantService {
                 .retrieve()
                 .body(OpenRouterResponse.class);
 
-        if (response != null && response.choices() != null && !response.choices().isEmpty()) {
-            return response.choices().get(0).message().content();
-        }
-
-        return null;
+        return response;
     }
 
     private ChatResponse buildLocalResponse(String userMessage) {
@@ -166,7 +197,7 @@ public class ChatAssistantService {
             topics = List.of("Ajuda ao Cidadão", "Serviços da Cidade");
         }
 
-        return new ChatResponse(true, reply, MODEL, topics, null);
+        return new ChatResponse(true, reply, MODEL, topics, null, null, null, null);
     }
 
     private static String resolveChatFunctionUrl(String priorityFunctionUrl, String configuredUrl) {
@@ -199,12 +230,88 @@ public class ChatAssistantService {
             String reply,
             String model,
             List<String> topics,
-            String error
+            String error,
+            String generationId,
+            Usage usage,
+            BillingDetails billing
     ) {
+        public ChatResponse withBilling(BillingDetails details) {
+            return new ChatResponse(success, reply, model, topics, error, generationId, usage, details);
+        }
     }
 
-    private record OpenRouterResponse(List<Choice> choices) {
+    private static void validateRequestLimits(ChatRequest request) {
+        if (request.message().trim().length() > MAX_MESSAGE_LENGTH) {
+            throw new IllegalArgumentException("A mensagem deve ter no máximo 2.000 caracteres.");
+        }
+        if (request.history() != null) {
+            if (request.history().size() > MAX_HISTORY_ITEMS_ACCEPTED) {
+                throw new IllegalArgumentException("O histórico deve ter no máximo 20 mensagens.");
+            }
+            for (ChatMessageDto message : request.history()) {
+                if (message != null
+                        && message.content() != null
+                        && message.content().length() > MAX_HISTORY_CONTENT_LENGTH) {
+                    throw new IllegalArgumentException("Cada mensagem do histórico deve ter no máximo 2.000 caracteres.");
+                }
+            }
+        }
+        if (request.context() != null && request.context().values().stream()
+                .anyMatch(value -> value != null && value.length() > MAX_CONTEXT_VALUE_LENGTH)) {
+            throw new IllegalArgumentException("O contexto da sessão é maior que o permitido.");
+        }
+    }
+
+    public record Usage(
+            Long promptTokens,
+            Long completionTokens,
+            Long totalTokens,
+            Long reasoningTokens,
+            Long cachedTokens,
+            BigDecimal upstreamInferenceCost,
+            BigDecimal cost
+    ) {}
+
+    public record BillingDetails(
+            BigDecimal chargedAmountBrl,
+            BigDecimal balanceAfterBrl
+    ) {}
+
+    private record OpenRouterResponse(
+            String id,
+            String model,
+            List<Choice> choices,
+            OpenRouterUsage usage
+    ) {
         private record Choice(Message message) {}
         private record Message(String content) {}
     }
+
+    private record OpenRouterUsage(
+            @JsonProperty("prompt_tokens") Long promptTokens,
+            @JsonProperty("completion_tokens") Long completionTokens,
+            @JsonProperty("total_tokens") Long totalTokens,
+            @JsonProperty("completion_tokens_details") CompletionTokenDetails completionTokenDetails,
+            @JsonProperty("prompt_tokens_details") PromptTokenDetails promptTokenDetails,
+            @JsonProperty("cost_details") CostDetails costDetails,
+            BigDecimal cost
+    ) {
+        private Usage normalized() {
+            return new Usage(
+                    promptTokens,
+                    completionTokens,
+                    totalTokens,
+                    completionTokenDetails == null ? 0L : completionTokenDetails.reasoningTokens(),
+                    promptTokenDetails == null ? 0L : promptTokenDetails.cachedTokens(),
+                    costDetails == null ? BigDecimal.ZERO : costDetails.upstreamInferenceCost(),
+                    cost
+            );
+        }
+    }
+
+    private record CompletionTokenDetails(@JsonProperty("reasoning_tokens") Long reasoningTokens) {}
+    private record PromptTokenDetails(@JsonProperty("cached_tokens") Long cachedTokens) {}
+    private record CostDetails(
+            @JsonProperty("upstream_inference_cost") BigDecimal upstreamInferenceCost
+    ) {}
 }
