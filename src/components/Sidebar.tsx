@@ -48,6 +48,7 @@ export function Sidebar() {
       links: [
         { to: '/admin/mapa', icon: MapIcon, label: 'Mapa Estratégico', permission: undefined },
         { to: '/admin/ia', icon: Sparkles, label: 'IA', permission: 'AI' as AdminScreenPermission },
+        { to: '/admin/ia/consumo', icon: WalletCards, label: 'Consumo de IA', permission: 'AI' as AdminScreenPermission },
       ],
     },
   ];
@@ -223,6 +224,7 @@ export function Sidebar() {
                           <NavLink
                             key={link.to}
                             to={link.to}
+                            end={link.to === '/admin/ia'}
                             onClick={closeMobileMenu}
                             className={({ isActive }) => linkClassName(isActive, true)}
                           >

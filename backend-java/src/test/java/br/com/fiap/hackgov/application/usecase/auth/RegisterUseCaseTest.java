@@ -3,8 +3,10 @@ package br.com.fiap.hackgov.application.usecase.auth;
 import br.com.fiap.hackgov.application.dto.auth.AuthOutputDto;
 import br.com.fiap.hackgov.application.dto.auth.RegisterInputDto;
 import br.com.fiap.hackgov.application.service.JwtService;
+import br.com.fiap.hackgov.domain.entity.Establishment;
 import br.com.fiap.hackgov.domain.entity.User;
 import br.com.fiap.hackgov.domain.repository.UserRepository;
+import br.com.fiap.hackgov.infrastructure.persistence.repository.JpaEstablishmentRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -13,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,6 +34,9 @@ class RegisterUseCaseTest {
     @Mock
     private JwtService jwtService;
 
+    @Mock
+    private JpaEstablishmentRepository establishmentRepository;
+
     @InjectMocks
     private RegisterUseCase registerUseCase;
 
@@ -40,7 +46,9 @@ class RegisterUseCaseTest {
                 "Gabriel Vilela",
                 "GABRIEL@EMAIL.COM ",
                 "12345678901",
-                "Senha@123"
+                "Senha@123",
+                "Ribeirão Preto",
+                "sp"
         );
 
         when(userRepository.getByCpf(input.cpf())).thenReturn(Optional.empty());
@@ -61,9 +69,41 @@ class RegisterUseCaseTest {
 
         assertEquals("gabriel@email.com", createdUser.getEmail());
         assertEquals("citizen", createdUser.getRole());
+        assertEquals("Ribeirão Preto", createdUser.getResidenceCity());
+        assertEquals("SP", createdUser.getResidenceState());
         assertNotEquals("Senha@123", createdUser.getPasswordHash());
         assertEquals("jwt-token", result.token());
         assertEquals("user-123", result.userId());
+    }
+
+    @Test
+    void shouldLinkCitizenToActiveEstablishmentUsingCityAndState() {
+        RegisterInputDto input = new RegisterInputDto(
+                "Maria Silva",
+                "maria@email.com",
+                "98765432100",
+                "Senha@123",
+                "Ribeirão Preto",
+                "SP"
+        );
+        Establishment establishment = new Establishment();
+        establishment.setId("est-ribeirao");
+        establishment.setCity("Ribeirao Preto");
+        establishment.setState("SP");
+        establishment.setStatus("active");
+
+        when(userRepository.getByCpf(input.cpf())).thenReturn(Optional.empty());
+        when(userRepository.getByEmail(input.email())).thenReturn(Optional.empty());
+        when(establishmentRepository.findByStateIgnoreCaseAndStatusIgnoreCaseOrderByCreatedAtDesc("SP", "active"))
+                .thenReturn(List.of(establishment));
+        when(userRepository.add(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(jwtService.generateToken(any(User.class))).thenReturn("jwt-token");
+
+        registerUseCase.execute(input);
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).add(captor.capture());
+        assertEquals("est-ribeirao", captor.getValue().getEstablishmentId());
     }
 
     @Test
@@ -72,7 +112,9 @@ class RegisterUseCaseTest {
                 "Gabriel Vilela",
                 "gabriel@email.com",
                 "12345678901",
-                "Senha@123"
+                "Senha@123",
+                "Ribeirão Preto",
+                "SP"
         );
 
         when(userRepository.getByCpf(input.cpf())).thenReturn(Optional.of(new User()));

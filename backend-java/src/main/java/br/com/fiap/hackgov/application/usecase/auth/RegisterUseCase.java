@@ -4,19 +4,30 @@ import br.com.fiap.hackgov.application.dto.auth.AuthOutputDto;
 import br.com.fiap.hackgov.application.dto.auth.RegisterInputDto;
 import br.com.fiap.hackgov.application.service.JwtService;
 import br.com.fiap.hackgov.application.util.AuthUtils;
+import br.com.fiap.hackgov.domain.entity.Establishment;
 import br.com.fiap.hackgov.domain.entity.User;
 import br.com.fiap.hackgov.domain.repository.UserRepository;
+import br.com.fiap.hackgov.infrastructure.persistence.repository.JpaEstablishmentRepository;
 import org.springframework.stereotype.Service;
+
+import java.text.Normalizer;
+import java.util.Locale;
 
 @Service
 public class RegisterUseCase {
 
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final JpaEstablishmentRepository establishmentRepository;
 
-    public RegisterUseCase(UserRepository userRepository, JwtService jwtService) {
+    public RegisterUseCase(
+            UserRepository userRepository,
+            JwtService jwtService,
+            JpaEstablishmentRepository establishmentRepository
+    ) {
         this.userRepository = userRepository;
         this.jwtService = jwtService;
+        this.establishmentRepository = establishmentRepository;
     }
 
     public AuthOutputDto execute(RegisterInputDto input) {
@@ -38,6 +49,16 @@ public class RegisterUseCase {
             throw new IllegalArgumentException("A senha deve ter pelo menos 6 caracteres.");
         }
 
+        String city = input.city() == null ? "" : input.city().trim().replaceAll("\\s+", " ");
+        if (city.length() < 2 || city.length() > 120) {
+            throw new IllegalArgumentException("Informe a cidade onde você mora.");
+        }
+
+        String state = input.state() == null ? "" : input.state().trim().toUpperCase(Locale.ROOT);
+        if (!state.matches("[A-Z]{2}")) {
+            throw new IllegalArgumentException("Informe uma UF válida.");
+        }
+
         if (userRepository.getByCpf(input.cpf()).isPresent()) {
             throw new IllegalArgumentException("Já existe uma conta cadastrada com este CPF.");
         }
@@ -52,6 +73,10 @@ public class RegisterUseCase {
         user.setCpf(input.cpf());
         user.setPasswordHash(AuthUtils.hashPassword(input.password()));
         user.setRole("citizen");
+        user.setResidenceCity(city);
+        user.setResidenceState(state);
+        resolveEstablishment(city, state).ifPresent(establishment ->
+                user.setEstablishmentId(establishment.getId()));
 
         User createdUser = userRepository.add(user);
         String token = jwtService.generateToken(createdUser);
@@ -68,5 +93,22 @@ public class RegisterUseCase {
                 createdUser.getId(),
                 createdUser.getCreatedAt()
         );
+    }
+
+    private java.util.Optional<Establishment> resolveEstablishment(String city, String state) {
+        String normalizedCity = normalizeCity(city);
+        return establishmentRepository
+                .findByStateIgnoreCaseAndStatusIgnoreCaseOrderByCreatedAtDesc(state, "active")
+                .stream()
+                .filter(establishment -> normalizeCity(establishment.getCity()).equals(normalizedCity))
+                .findFirst();
+    }
+
+    private String normalizeCity(String value) {
+        return Normalizer.normalize(value == null ? "" : value, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .trim()
+                .replaceAll("\\s+", " ")
+                .toLowerCase(Locale.ROOT);
     }
 }

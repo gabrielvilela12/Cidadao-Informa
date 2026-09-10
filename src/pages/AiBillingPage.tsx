@@ -47,6 +47,7 @@ export function AiBillingPage() {
   const { establishmentId } = useParams();
   const { role, toggleMobileMenu } = useApp();
   const isPlatformView = role === 'platform_owner' && Boolean(establishmentId);
+  const canManageCredits = isPlatformView || role === 'establishment_owner';
   const [data, setData] = useState<AiBillingDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -143,7 +144,7 @@ export function AiBillingPage() {
           <button type="button" onClick={load} disabled={loading} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[#B9CBE2] bg-white px-4 text-sm font-bold text-blue-700 disabled:opacity-60"><RefreshCw size={17} className={loading ? 'animate-spin' : ''} />Atualizar</button>
         </header>
 
-        {lowBalance && <div className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"><AlertTriangle className="shrink-0" size={20} /><div><p className="font-black">Saldo baixo</p><p className="mt-1">Faça uma recarga para evitar a interrupção das respostas pagas do chatbot.</p></div></div>}
+        {lowBalance && <div className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"><AlertTriangle className="shrink-0" size={20} /><div><p className="font-black">Saldo baixo</p><p className="mt-1">{canManageCredits ? 'Faça uma recarga para evitar a interrupção das respostas pagas do chatbot.' : 'Avise o dono do assinante para realizar uma recarga e evitar a interrupção do chatbot.'}</p></div></div>}
         {error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div>}
         {success && <div role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{success}</div>}
 
@@ -154,8 +155,8 @@ export function AiBillingPage() {
           <Kpi icon={<CreditCard />} label="Mensalidade" value={brl.format(data.subscription.monthlyAmountBrl)} hint={`${data.subscription.planName} · dia ${data.subscription.billingDay}`} tone="amber" />
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-3">
-          <article className="rounded-lg border border-[#CDD8E7] bg-white p-5 xl:col-span-2">
+        <section className={`grid gap-4 ${canManageCredits ? 'xl:grid-cols-3' : ''}`}>
+          <article className={`rounded-lg border border-[#CDD8E7] bg-white p-5 ${canManageCredits ? 'xl:col-span-2' : ''}`}>
             <div className="flex items-center gap-3"><Bot className="text-blue-700" /><div><h2 className="font-black">Resumo do mês</h2><p className="text-sm text-slate-600">O custo é fotografado no momento de cada resposta.</p></div></div>
             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <Mini label="Tokens de entrada" value={integer.format(data.currentMonth.promptTokens)} />
@@ -165,13 +166,13 @@ export function AiBillingPage() {
             </div>
           </article>
 
-          <article className="rounded-lg border border-[#CDD8E7] bg-white p-5">
+          {canManageCredits && <article className="rounded-lg border border-[#CDD8E7] bg-white p-5">
             <div className="flex items-center gap-3"><PlusCircle className="text-emerald-700" /><div><h2 className="font-black">{isPlatformView ? 'Adicionar crédito' : 'Solicitar recarga'}</h2><p className="text-sm text-slate-600">Valores em reais.</p></div></div>
             <label className="mt-4 block text-xs font-black uppercase text-slate-500">Valor</label>
             <input value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="decimal" className="mt-1 h-11 w-full rounded-lg border border-[#CDD8E7] px-3 font-bold outline-none focus:border-blue-500" />
             {isPlatformView && <><label className="mt-3 block text-xs font-black uppercase text-slate-500">Motivo</label><input value={description} onChange={(event) => setDescription(event.target.value)} className="mt-1 h-11 w-full rounded-lg border border-[#CDD8E7] px-3 text-sm outline-none focus:border-blue-500" /></>}
             <button type="button" onClick={submitCredit} disabled={submitting} className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-black text-white disabled:opacity-60">{submitting ? <Loader2 size={17} className="animate-spin" /> : <Coins size={17} />}{isPlatformView ? 'Creditar saldo' : 'Solicitar recarga'}</button>
-          </article>
+          </article>}
         </section>
 
         <section className="rounded-lg border border-[#CDD8E7] bg-white">

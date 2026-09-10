@@ -192,6 +192,7 @@ function AppContent() {
           <Route path="/admin/relatorios" element={<AdminScreenRoute permission="REPORTS"><AdminReports /></AdminScreenRoute>} />
           <Route path="/admin/relatorios/:id" element={<AdminScreenRoute permission="REPORTS"><AdminReportDetails /></AdminScreenRoute>} />
           <Route path="/admin/ia" element={<AdminScreenRoute permission="AI"><AiLogsPage /></AdminScreenRoute>} />
+          <Route path="/admin/ia/consumo" element={<AdminScreenRoute permission="AI"><AiBillingPage /></AdminScreenRoute>} />
           <Route path="/admin/ai-logs" element={<AdminScreenRoute permission="AI"><Navigate to="/admin/ia" replace /></AdminScreenRoute>} />
 
           {/* Shared Routes */}

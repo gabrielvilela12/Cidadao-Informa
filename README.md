@@ -224,7 +224,7 @@ interface:
 | `GET /api/protocols/audit/verify` | Admin; revalida a cadeia de hashes |
 | `GET /api/ai-priority/{protocolId}` | Qualquer sessão válida |
 | `POST /api/ai/chat` | Usuário vinculado a um assinante com saldo de IA |
-| `GET /api/ai-billing` | Dono do assinante; saldo, tokens, custos e extrato |
+| `GET /api/ai-billing` | Dono do assinante ou servidor com permissão `AI`; saldo, tokens, custos e extrato |
 | `POST /api/ai-billing/top-ups` | Dono do assinante; solicita recarga pendente |
 | `POST /api/ai-priority/regenerate/{protocolId}` | Admin |
 | `GET /api/ai-priority/logs` | Admin (aba Logs de IA em `/admin/ia`) |
@@ -240,6 +240,11 @@ interface:
 O limite de login conta falhas em janela deslizante, por IP e por CPF em
 separado, com os padrões 30 falhas por IP, 10 por CPF e janela de 15 minutos. É
 memória do processo, não do banco: reiniciar a API zera a contagem.
+
+No cadastro do cidadão, cidade e UF são obrigatórias. Quando existe um
+estabelecimento ativo para essa localização, a conta é vinculada à prefeitura e
+as respostas pagas do chatbot debitam a carteira dela. Sem correspondência, o
+chatbot usa apenas a base local gratuita e não transfere custo para outra cidade.
 
 Jobs de triagem que falharam são reprocessados por uma tarefa agendada a cada 5
 minutos, desligável por `APP_SCHEDULING_ENABLED=false`.
@@ -261,6 +266,7 @@ minutos, desligável por `APP_SCHEDULING_ENABLED=false`.
 | `/admin/mapa` | Mapa estratégico (admin) |
 | `/admin/relatorios` | Relatórios (admin) |
 | `/admin/ia` | Prompts dos agentes e logs da triagem por IA (admin) |
+| `/admin/ia/consumo` | Tokens, custos e saldo de IA do assinante (admin com permissão de IA; somente leitura) |
 | `/admin/ai-logs` | Redirecionamento legado para `/admin/ia` |
 | `/admin-dono/ia` | Dono do assinante; carteira, consumo e recargas de IA |
 | `/backoffice/estabelecimentos/:id/ia` | Dono da plataforma; auditoria e crédito de IA do assinante |

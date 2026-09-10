@@ -4,6 +4,8 @@ public record RegisterInputDto(
         String name,
         String email,
         String cpf,
-        String password
+        String password,
+        String city,
+        String state
 ) {
 }

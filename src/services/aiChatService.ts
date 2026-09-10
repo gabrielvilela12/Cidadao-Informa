@@ -15,6 +15,7 @@ export interface ChatMessage {
 export interface SendMessageOptions {
   currentRoute?: string;
   userRole?: string;
+  establishmentId?: string;
 }
 
 export interface ChatApiResponse {
@@ -83,6 +84,7 @@ export const aiChatService = {
     // reserva saldo e registra o custo real. Visitantes usam somente o RAG local.
     const hasBillableTenantSession = typeof localStorage !== 'undefined'
       && Boolean(localStorage.getItem('cidadaoinforma_token'))
+      && Boolean(options.establishmentId)
       && options.userRole !== 'platform_owner';
     if (hasBillableTenantSession) {
       try {

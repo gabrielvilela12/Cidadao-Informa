@@ -1,5 +1,5 @@
 import React, { useId, useState } from 'react';
-import { User, Shield, Key, FileText, Loader2, ArrowRight, Eye, EyeOff, Home, Crown, Building2, type LucideIcon } from 'lucide-react';
+import { User, Shield, Key, FileText, Loader2, ArrowRight, Eye, EyeOff, Home, Crown, Building2, MapPin, type LucideIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../services/api';
@@ -86,6 +86,11 @@ type DemoAccount = {
 };
 
 const DEMO_PASSWORD = 'Demo@123';
+const BRAZILIAN_STATES = [
+    'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS',
+    'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC',
+    'SP', 'SE', 'TO',
+] as const;
 const DEMO_ACCOUNTS: DemoAccount[] = [
     {
         label: 'Cidadão',
@@ -122,10 +127,13 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
     const [cpf, setCpf] = useState('');
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [city, setCity] = useState('');
+    const [stateCode, setStateCode] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [errorDesc, setErrorDesc] = useState('');
     const [acceptedTerms, setAcceptedTerms] = useState(false);
+    const stateSelectId = useId();
     const authMode: 'citizen' | 'admin' = portal === 'citizen' ? 'citizen' : 'admin';
 
     const sanitizeCPF = (raw: string) => raw.replace(/\D/g, '');
@@ -145,13 +153,15 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
         const cleanCpf = sanitizeCPF(cpf);
         if (cleanCpf.length !== 11) { setErrorDesc('O CPF deve ter 11 dígitos.'); setLoading(false); return; }
         if (isRegistering && (!email || !email.includes('@'))) { setErrorDesc('Informe um e-mail válido.'); setLoading(false); return; }
+        if (isRegistering && city.trim().length < 2) { setErrorDesc('Informe a cidade onde você mora.'); setLoading(false); return; }
+        if (isRegistering && !stateCode) { setErrorDesc('Selecione o estado onde você mora.'); setLoading(false); return; }
         if (password.length < 6) { setErrorDesc('A senha deve ter pelo menos 6 caracteres.'); setLoading(false); return; }
         if (isRegistering && !acceptedTerms) { setErrorDesc('Para criar sua conta, confirme que leu e aceita os Termos de Uso.'); setLoading(false); return; }
 
         try {
             if (isRegistering) {
                 if (!name.trim()) { setErrorDesc('O Nome Completo é obrigatório.'); setLoading(false); return; }
-                const data = await api.register(name, email, cleanCpf, password);
+                const data = await api.register(name, email, cleanCpf, password, city.trim(), stateCode);
                 const role = normalizeRole(data.role);
                 loginSuccess(data.token, { id: data.userId, cpf: data.cpf, full_name: data.name, email: data.email, phone: data.phone, establishment_id: data.establishmentId, establishment_name: data.establishmentName, created_at: data.createdAt }, role);
                 navigate('/');
@@ -483,6 +493,17 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
                                                 onChange={(e: any) => setName(e.target.value)} placeholder="Ex: João da Silva" autoComplete="name" />
                                             <InputField label="E-mail" icon={User} type="email" value={email}
                                                 onChange={(e: any) => setEmail(e.target.value)} placeholder="seu@email.com" autoComplete="email" />
+                                            <div className="grid grid-cols-[minmax(0,1fr)_5.5rem] gap-3">
+                                                <InputField label="Cidade" icon={MapPin} value={city}
+                                                    onChange={(e: any) => setCity(e.target.value)} placeholder="Ex: Ribeirão Preto" autoComplete="address-level2" />
+                                                <div className="flex flex-col gap-1">
+                                                    <label htmlFor={stateSelectId} className="text-xs font-bold text-slate-700">UF</label>
+                                                    <select id={stateSelectId} required value={stateCode} onChange={(event) => setStateCode(event.target.value)} autoComplete="address-level1" className="auth-input w-full py-2.5 px-2 text-base sm:text-sm font-semibold text-slate-900">
+                                                        <option value="">UF</option>
+                                                        {BRAZILIAN_STATES.map((state) => <option key={state} value={state}>{state}</option>)}
+                                                    </select>
+                                                </div>
+                                            </div>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>

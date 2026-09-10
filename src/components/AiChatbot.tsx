@@ -89,6 +89,7 @@ export function AiChatbot() {
       const response = await aiChatService.sendMessage(messageText, messages, {
         currentRoute: location.pathname,
         userRole: user ? role : 'morador',
+        establishmentId: user?.establishment_id,
       });
 
       const assistantMessage: ChatMessage = {

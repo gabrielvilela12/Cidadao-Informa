@@ -377,11 +377,11 @@ export const api = {
         });
     },
 
-    register(name: string, email: string, cpf: string, password: string) {
+    register(name: string, email: string, cpf: string, password: string, city: string, state: string) {
         return apiRequest<AuthResponse>('/api/auth/register', {
             method: 'POST',
             authenticated: false,
-            body: JSON.stringify({ name, email, cpf, password }),
+            body: JSON.stringify({ name, email, cpf, password, city, state }),
         });
     },
 
