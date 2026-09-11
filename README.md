@@ -3,6 +3,8 @@
 Sistema web de zeladoria pública e acessibilidade urbana desenvolvido para o
 projeto HackGov/FIAP.
 
+Contato: [cidadao.informa@outlook.com](mailto:cidadao.informa@outlook.com)
+
 ## Arquitetura
 
 ```text
@@ -130,8 +132,9 @@ chamam o OpenRouter diretamente pelo navegador.
 Para prefeituras, a landing page apresenta faixas comerciais indicativas entre
 R$ 12.900/mês para pilotos e R$ 600.000+/mês para operações metropolitanas
 completas. Não existe contratação automática nem escolha obrigatória: a prefeitura
-consulta as faixas e solicita uma análise. A equipe agenda uma reunião para definir plano, valor, cobertura, usuários ativos, usuários
-internos, integrações, implantação, suporte e SLA. O envio não gera cobrança e os
+consulta as faixas e solicita uma análise. A equipe agenda uma reunião para
+definir plano, valor, cobertura, usuários ativos, usuários internos, integrações,
+implantação, suporte e SLA. O envio não gera cobrança e os
 créditos de IA continuam separados da mensalidade. A modelagem completa está em
 `docs/arquitetura-assinantes-e-consumo-ia.md`.
 
@@ -228,7 +231,9 @@ Rotas públicas, sem token:
 | `GET /api/health` | Executa `SELECT 1`; confirma API e banco de uma vez |
 | `GET /api/protocols/stats` | Números agregados da landing page |
 | `GET /api/protocols/public/{id}` | Consulta pública de um protocolo (tela `/p/:id`) |
-| `/swagger`, `/swagger/v3/api-docs` | Documentação OpenAPI |
+| `GET /api/public/platform-plans` | Lista as faixas comerciais de referência |
+| `POST /api/public/establishment-applications` | Envia a solicitação da prefeitura sem exigir `planCode` |
+| `/swagger`, `/swagger/v3/api-docs` | Documentação OpenAPI no ambiente local; desabilitada no perfil Vercel |
 
 Rotas autenticadas — o papel é lido do token e reconferido no backend, não na
 interface:
@@ -260,6 +265,9 @@ interface:
 | `GET /api/admin/server-permissions` | Admin; lista servidores e suas UFs autorizadas |
 | `POST /api/admin/server-permissions` | Admin autorizado cria outro admin dentro do próprio escopo; somente master cria master |
 | `PUT /api/admin/server-permissions/{userId}` | Admin; substitui as UFs autorizadas do servidor |
+| `GET /api/admin-master/overview` | Dono da plataforma; visão global, planos e solicitações de prefeituras |
+| `POST /api/admin-master/applications/{id}/approve` | Dono da plataforma; exige `planCode` ativo e `monthlyAmount` acordado |
+| `POST /api/admin-master/applications/{id}/reject` | Dono da plataforma; rejeita uma solicitação pendente |
 
 O limite de login conta falhas em janela deslizante, por IP e por CPF em
 separado, com os padrões 30 falhas por IP, 10 por CPF e janela de 15 minutos. É
@@ -278,7 +286,9 @@ minutos, desligável por `APP_SCHEDULING_ENABLED=false`.
 | Rota | Acesso |
 |---|---|
 | `/` | Landing para visitante; dashboard do cidadão quando autenticado |
-| `/login`, `/cadastro` | Público |
+| `/prefeitura` | Landing institucional exclusiva para prefeituras |
+| `/cadastro-prefeitura` | Formulário público de análise, sem escolha obrigatória de plano |
+| `/login`, `/cadastro`, `/login-servidor`, `/login-dono` | Público |
 | `/termos-de-uso`, `/privacidade`, `/acessibilidade` | Público |
 | `/p/:id` | Público — consulta de protocolo por link |
 | `/nova-solicitacao`, `/mapa`, `/meus-protocolos` | Cidadão |
@@ -292,7 +302,10 @@ minutos, desligável por `APP_SCHEDULING_ENABLED=false`.
 | `/admin/ia` | Prompts dos agentes e logs da triagem por IA (admin) |
 | `/admin/ia/consumo` | Tokens, custos e saldo de IA do assinante (admin com permissão de IA; somente leitura) |
 | `/admin/ai-logs` | Redirecionamento legado para `/admin/ia` |
+| `/admin-dono` | Painel do dono da prefeitura |
 | `/admin-dono/ia` | Dono do assinante; carteira, consumo e recargas de IA |
+| `/backoffice` | Painel global do dono da plataforma; define plano e mensalidade ao aprovar uma prefeitura |
+| `/backoffice/estabelecimentos/:id` | Detalhes de uma prefeitura aprovada |
 | `/backoffice/estabelecimentos/:id/ia` | Dono da plataforma; auditoria e crédito de IA do assinante |
 
 Rota de admin acessada por cidadão redireciona para `/`. A verificação vale como
@@ -415,9 +428,10 @@ e a validação antes de virar o tráfego, está em `backend-java/DEPLOY-FLY.md`
 
 ## Banco e migrations
 
-O schema é versionado em dois lugares equivalentes: as migrations Flyway da API,
-em `backend-java/src/main/resources/db/migration/` (V1 a V23), e os SQLs
-correspondentes em `supabase/migrations/`, para aplicar pelo painel do Supabase.
+O histórico completo do schema está nas migrations Flyway da API, em
+`backend-java/src/main/resources/db/migration/` (V1 a V29). Os SQLs controlados
+para o banco hospedado usam timestamps em `supabase/migrations/`; o histórico
+dessa pasta não é uma cópia individual de todas as migrations Flyway antigas.
 
 Localmente, o Flyway roda na inicialização da API
 (`SPRING_FLYWAY_ENABLED=true`, com `ddl-auto: validate` — o Hibernate confere o
@@ -430,7 +444,10 @@ Além do schema base, as migrations cobrem prioridade por IA e seus logs, os pro
 configuráveis dos agentes, a cadeia
 de auditoria dos protocolos, coordenadas, imagens, imagens corrigidas por IA,
 unicidade de identidade dos usuários, assinaturas, carteira pré-paga e razão de
-consumo de IA, além do fechamento de permissões/RLS do schema `public`.
+consumo de IA, além do fechamento de permissões/RLS do schema `public`. A V28
+atualiza as cinco faixas comerciais e a V29 permite que `plan_code` permaneça
+nulo durante a análise; o plano passa a ser definido na aprovação junto com a
+mensalidade.
 
 ## Estrutura
 
@@ -442,7 +459,7 @@ src/data/               dados embarcados, gerados (contorno das UFs)
 tools/                  geradores de dados embarcados
 backend-java/           API Spring Boot, Dockerfiles e fly.toml
 supabase/functions/     Edge Functions (Deno)
-supabase/migrations/    mesmas migrations, para aplicar pelo painel
+supabase/migrations/    migrations controladas do banco hospedado, com timestamps
 supabase/seed/          base de demonstração, aplicada à mão
 public/                 arquivos públicos
 entrega-fase-4/         documentos da entrega acadêmica da Fase 4
@@ -460,6 +477,7 @@ Supabase direto: nada no código atual as invoca.
 | Arquivo | Assunto |
 |---|---|
 | `RELATORIO_ARQUITETURA_AMBIENTES.md` | Arquitetura, ambientes, variáveis e diagnóstico |
+| `docs/admin-master-architecture.md` | Perfis, onboarding e aprovação comercial de prefeituras |
 | `docs/arquitetura-assinantes-e-consumo-ia.md` | Perfis de dono, assinantes, vínculo municipal, carteira e consumo do chatbot |
 | `backend-java/DEPLOY-FLY.md` | Passo a passo da migração do backend para o Fly.io |
 | `supabase/seed/README.md` | Base de demonstração: aplicar, apresentar e remover |

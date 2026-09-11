@@ -1,7 +1,7 @@
 # Arquitetura de assinantes, vínculo municipal e consumo de IA
 
 > Estado da implementação em 11 de setembro de 2026.
-> Versão de referência: branch `main`, incluindo o limite de 10 perguntas por hora.
+> Versão de referência: branch `main`, commit `7ec26a5`, incluindo as landings separadas e o cadastro de prefeitura sem escolha de plano.
 
 ## 1. Objetivo
 
@@ -72,6 +72,9 @@ O chatbot pago nunca é chamado diretamente pelo navegador. A chamada passa pelo
 | `c55c199` | Contas de demonstração para os diferentes perfis |
 | `76ec236` | Landing e acesso próprios para o backoffice do dono |
 | `35b0e52`, `3d7b179`, `c3d7c36` | Ajustes de layout, CTA e navegação da landing |
+| `93d60fc` | Cinco faixas comerciais indicativas e mensalidade negociada na aprovação |
+| `ea3973b` | Separação entre a landing do cidadão (`/`) e a landing da prefeitura (`/prefeitura`) |
+| `7ec26a5` | Cadastro sem escolha de plano; plano e valor definidos pelos responsáveis após análise e reunião |
 
 ### 4.3. Ajustes de infraestrutura
 
@@ -95,12 +98,12 @@ O chatbot pago nunca é chamado diretamente pelo navegador. A chamada passa pelo
 O fluxo de entrada de uma nova prefeitura é:
 
 ```text
-Prefeitura consulta os planos públicos
-  → consulta as faixas indicativas e envia uma solicitação com CNPJ, sem escolher plano
+Prefeitura consulta as faixas públicas de preço
+  → envia uma solicitação com CNPJ, sem escolher plano
   → dono da plataforma analisa e agenda a reunião comercial
   → proposta define plano, escopo e mensalidade final
   → solicitação é aprovada ou rejeitada
-  → aprovação registra a mensalidade acordada e libera o estabelecimento
+  → aprovação registra o plano e a mensalidade acordados e libera o estabelecimento
   → assinatura e campanha regional tornam a operação elegível
 ```
 
@@ -123,6 +126,33 @@ Para receber novos cidadãos e processar o chatbot, a prefeitura precisa:
 | `GET` | `/api/admin-master/establishments/{establishmentId}` | Detalhes da prefeitura |
 | `POST` | `/api/admin-master/applications/{applicationId}/approve` | Aprovar solicitação informando `planCode` e `monthlyAmount` acordados |
 | `POST` | `/api/admin-master/applications/{applicationId}/reject` | Rejeitar solicitação |
+
+O cadastro público não possui `planCode`. Um payload mínimo segue este formato:
+
+```json
+{
+  "establishmentName": "Prefeitura de Exemplo",
+  "document": "00000000000100",
+  "city": "Cidade Exemplo",
+  "state": "SP",
+  "campaignScope": "city",
+  "requesterName": "Responsável Institucional",
+  "requesterEmail": "responsavel@prefeitura.gov.br",
+  "requesterCpf": "00000000000",
+  "requesterPassword": "senha-segura"
+}
+```
+
+Depois da análise e da reunião, a aprovação feita pelo dono da plataforma recebe os dois dados comerciais:
+
+```json
+{
+  "planCode": "municipal",
+  "monthlyAmount": 25000.00
+}
+```
+
+Enquanto a solicitação estiver pendente, `establishment_applications.plan_code` pode ser nulo. Na aprovação, o backend exige um plano ativo, cria a assinatura com essa decisão e registra o código na solicitação aprovada.
 
 ## 6. Cadastro do cidadão e vínculo municipal
 
@@ -537,8 +567,10 @@ Respostas relevantes:
 | `V25__add_citizen_residence_fields.sql` | Endereço e comprovante de residência |
 | `V26__add_chat_controls_and_cache.sql` | Ativação por prefeitura e cache persistente |
 | `V27__add_ai_chat_request_events.sql` | Eventos persistentes para o limite de perguntas por hora |
+| `V28__update_commercial_subscription_plans.sql` | Cinco faixas comerciais públicas usadas como referência |
+| `V29__make_application_plan_optional.sql` | Plano opcional na solicitação e definido somente na aprovação |
 
-As migrações equivalentes também existem em `supabase/migrations` para controle do ambiente Supabase.
+As alterações que precisam ser executadas no banco hospedado possuem SQLs timestampados em `supabase/migrations`. Esse histórico operacional não usa a mesma numeração do Flyway e não deve ser tratado como uma cópia individual das migrations antigas.
 
 ## 19. Variáveis de configuração
 
@@ -580,20 +612,17 @@ As chaves dos provedores continuam sendo configuradas apenas no ambiente de exec
 
 ## 21. Validação realizada
 
-Na entrega do commit `d2780da` foram executadas as seguintes validações:
+Na publicação do commit `7ec26a5` foram executadas as seguintes validações:
 
-- 79 testes do backend Java aprovados;
+- 80 testes do backend Java aprovados;
 - 115 testes do frontend aprovados;
 - verificação TypeScript sem erros;
 - build de produção do frontend aprovado;
-- Edge Function `chat-assistant` publicada no Supabase;
-- migrações de residência e cache aplicadas no banco;
-- dashboard de faturamento validado em produção;
-- roteamento para o modelo econômico validado em produção;
-- cache validado sem geração de novo uso, cobrança ou alteração do saldo;
+- migration que torna o plano opcional aplicada no Supabase antes do deploy;
+- verificações de segurança e desempenho do banco sem erros;
+- formulário de prefeitura validado em desktop e celular, sem coluna lateral nem seleção de plano;
+- contraste do texto do botão azul validado como branco;
 - endpoint de saúde validado com HTTP 200.
-
-Em uma chamada de validação, o modelo econômico registrou 658 tokens e cobrança de R$ 0,000616. A repetição da pergunta retornou do cache sem alterar a carteira.
 
 ## 22. Estado atual e limitações conhecidas
 
@@ -615,6 +644,8 @@ Itens que ainda dependem de novas integrações ou decisões comerciais:
 
 ```text
 Prefeitura solicita cadastro
+  → equipe analisa e agenda a reunião
+  → responsáveis definem plano e mensalidade
   → dono da plataforma aprova
   → assinatura e campanha são ativadas
   → diretor recebe acesso ao portal municipal
@@ -629,3 +660,7 @@ Prefeitura solicita cadastro
   → diretor e servidores autorizados acompanham o consumo
   → dono da plataforma controla créditos e confirma recargas
 ```
+
+## 24. Contato
+
+O e-mail público de contato e suporte é [cidadao.informa@outlook.com](mailto:cidadao.informa@outlook.com). Ele aparece nas landings do cidadão e da prefeitura e também identifica as integrações de geocodificação que exigem um contato técnico no `User-Agent`.

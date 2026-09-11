@@ -1,9 +1,14 @@
 # Relatório de arquitetura e ambientes
 
-**Projeto:** Cidadão Informa  
-**Data da análise:** 28 de julho de 2026  
-**Revisado em:** 4 de agosto de 2026  
+**Projeto:** Cidadão Informa
+
+**Data da análise:** 28 de julho de 2026
+
+**Revisado em:** 11 de setembro de 2026
+
 **Produção:** https://cidadao-informa.vercel.app
+
+**Contato:** [cidadao.informa@outlook.com](mailto:cidadao.informa@outlook.com)
 
 ## 1. Resumo executivo
 
@@ -11,7 +16,7 @@ O sistema agora possui três partes bem separadas:
 
 1. **Frontend React/Vite:** executa no navegador e apresenta as telas.
 2. **Backend Java/Spring Boot:** recebe as chamadas HTTP, autentica usuários, aplica as regras de negócio e consulta o banco.
-3. **Supabase/PostgreSQL:** armazena usuários, protocolos, auditoria e dados de prioridade.
+3. **Supabase/PostgreSQL:** armazena usuários, protocolos, auditoria, prefeituras, assinaturas, onboarding e consumo de IA.
 
 O frontend **não recebe a URL do PostgreSQL, usuário, senha, chave JWT ou
 configuração do Supabase**. Para dados da aplicação, ele conhece somente o
@@ -24,7 +29,7 @@ flowchart LR
     F["Frontend React/Vite"]
     B["Backend Java/Spring Boot"]
     D["Supabase PostgreSQL"]
-    E["Supabase Edge Function<br/>classificação por IA"]
+    E["Supabase Edge Functions<br/>chat, classificação e imagem por IA"]
     O["OpenStreetMap/Nominatim"]
 
     U --> V
@@ -146,11 +151,13 @@ Rotas públicas:
 - `GET /api/health`
 - `GET /api/protocols/stats`
 - `GET /api/protocols/public/{id}`
-- Swagger e documentação OpenAPI
+- `GET /api/public/platform-plans`
+- `POST /api/public/establishment-applications`
+- Swagger e documentação OpenAPI apenas fora do perfil de produção da Vercel
 
-As demais rotas exigem JWT válido. Operações administrativas também verificam o
-papel `admin` no backend; não é suficiente alterar a interface ou o valor salvo
-no navegador.
+As demais rotas exigem JWT válido. Operações administrativas também verificam no
+backend o papel e o vínculo com a prefeitura; não é suficiente alterar a
+interface ou o valor salvo no navegador.
 
 Cadastro, login, emissão do token e validação de sessão são realizados pelo
 Java. O frontend valida uma sessão existente chamando `GET /api/auth/me`.
@@ -192,8 +199,9 @@ O frontend não precisa de:
 - chave do Supabase;
 - conexão direta com o Supabase.
 
-Sem o backend, a landing page ainda pode abrir, mas login, cadastro, protocolos,
-perfil, auditoria e prioridade não funcionarão.
+Sem o backend, as landings do cidadão e da prefeitura ainda podem abrir. As
+faixas comerciais possuem fallback local para continuarem visíveis, mas o envio
+do cadastro, login, protocolos, perfil, auditoria e prioridade não funcionarão.
 
 ### Dependências que saíram do bundle
 
@@ -380,10 +388,10 @@ mvn test
 mvn package
 ```
 
-O Flyway roda na inicialização da API. Se o deploy puder subir mais de uma
-instância ao mesmo tempo, aplique a migration de forma controlada antes e publique
-com `SPRING_FLYWAY_ENABLED=false`, para não haver duas instâncias migrando o mesmo
-banco.
+Localmente, o Flyway roda na inicialização da API. No perfil `vercel`, Flyway e
+validação automática do Hibernate permanecem desabilitados. Portanto, qualquer
+SQL novo de `supabase/migrations/` deve ser aplicado de forma controlada no banco
+antes da publicação da nova imagem.
 
 ## 10. Segurança: o que está protegido
 
@@ -407,13 +415,15 @@ banco.
 
 ### Validação realizada em produção
 
-Na publicação analisada:
+Na publicação do commit `7ec26a5`:
 
 - o frontend abriu pelo domínio público;
 - `GET /api/health` retornou `{"status":"ok"}`;
-- uma tentativa de autenticação inválida retornou HTTP `401`;
-- o bundle JavaScript público não continha senha, URL JDBC, usuário do banco,
-  `JWT_SECRET`, chave Supabase ou host Supabase;
+- o cadastro de prefeitura abriu em uma única coluna, sem seleção de plano;
+- as faixas comerciais permaneceram visíveis apenas como referência;
+- o texto do botão azul foi validado com cor branca;
+- `establishment_applications.plan_code` foi alterado para aceitar nulo antes do deploy;
+- os advisors de segurança e desempenho do Supabase não apontaram erros;
 - os logs das rotas verificadas não apresentaram erro de execução.
 
 ## 11. Pontos de atenção e melhorias recomendadas
@@ -488,7 +498,7 @@ Na publicação analisada:
 | `backend-java/start-vercel.sh` | Inicialização e encaminhamento interno |
 | `backend-java/fly.toml`, `Dockerfile.fly`, `DEPLOY-FLY.md` | Alternativa preparada no Fly.io |
 | `backend-java/src/main/resources/db/migration/` | Evolução do schema |
-| `supabase/migrations/` | Os mesmos SQLs, para aplicar pelo painel do Supabase |
+| `supabase/migrations/` | Migrations timestampadas aplicadas de forma controlada no banco hospedado |
 
 ## 14. Observação sobre mudanças recentes do Supabase
 
