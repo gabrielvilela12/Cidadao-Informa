@@ -5,7 +5,10 @@ public record RegisterInputDto(
         String email,
         String cpf,
         String password,
-        String city,
-        String state
+        String residenceState,
+        String residenceCity,
+        String residenceAddress,
+        String residenceProofFileName,
+        String residenceProofDataUrl
 ) {
 }

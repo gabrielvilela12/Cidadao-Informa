@@ -11,6 +11,7 @@ public record AuthOutputDto(
         String role,
         String establishmentId,
         String establishmentName,
+        boolean chatEnabled,
         String userId,
         Instant createdAt
 ) {

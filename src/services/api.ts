@@ -194,6 +194,7 @@ interface AuthResponse {
     role: string;
     establishmentId?: string | null;
     establishmentName?: string | null;
+    chatEnabled?: boolean;
     createdAt: string;
 }
 
@@ -305,6 +306,18 @@ export interface CreateEstablishmentApplicationInput {
     requesterPassword: string;
 }
 
+export interface RegisterCitizenInput {
+    name: string;
+    email: string;
+    cpf: string;
+    password: string;
+    residenceState: string;
+    residenceCity: string;
+    residenceAddress: string;
+    residenceProofFileName: string;
+    residenceProofDataUrl: string;
+}
+
 function mapProtocol(item: ApiProtocol): Protocol {
     return {
         ...item,
@@ -377,11 +390,11 @@ export const api = {
         });
     },
 
-    register(name: string, email: string, cpf: string, password: string, city: string, state: string) {
+    register(input: RegisterCitizenInput) {
         return apiRequest<AuthResponse>('/api/auth/register', {
             method: 'POST',
             authenticated: false,
-            body: JSON.stringify({ name, email, cpf, password, city, state }),
+            body: JSON.stringify(input),
         });
     },
 

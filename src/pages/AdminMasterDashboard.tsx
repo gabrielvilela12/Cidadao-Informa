@@ -121,7 +121,7 @@ export function AdminMasterDashboard() {
   };
 
   const rejectApplication = async (application: EstablishmentApplication) => {
-    if (!window.confirm(`Recusar o cadastro de ${application.establishmentName}?`)) return;
+    if (!window.confirm(`Recusar a solicitação de ${application.establishmentName}?`)) return;
     setReviewingId(application.id);
     setError('');
     try {
@@ -152,14 +152,14 @@ export function AdminMasterDashboard() {
     {
       label: 'Solicitações pendentes',
       value: overview?.pendingApplications ?? pendingApplications.length,
-      hint: `${applications.length} registro(s) de prefeitura`,
+      hint: `${applications.length} solicitação(ões) de prefeitura`,
       icon: ClipboardCheck,
       color: 'bg-amber-50 text-amber-700',
     },
     {
       label: 'Donos da plataforma',
       value: overview?.platformOwners ?? 0,
-      hint: 'Gabriel e Luis controlam a base',
+      hint: '',
       icon: Crown,
       color: 'bg-sky-50 text-sky-700',
     },
@@ -181,18 +181,11 @@ export function AdminMasterDashboard() {
             <div>
               <p className="text-sm font-medium text-slate-600">Backoffice</p>
               <h1 className="mt-1 text-2xl font-black leading-tight sm:text-3xl">Controle da Plataforma</h1>
-              <p className="mt-1 text-sm text-slate-600">Gabriel e Luis acompanham cadastros, white-labels e usuários globais.</p>
+              <p className="mt-1 text-sm text-slate-600">Acompanhe solicitações de prefeituras, aprovações e usuários globais.</p>
             </div>
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row xl:justify-end">
-            <Link
-              to="/cadastro-prefeitura"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[#B9CBE2] bg-white px-4 text-sm font-bold text-[#0758BD] shadow-sm transition-colors hover:bg-blue-50"
-            >
-              <Building2 size={17} />
-              Cadastro prefeitura
-            </Link>
             <button
               type="button"
               onClick={loadOverview}
@@ -223,7 +216,9 @@ export function AdminMasterDashboard() {
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-slate-600">{kpi.label}</p>
                     <p className="mt-1 text-2xl font-black">{loading && !overview ? '...' : kpi.value}</p>
-                    <p className="mt-1 text-xs font-semibold text-slate-500">{kpi.hint}</p>
+                    {kpi.hint && (
+                      <p className="mt-1 text-xs font-semibold text-slate-500">{kpi.hint}</p>
+                    )}
                   </div>
                 </div>
               </article>
@@ -265,7 +260,7 @@ export function AdminMasterDashboard() {
                 {!loading && applications.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-5 py-10 text-center text-sm font-semibold text-slate-500">
-                      Nenhuma prefeitura cadastrada ainda.
+                      Nenhuma solicitação de prefeitura criada ainda.
                     </td>
                   </tr>
                 )}
@@ -385,7 +380,7 @@ function ApplicationTableRow({
       </td>
       <td className="px-4 py-4">
         <p className="font-bold">{application.planName}</p>
-        <p className="text-xs text-slate-500">Plano escolhido no cadastro</p>
+        <p className="text-xs text-slate-500">Plano informado na solicitação</p>
       </td>
       <td className="px-4 py-4">
         <p className="font-bold">{application.requesterName || 'Responsável não informado'}</p>

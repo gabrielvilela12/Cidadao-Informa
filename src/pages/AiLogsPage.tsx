@@ -10,6 +10,8 @@ import {
   History,
   Image,
   Info,
+  MessageCircle,
+  MessageCircleOff,
   Pencil,
   RefreshCw,
   Save,
@@ -18,6 +20,7 @@ import {
   X,
 } from 'lucide-react';
 import { Header } from '../components/Header';
+import { aiChatSettingsService, type AiChatSettings } from '../services/aiChatSettingsService';
 import { aiPromptService, type AiAgentKey, type AiPrompt } from '../services/aiPromptService';
 import { aiPriorityService } from '../services/aiPriorityService';
 
@@ -40,6 +43,45 @@ export const AiLogsPage = () => {
   const [priority, setPriority] = useState('all');
   const [origin, setOrigin] = useState('all');
   const [error, setError] = useState<string | null>(null);
+  const [chatSettings, setChatSettings] = useState<AiChatSettings | null>(null);
+  const [chatSettingsLoading, setChatSettingsLoading] = useState(true);
+  const [chatSettingsSaving, setChatSettingsSaving] = useState(false);
+  const [chatSettingsError, setChatSettingsError] = useState('');
+
+  const loadChatSettings = useCallback(async () => {
+    setChatSettingsLoading(true);
+    setChatSettingsError('');
+    try {
+      setChatSettings(await aiChatSettingsService.get());
+    } catch (loadError) {
+      console.error('Falha ao carregar a disponibilidade do chatbot:', loadError);
+      setChatSettingsError(loadError instanceof Error
+        ? loadError.message
+        : 'Não foi possível carregar a disponibilidade do chatbot.');
+    } finally {
+      setChatSettingsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadChatSettings();
+  }, [loadChatSettings]);
+
+  const toggleChat = async () => {
+    if (!chatSettings || chatSettingsSaving) return;
+    setChatSettingsSaving(true);
+    setChatSettingsError('');
+    try {
+      setChatSettings(await aiChatSettingsService.update(!chatSettings.chatEnabled));
+    } catch (saveError) {
+      console.error('Falha ao alterar a disponibilidade do chatbot:', saveError);
+      setChatSettingsError(saveError instanceof Error
+        ? saveError.message
+        : 'Não foi possível alterar a disponibilidade do chatbot.');
+    } finally {
+      setChatSettingsSaving(false);
+    }
+  };
 
   const loadLogs = useCallback(async () => {
     try {
@@ -88,6 +130,15 @@ export const AiLogsPage = () => {
       />
 
       <main className="mx-auto flex w-full max-w-[1500px] flex-col gap-5 px-4 pb-8 sm:px-6 lg:px-8">
+        <AiChatAvailabilityCard
+          settings={chatSettings}
+          loading={chatSettingsLoading}
+          saving={chatSettingsSaving}
+          error={chatSettingsError}
+          onReload={loadChatSettings}
+          onToggle={toggleChat}
+        />
+
         <div className="inline-flex w-full rounded-lg border border-[#CDD8E7] bg-white p-1 shadow-[0_5px_16px_rgba(15,45,85,0.035)] sm:w-fit" role="tablist" aria-label="Seções de inteligência artificial">
           <TabButton active={activeTab === 'prompts'} onClick={() => setActiveTab('prompts')} icon={<FileText size={17} />} label="Prompts" />
           <TabButton active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} icon={<History size={17} />} label="Logs de IA" />
@@ -226,6 +277,69 @@ function TabButton({ active, onClick, icon, label }: { active: boolean; onClick:
     >
       {icon} {label}
     </button>
+  );
+}
+
+function AiChatAvailabilityCard({
+  settings,
+  loading,
+  saving,
+  error,
+  onReload,
+  onToggle,
+}: {
+  settings: AiChatSettings | null;
+  loading: boolean;
+  saving: boolean;
+  error: string;
+  onReload: () => Promise<void>;
+  onToggle: () => Promise<void>;
+}) {
+  const enabled = settings?.chatEnabled ?? false;
+
+  return (
+    <section className="flex flex-col gap-4 rounded-lg border border-[#CDD8E7] bg-white p-4 shadow-[0_7px_20px_rgba(15,45,85,0.035)] sm:flex-row sm:items-center sm:justify-between sm:p-5">
+      <div className="flex min-w-0 items-start gap-3">
+        <span className={`flex size-11 shrink-0 items-center justify-center rounded-lg ${enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+          {enabled ? <MessageCircle size={21} /> : <MessageCircleOff size={21} />}
+        </span>
+        <div className="min-w-0">
+          <h2 className="font-black text-[#0B1B33]">Chatbot dos cidadãos</h2>
+          <p className="mt-1 text-sm leading-5 text-slate-600">
+            {settings
+              ? `${settings.establishmentName}: ${enabled ? 'disponível para cidadãos logados' : 'acesso temporariamente bloqueado'}.`
+              : 'Controle a disponibilidade do assistente na plataforma.'}
+          </p>
+          {error && <p className="mt-2 text-sm font-semibold text-red-700">{error}</p>}
+        </div>
+      </div>
+
+      {error && !settings ? (
+        <button
+          type="button"
+          onClick={() => void onReload()}
+          disabled={loading}
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg border border-[#CDD8E7] px-4 text-sm font-bold text-slate-700 disabled:opacity-50"
+        >
+          <RefreshCw size={17} className={loading ? 'animate-spin' : ''} /> Tentar novamente
+        </button>
+      ) : (
+        <button
+          type="button"
+          role="switch"
+          aria-checked={enabled}
+          aria-label="Disponibilidade do chatbot para cidadãos"
+          onClick={() => void onToggle()}
+          disabled={loading || saving || !settings}
+          className={`inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg px-5 text-sm font-black text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${enabled ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-600 hover:bg-slate-700'}`}
+        >
+          {loading || saving
+            ? <RefreshCw size={17} className="animate-spin" />
+            : enabled ? <MessageCircle size={17} /> : <MessageCircleOff size={17} />}
+          {loading ? 'Carregando' : saving ? 'Salvando' : enabled ? 'Ativo' : 'Desativado'}
+        </button>
+      )}
+    </section>
   );
 }
 

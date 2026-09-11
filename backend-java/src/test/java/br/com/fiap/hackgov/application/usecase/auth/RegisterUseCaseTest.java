@@ -3,10 +3,12 @@ package br.com.fiap.hackgov.application.usecase.auth;
 import br.com.fiap.hackgov.application.dto.auth.AuthOutputDto;
 import br.com.fiap.hackgov.application.dto.auth.RegisterInputDto;
 import br.com.fiap.hackgov.application.service.JwtService;
-import br.com.fiap.hackgov.domain.entity.Establishment;
+import br.com.fiap.hackgov.application.service.RegionalCampaignRoutingService;
+import br.com.fiap.hackgov.domain.campaign.RegionalCampaign;
 import br.com.fiap.hackgov.domain.entity.User;
+import br.com.fiap.hackgov.domain.entity.UserResidenceProof;
 import br.com.fiap.hackgov.domain.repository.UserRepository;
-import br.com.fiap.hackgov.infrastructure.persistence.repository.JpaEstablishmentRepository;
+import br.com.fiap.hackgov.infrastructure.persistence.repository.JpaUserResidenceProofRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -15,7 +17,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,7 +36,10 @@ class RegisterUseCaseTest {
     private JwtService jwtService;
 
     @Mock
-    private JpaEstablishmentRepository establishmentRepository;
+    private RegionalCampaignRoutingService campaignRoutingService;
+
+    @Mock
+    private JpaUserResidenceProofRepository residenceProofRepository;
 
     @InjectMocks
     private RegisterUseCase registerUseCase;
@@ -47,12 +51,22 @@ class RegisterUseCaseTest {
                 "GABRIEL@EMAIL.COM ",
                 "12345678901",
                 "Senha@123",
+                "sp",
                 "Ribeirão Preto",
-                "sp"
+                "Rua das Flores, 123 - Centro, Ribeirão Preto - SP",
+                "conta-luz.pdf",
+                "data:application/pdf;base64,JVBERi0x"
         );
+        RegionalCampaign campaign = new RegionalCampaign();
+        campaign.setEstablishmentId("establishment-123");
 
         when(userRepository.getByCpf(input.cpf())).thenReturn(Optional.empty());
         when(userRepository.getByEmail("gabriel@email.com")).thenReturn(Optional.empty());
+        when(campaignRoutingService.resolveActiveCampaignForRegistration(
+                "Ribeirão Preto",
+                "Rua das Flores, 123 - Centro, Ribeirão Preto - SP",
+                "SP"
+        )).thenReturn(campaign);
         when(userRepository.add(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
             user.setId("user-123");
@@ -66,44 +80,23 @@ class RegisterUseCaseTest {
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).add(captor.capture());
         User createdUser = captor.getValue();
+        ArgumentCaptor<UserResidenceProof> proofCaptor = ArgumentCaptor.forClass(UserResidenceProof.class);
+        verify(residenceProofRepository).save(proofCaptor.capture());
+        UserResidenceProof proof = proofCaptor.getValue();
 
         assertEquals("gabriel@email.com", createdUser.getEmail());
         assertEquals("citizen", createdUser.getRole());
-        assertEquals("Ribeirão Preto", createdUser.getResidenceCity());
         assertEquals("SP", createdUser.getResidenceState());
+        assertEquals("Ribeirão Preto", createdUser.getResidenceCity());
+        assertEquals("Rua das Flores, 123 - Centro, Ribeirão Preto - SP", createdUser.getResidenceAddress());
+        assertEquals("establishment-123", createdUser.getEstablishmentId());
+        assertEquals("user-123", proof.getUserId());
+        assertEquals("conta-luz.pdf", proof.getFileName());
+        assertEquals("application/pdf", proof.getContentType());
+        assertEquals("data:application/pdf;base64,JVBERi0x", proof.getDataUrl());
         assertNotEquals("Senha@123", createdUser.getPasswordHash());
         assertEquals("jwt-token", result.token());
         assertEquals("user-123", result.userId());
-    }
-
-    @Test
-    void shouldLinkCitizenToActiveEstablishmentUsingCityAndState() {
-        RegisterInputDto input = new RegisterInputDto(
-                "Maria Silva",
-                "maria@email.com",
-                "98765432100",
-                "Senha@123",
-                "Ribeirão Preto",
-                "SP"
-        );
-        Establishment establishment = new Establishment();
-        establishment.setId("est-ribeirao");
-        establishment.setCity("Ribeirao Preto");
-        establishment.setState("SP");
-        establishment.setStatus("active");
-
-        when(userRepository.getByCpf(input.cpf())).thenReturn(Optional.empty());
-        when(userRepository.getByEmail(input.email())).thenReturn(Optional.empty());
-        when(establishmentRepository.findByStateIgnoreCaseAndStatusIgnoreCaseOrderByCreatedAtDesc("SP", "active"))
-                .thenReturn(List.of(establishment));
-        when(userRepository.add(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(jwtService.generateToken(any(User.class))).thenReturn("jwt-token");
-
-        registerUseCase.execute(input);
-
-        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).add(captor.capture());
-        assertEquals("est-ribeirao", captor.getValue().getEstablishmentId());
     }
 
     @Test
@@ -113,8 +106,11 @@ class RegisterUseCaseTest {
                 "gabriel@email.com",
                 "12345678901",
                 "Senha@123",
+                "SP",
                 "Ribeirão Preto",
-                "SP"
+                "Rua das Flores, 123 - Centro, Ribeirão Preto - SP",
+                "comprovante.png",
+                "data:image/png;base64,iVBORw0KGgo="
         );
 
         when(userRepository.getByCpf(input.cpf())).thenReturn(Optional.of(new User()));
@@ -125,5 +121,27 @@ class RegisterUseCaseTest {
         );
 
         assertEquals("Já existe uma conta cadastrada com este CPF.", exception.getMessage());
+    }
+
+    @Test
+    void shouldRejectMissingResidenceProof() {
+        RegisterInputDto input = new RegisterInputDto(
+                "Gabriel Vilela",
+                "gabriel@email.com",
+                "12345678901",
+                "Senha@123",
+                "SP",
+                "Ribeirão Preto",
+                "Rua das Flores, 123 - Centro, Ribeirão Preto - SP",
+                "comprovante.pdf",
+                ""
+        );
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> registerUseCase.execute(input)
+        );
+
+        assertEquals("Envie um comprovante de residência.", exception.getMessage());
     }
 }

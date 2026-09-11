@@ -80,11 +80,16 @@ function useHashRoutePath() {
  * @returns O layout e as rotas mapeadas de acordo com as permissões do usuário em sessão.
  */
 function AppContent() {
-  const { role, isAuthenticated, isSidebarCollapsed, toggleSidebarCollapsed } = useApp();
+  const { role, isAuthenticated, user, isSidebarCollapsed, toggleSidebarCollapsed } = useApp();
   const location = useLocation();
   const hashPath = useHashRoutePath();
   const routeLocation = hashPath ? { ...location, pathname: hashPath, search: '', hash: '' } : location;
   const isMapRoute = routeLocation.pathname === '/mapa' || routeLocation.pathname === '/admin/mapa';
+  const showAiChatbot = isAuthenticated
+    && role === 'citizen'
+    && Boolean(user?.establishment_id)
+    && user?.chat_enabled !== false
+    && !isMapRoute;
 
   useKeyboardShortcuts(role);
 
@@ -92,53 +97,37 @@ function AppContent() {
   // quando o visitante já possui uma sessão autenticada no navegador.
   if (routeLocation.pathname === '/transparencia') {
     return (
-      <>
-        <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#F5F8FC] font-semibold text-slate-600">Carregando transparência…</div>}>
-          <Transparency />
-        </Suspense>
-        <AiChatbot />
-      </>
+      <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#F5F8FC] font-semibold text-slate-600">Carregando transparência…</div>}>
+        <Transparency />
+      </Suspense>
     );
   }
 
   if (routeLocation.pathname === '/cadastro-prefeitura') {
-    return (
-      <>
-        <PrefeituraRegistration />
-        <AiChatbot />
-      </>
-    );
+    return <PrefeituraRegistration />;
   }
 
   if (routeLocation.pathname === '/dono') {
-    return (
-      <>
-        <OwnerBackofficeLanding />
-        <AiChatbot />
-      </>
-    );
+    return <OwnerBackofficeLanding />;
   }
 
   if (!isAuthenticated) {
     return (
-      <>
-        <Routes location={routeLocation}>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<Login initialMode={false} />} />
-          <Route path="/login-servidor" element={<Login portal="server" />} />
-          <Route path="/login-dono" element={<Login portal="owner" />} />
-          <Route path="/dono" element={<OwnerBackofficeLanding />} />
-          <Route path="/backoffice" element={<Login portal="owner" />} />
-          <Route path="/cadastro" element={<Login initialMode={true} />} />
-          <Route path="/cadastro-prefeitura" element={<PrefeituraRegistration />} />
-          <Route path="/termos-de-uso" element={<TermsOfUse />} />
-          <Route path="/privacidade" element={<PrivacyPolicy />} />
-          <Route path="/acessibilidade" element={<Accessibility />} />
-          <Route path="/p/:id" element={<PublicProtocol />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <AiChatbot />
-      </>
+      <Routes location={routeLocation}>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login initialMode={false} />} />
+        <Route path="/login-servidor" element={<Login portal="server" />} />
+        <Route path="/login-dono" element={<Login portal="owner" />} />
+        <Route path="/dono" element={<OwnerBackofficeLanding />} />
+        <Route path="/backoffice" element={<Login portal="owner" />} />
+        <Route path="/cadastro" element={<Login initialMode={true} />} />
+        <Route path="/cadastro-prefeitura" element={<PrefeituraRegistration />} />
+        <Route path="/termos-de-uso" element={<TermsOfUse />} />
+        <Route path="/privacidade" element={<PrivacyPolicy />} />
+        <Route path="/acessibilidade" element={<Accessibility />} />
+        <Route path="/p/:id" element={<PublicProtocol />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
     );
   }
 
@@ -207,7 +196,7 @@ function AppContent() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-      {!isMapRoute && <AiChatbot />}
+      {showAiChatbot && <AiChatbot />}
     </div>
   );
 }

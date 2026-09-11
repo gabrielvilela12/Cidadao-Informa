@@ -27,6 +27,7 @@ public class GetMeUseCase {
                 user.getRole(),
                 user.getEstablishmentId(),
                 user.getEstablishment() == null ? null : user.getEstablishment().getName(),
+                user.getEstablishment() == null || user.getEstablishment().isChatEnabled(),
                 user.getId(),
                 user.getCreatedAt()
         );

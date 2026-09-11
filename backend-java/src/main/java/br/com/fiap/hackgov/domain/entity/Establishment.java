@@ -41,6 +41,9 @@ public class Establishment {
     @Column(name = "logo_url")
     private String logoUrl;
 
+    @Column(name = "chat_enabled", nullable = false)
+    private boolean chatEnabled = true;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -133,6 +136,14 @@ public class Establishment {
 
     public void setLogoUrl(String logoUrl) {
         this.logoUrl = logoUrl;
+    }
+
+    public boolean isChatEnabled() {
+        return chatEnabled;
+    }
+
+    public void setChatEnabled(boolean chatEnabled) {
+        this.chatEnabled = chatEnabled;
     }
 
     public Instant getCreatedAt() {

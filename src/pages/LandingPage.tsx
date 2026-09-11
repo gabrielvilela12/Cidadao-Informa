@@ -716,7 +716,6 @@ export function LandingPage() {
                                 <a href="#como-funciona" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Como funciona</a>
                                 <a href="#beneficios" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Benefícios</a>
                                 <Link to="/transparencia" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Transparência</Link>
-                                <Link to="/dono" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Backoffice</Link>
                                 <Link to="/login" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Entrar</Link>
                             </div>
                         </nav>

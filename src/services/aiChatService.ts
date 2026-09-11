@@ -85,7 +85,7 @@ export const aiChatService = {
     const hasBillableTenantSession = typeof localStorage !== 'undefined'
       && Boolean(localStorage.getItem('cidadaoinforma_token'))
       && Boolean(options.establishmentId)
-      && options.userRole !== 'platform_owner';
+      && options.userRole === 'citizen';
     if (hasBillableTenantSession) {
       try {
         const payload = {

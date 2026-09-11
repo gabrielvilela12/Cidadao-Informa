@@ -13,6 +13,7 @@ interface AppUser {
   phone?: string;
   establishment_id?: string | null;
   establishment_name?: string | null;
+  chat_enabled?: boolean;
   created_at?: string;
 }
 
@@ -74,6 +75,7 @@ function readCachedSession(): { user: AppUser; role: UserRole } | null {
         phone: parsed.phone,
         establishment_id: parsed.establishment_id ?? null,
         establishment_name: parsed.establishment_name ?? null,
+        chat_enabled: parsed.chat_enabled ?? true,
         created_at: parsed.created_at,
       },
       role: normalizeRole(localStorage.getItem('cidadaoinforma_role')),
@@ -105,6 +107,7 @@ function isSameUser(a: AppUser | null, b: AppUser): boolean {
     && a.phone === b.phone
     && a.establishment_id === b.establishment_id
     && a.establishment_name === b.establishment_name
+    && a.chat_enabled === b.chat_enabled
     && a.created_at === b.created_at;
 }
 
@@ -165,6 +168,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           phone: userData.phone,
           establishment_id: userData.establishmentId ?? null,
           establishment_name: userData.establishmentName ?? null,
+          chat_enabled: userData.chatEnabled ?? true,
           created_at: userData.createdAt,
         };
         const validatedRole = normalizeRole(userData.role);

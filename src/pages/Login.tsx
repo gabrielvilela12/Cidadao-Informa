@@ -1,5 +1,5 @@
 import React, { useId, useState } from 'react';
-import { User, Shield, Key, FileText, Loader2, ArrowRight, Eye, EyeOff, Home, Crown, Building2, MapPin, type LucideIcon } from 'lucide-react';
+import { User, Shield, Key, FileText, Loader2, ArrowRight, Eye, EyeOff, Home, Crown, Building2, MapPin, Upload, ChevronDown, type LucideIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../services/api';
@@ -9,6 +9,7 @@ import { CidadaoBrand } from '../components/CidadaoBrand';
 import { CitizenLoginHero } from '../components/CitizenLoginHero';
 import { ServerLoginHero } from '../components/ServerLoginHero';
 import { canAccessOperationalAdmin, getDefaultRouteForRole, isPlatformOwner, normalizeRole, type UserRole } from '../types/auth';
+import { BRAZILIAN_UFS, normalizeUf } from '../utils/address';
 
 // ─── InputField — must be at module level to avoid remounting on each render ──
 function InputField({ label, icon: Icon, type = 'text', value, onChange, placeholder, autoComplete }: any) {
@@ -60,6 +61,93 @@ function InputField({ label, icon: Icon, type = 'text', value, onChange, placeho
     );
 }
 
+type ResidenceLocationFieldsProps = {
+    residenceState: string;
+    setResidenceState: (value: string) => void;
+    residenceCity: string;
+    setResidenceCity: (value: string) => void;
+};
+
+function ResidenceLocationFields({
+    residenceState,
+    setResidenceState,
+    residenceCity,
+    setResidenceCity,
+}: ResidenceLocationFieldsProps) {
+    const [isUfOpen, setIsUfOpen] = useState(false);
+    const labelId = useId();
+    const selectedUf = normalizeUf(residenceState);
+
+    return (
+        <div
+            className="flex flex-col gap-2"
+            onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                    setIsUfOpen(false);
+                }
+            }}
+        >
+            <div className="grid grid-cols-[minmax(0,1fr)_5.75rem] gap-3">
+                <InputField
+                    label="Cidade"
+                    icon={MapPin}
+                    value={residenceCity}
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => setResidenceCity(event.target.value)}
+                    placeholder="Ex: Ribeirão Preto"
+                    autoComplete="address-level2"
+                />
+                <div className="flex flex-col gap-1">
+                    <span id={labelId} className="text-xs font-bold text-slate-700">UF</span>
+                    <button
+                        type="button"
+                        aria-labelledby={labelId}
+                        aria-haspopup="listbox"
+                        aria-expanded={isUfOpen}
+                        onClick={() => setIsUfOpen((current) => !current)}
+                        className={`auth-input flex h-[42px] w-full items-center justify-between gap-1 px-3 text-sm font-black transition-colors ${selectedUf ? 'text-slate-900' : 'text-slate-400'}`}
+                    >
+                        <span>{selectedUf || 'UF'}</span>
+                        <ChevronDown
+                            size={15}
+                            aria-hidden="true"
+                            className={`shrink-0 text-slate-500 transition-transform ${isUfOpen ? 'rotate-180' : ''}`}
+                        />
+                    </button>
+                </div>
+            </div>
+
+            {isUfOpen && (
+                <div className="rounded-2xl border border-blue-100 bg-blue-50/80 p-2 shadow-inner">
+                    <div role="listbox" aria-label="Selecionar UF" className="grid grid-cols-7 gap-1 sm:grid-cols-9">
+                        {BRAZILIAN_UFS.map((uf) => {
+                            const isSelected = selectedUf === uf.code;
+                            return (
+                                <button
+                                    key={uf.code}
+                                    type="button"
+                                    role="option"
+                                    aria-selected={isSelected}
+                                    title={uf.name}
+                                    onClick={() => {
+                                        setResidenceState(uf.code);
+                                        setIsUfOpen(false);
+                                    }}
+                                    className={`flex h-8 items-center justify-center rounded-lg text-xs font-black transition-colors ${isSelected
+                                        ? 'bg-blue-600 text-white shadow-sm'
+                                        : 'bg-white text-slate-700 hover:bg-blue-100 hover:text-blue-700'
+                                        }`}
+                                >
+                                    {uf.code}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 /**
  * Texto de erro que o cidadao pode ler.
  *
@@ -86,11 +174,8 @@ type DemoAccount = {
 };
 
 const DEMO_PASSWORD = 'Demo@123';
-const BRAZILIAN_STATES = [
-    'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS',
-    'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC',
-    'SP', 'SE', 'TO',
-] as const;
+const MAX_RESIDENCE_PROOF_BYTES = 3 * 1024 * 1024;
+const RESIDENCE_PROOF_ACCEPT = 'application/pdf,image/jpeg,image/png,image/webp';
 const DEMO_ACCOUNTS: DemoAccount[] = [
     {
         label: 'Cidadão',
@@ -127,13 +212,15 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
     const [cpf, setCpf] = useState('');
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
-    const [city, setCity] = useState('');
-    const [stateCode, setStateCode] = useState('');
     const [password, setPassword] = useState('');
+    const [residenceState, setResidenceState] = useState('');
+    const [residenceCity, setResidenceCity] = useState('');
+    const [residenceAddress, setResidenceAddress] = useState('');
+    const [residenceProofDataUrl, setResidenceProofDataUrl] = useState('');
+    const [residenceProofName, setResidenceProofName] = useState('');
     const [loading, setLoading] = useState(false);
     const [errorDesc, setErrorDesc] = useState('');
     const [acceptedTerms, setAcceptedTerms] = useState(false);
-    const stateSelectId = useId();
     const authMode: 'citizen' | 'admin' = portal === 'citizen' ? 'citizen' : 'admin';
 
     const sanitizeCPF = (raw: string) => raw.replace(/\D/g, '');
@@ -153,17 +240,31 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
         const cleanCpf = sanitizeCPF(cpf);
         if (cleanCpf.length !== 11) { setErrorDesc('O CPF deve ter 11 dígitos.'); setLoading(false); return; }
         if (isRegistering && (!email || !email.includes('@'))) { setErrorDesc('Informe um e-mail válido.'); setLoading(false); return; }
-        if (isRegistering && city.trim().length < 2) { setErrorDesc('Informe a cidade onde você mora.'); setLoading(false); return; }
-        if (isRegistering && !stateCode) { setErrorDesc('Selecione o estado onde você mora.'); setLoading(false); return; }
         if (password.length < 6) { setErrorDesc('A senha deve ter pelo menos 6 caracteres.'); setLoading(false); return; }
         if (isRegistering && !acceptedTerms) { setErrorDesc('Para criar sua conta, confirme que leu e aceita os Termos de Uso.'); setLoading(false); return; }
 
         try {
             if (isRegistering) {
                 if (!name.trim()) { setErrorDesc('O Nome Completo é obrigatório.'); setLoading(false); return; }
-                const data = await api.register(name, email, cleanCpf, password, city.trim(), stateCode);
+                const normalizedResidenceState = normalizeUf(residenceState);
+                if (!normalizedResidenceState) { setErrorDesc('Informe sua UF.'); setLoading(false); return; }
+                if (residenceCity.trim().length < 2) { setErrorDesc('Informe sua cidade.'); setLoading(false); return; }
+                if (residenceAddress.trim().length < 5) { setErrorDesc('Informe seu endereço residencial.'); setLoading(false); return; }
+                if (!residenceProofDataUrl) { setErrorDesc('Envie um comprovante de residência.'); setLoading(false); return; }
+
+                const data = await api.register({
+                    name: name.trim(),
+                    email: email.trim(),
+                    cpf: cleanCpf,
+                    password,
+                    residenceState: normalizedResidenceState,
+                    residenceCity: residenceCity.trim(),
+                    residenceAddress: residenceAddress.trim(),
+                    residenceProofFileName: residenceProofName,
+                    residenceProofDataUrl,
+                });
                 const role = normalizeRole(data.role);
-                loginSuccess(data.token, { id: data.userId, cpf: data.cpf, full_name: data.name, email: data.email, phone: data.phone, establishment_id: data.establishmentId, establishment_name: data.establishmentName, created_at: data.createdAt }, role);
+                loginSuccess(data.token, { id: data.userId, cpf: data.cpf, full_name: data.name, email: data.email, phone: data.phone, establishment_id: data.establishmentId, establishment_name: data.establishmentName, chat_enabled: data.chatEnabled ?? true, created_at: data.createdAt }, role);
                 navigate('/');
             } else {
                 const data = await api.login(cleanCpf, password);
@@ -171,7 +272,7 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
                 if (role !== 'citizen') {
                     throw new ApiError('Use o portal correto para acessar sua conta.', true);
                 }
-                loginSuccess(data.token, { id: data.userId, cpf: data.cpf, full_name: data.name, email: data.email, phone: data.phone, establishment_id: data.establishmentId, establishment_name: data.establishmentName, created_at: data.createdAt }, role);
+                loginSuccess(data.token, { id: data.userId, cpf: data.cpf, full_name: data.name, email: data.email, phone: data.phone, establishment_id: data.establishmentId, establishment_name: data.establishmentName, chat_enabled: data.chatEnabled ?? true, created_at: data.createdAt }, role);
                 navigate(getDefaultRouteForRole(role));
             }
         } catch (err) {
@@ -213,6 +314,7 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
                     phone: data.phone,
                     establishment_id: data.establishmentId,
                     establishment_name: data.establishmentName,
+                    chat_enabled: data.chatEnabled ?? true,
                     created_at: data.createdAt
                 },
                 role
@@ -223,6 +325,38 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleResidenceProofChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        setResidenceProofDataUrl('');
+        setResidenceProofName('');
+        if (!file) return;
+
+        if (!['application/pdf', 'image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+            setErrorDesc('Envie um comprovante em PDF, JPG, PNG ou WebP.');
+            event.target.value = '';
+            return;
+        }
+
+        if (file.size > MAX_RESIDENCE_PROOF_BYTES) {
+            setErrorDesc('O comprovante de residência deve ter até 3 MB.');
+            event.target.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            if (typeof reader.result !== 'string') {
+                setErrorDesc('Não foi possível ler o comprovante. Tente outro arquivo.');
+                return;
+            }
+            setErrorDesc('');
+            setResidenceProofDataUrl(reader.result);
+            setResidenceProofName(file.name);
+        };
+        reader.onerror = () => setErrorDesc('Não foi possível ler o comprovante. Tente novamente.');
+        reader.readAsDataURL(file);
     };
 
     const handleDemoAccess = async (account: DemoAccount) => {
@@ -250,6 +384,7 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
                     phone: data.phone,
                     establishment_id: data.establishmentId,
                     establishment_name: data.establishmentName,
+                    chat_enabled: data.chatEnabled ?? true,
                     created_at: data.createdAt,
                 },
                 role,
@@ -275,7 +410,7 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
     const isServerPortal = portal === 'server';
     const portalLabel = isOwnerPortal ? 'Acesso dos donos' : isServerPortal ? 'Central do servidor' : 'Portal do cidadão';
     const citizenAccessPath = isRegistering ? '/cadastro' : '/login';
-    const platformAccessPath = isOwnerPortal ? '/dono' : '/login-servidor';
+    const platformAccessPath = isOwnerPortal ? '/login-dono' : '/login-servidor';
     const accessChoiceBase = 'inline-flex h-10 items-center justify-center gap-2 rounded-xl px-3 text-sm font-black transition-all';
     const accessChoiceActive = 'bg-white text-slate-950 shadow-sm';
     const accessChoiceInactive = 'text-slate-500 hover:bg-white/70 hover:text-slate-900';
@@ -341,7 +476,7 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
                                     : isServerPortal
                                       ? 'Entrada para diretores e servidores das prefeituras.'
                                         : isRegistering
-                                            ? 'Informe seus dados para acompanhar solicitações de acessibilidade.'
+                                            ? 'Informe seus dados e residência para vincular sua prefeitura.'
                                             : 'Acesse para reportar e acompanhar suas solicitações.'}
                                 </p>
                             </div>
@@ -385,7 +520,7 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
                                             <Shield size={14} /> Servidor
                                         </Link>
                                         <Link
-                                            to="/dono"
+                                            to="/login-dono"
                                             aria-current={isOwnerPortal ? 'page' : undefined}
                                             className={`${platformProfileBase} ${isOwnerPortal
                                                 ? 'border-blue-300 bg-blue-50 text-slate-950'
@@ -493,17 +628,41 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
                                                 onChange={(e: any) => setName(e.target.value)} placeholder="Ex: João da Silva" autoComplete="name" />
                                             <InputField label="E-mail" icon={User} type="email" value={email}
                                                 onChange={(e: any) => setEmail(e.target.value)} placeholder="seu@email.com" autoComplete="email" />
-                                            <div className="grid grid-cols-[minmax(0,1fr)_5.5rem] gap-3">
-                                                <InputField label="Cidade" icon={MapPin} value={city}
-                                                    onChange={(e: any) => setCity(e.target.value)} placeholder="Ex: Ribeirão Preto" autoComplete="address-level2" />
-                                                <div className="flex flex-col gap-1">
-                                                    <label htmlFor={stateSelectId} className="text-xs font-bold text-slate-700">UF</label>
-                                                    <select id={stateSelectId} required value={stateCode} onChange={(event) => setStateCode(event.target.value)} autoComplete="address-level1" className="auth-input w-full py-2.5 px-2 text-base sm:text-sm font-semibold text-slate-900">
-                                                        <option value="">UF</option>
-                                                        {BRAZILIAN_STATES.map((state) => <option key={state} value={state}>{state}</option>)}
-                                                    </select>
-                                                </div>
-                                            </div>
+                                            <ResidenceLocationFields
+                                                residenceState={residenceState}
+                                                setResidenceState={setResidenceState}
+                                                residenceCity={residenceCity}
+                                                setResidenceCity={setResidenceCity}
+                                            />
+                                            <label className="flex flex-col gap-1">
+                                                <span className="text-xs font-bold text-slate-700">Endereço residencial</span>
+                                                <textarea
+                                                    required
+                                                    value={residenceAddress}
+                                                    onChange={(event) => setResidenceAddress(event.target.value)}
+                                                    rows={3}
+                                                    className="min-h-20 w-full resize-y rounded-lg border-0 border-b border-slate-300 bg-blue-50/80 px-3 py-2.5 text-base font-semibold text-slate-900 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 sm:text-sm"
+                                                    placeholder="Rua, número, bairro"
+                                                    autoComplete="street-address"
+                                                />
+                                            </label>
+                                            <label className="flex flex-col gap-1">
+                                                <span className="text-xs font-bold text-slate-700">Comprovante de residência</span>
+                                                <span className="relative flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-blue-200 bg-blue-50 px-3 text-sm font-semibold text-slate-700 transition hover:border-blue-400 hover:bg-blue-100">
+                                                    <Upload size={17} className="shrink-0 text-blue-600" />
+                                                    <span className="min-w-0 truncate">
+                                                        {residenceProofName || 'Enviar PDF, JPG, PNG ou WebP'}
+                                                    </span>
+                                                    <input
+                                                        type="file"
+                                                        required
+                                                        accept={RESIDENCE_PROOF_ACCEPT}
+                                                        onChange={handleResidenceProofChange}
+                                                        className="absolute inset-0 cursor-pointer opacity-0"
+                                                    />
+                                                </span>
+                                                <span className="text-xs text-slate-500">Arquivo até 3 MB.</span>
+                                            </label>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
@@ -599,7 +758,7 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
                     className={`hidden lg:flex flex-1 items-center justify-center overflow-hidden ${isAdmin ? isOwnerPortal ? 'bg-[#eaf2ff]' : 'bg-[#fff8dd]' : 'auth-citizen-gradient'}`}
                 >
                     {isAdmin ? (
-                        <ServerLoginHero />
+                        <ServerLoginHero variant={isOwnerPortal ? 'owner' : 'server'} />
                     ) : (
                         <CitizenLoginHero />
                     )}

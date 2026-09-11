@@ -32,6 +32,30 @@ public class RegionalCampaignRoutingService {
 
     @Transactional(readOnly = true)
     public RegionalCampaign resolveActiveCampaign(String city, String address, String stateCode) {
+        return resolveActiveCampaign(
+                city,
+                address,
+                stateCode,
+                "Ainda não existe campanha ativa para a região informada. Nenhum protocolo foi salvo."
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public RegionalCampaign resolveActiveCampaignForRegistration(String city, String address, String stateCode) {
+        return resolveActiveCampaign(
+                city,
+                address,
+                stateCode,
+                "Ainda não existe prefeitura ativa para a região informada. Não foi possível criar a conta."
+        );
+    }
+
+    private RegionalCampaign resolveActiveCampaign(
+            String city,
+            String address,
+            String stateCode,
+            String missingCampaignMessage
+    ) {
         String state = stateCode == null ? "" : stateCode.trim().toUpperCase(Locale.ROOT);
         if (state.isBlank()) {
             throw new IllegalArgumentException("Não foi possível identificar a UF da ocorrência.");
@@ -57,9 +81,7 @@ public class RegionalCampaignRoutingService {
                 .or(() -> candidates.stream()
                         .filter(campaign -> "state".equalsIgnoreCase(campaign.getScopeType()))
                         .findFirst())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Ainda não existe campanha ativa para a região informada. Nenhum protocolo foi salvo."
-                ));
+                .orElseThrow(() -> new IllegalArgumentException(missingCampaignMessage));
     }
 
     private boolean isCampaignRunning(RegionalCampaign campaign) {

@@ -38,11 +38,14 @@ public class User {
     @Column(name = "establishment_id")
     private String establishmentId;
 
+    @Column(name = "residence_state")
+    private String residenceState;
+
     @Column(name = "residence_city")
     private String residenceCity;
 
-    @Column(name = "residence_state")
-    private String residenceState;
+    @Column(name = "residence_address")
+    private String residenceAddress;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "establishment_id", referencedColumnName = "id", insertable = false, updatable = false)
@@ -129,6 +132,14 @@ public class User {
         this.establishmentId = establishmentId;
     }
 
+    public String getResidenceState() {
+        return residenceState;
+    }
+
+    public void setResidenceState(String residenceState) {
+        this.residenceState = residenceState;
+    }
+
     public String getResidenceCity() {
         return residenceCity;
     }
@@ -137,12 +148,12 @@ public class User {
         this.residenceCity = residenceCity;
     }
 
-    public String getResidenceState() {
-        return residenceState;
+    public String getResidenceAddress() {
+        return residenceAddress;
     }
 
-    public void setResidenceState(String residenceState) {
-        this.residenceState = residenceState;
+    public void setResidenceAddress(String residenceAddress) {
+        this.residenceAddress = residenceAddress;
     }
 
     public Establishment getEstablishment() {
