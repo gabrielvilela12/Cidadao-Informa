@@ -71,6 +71,21 @@ app:
     chat-function-url: ${SUPABASE_CHAT_FUNCTION_URL:}
   ai:
     image-function-secret: ${AI_IMAGE_FUNCTION_SECRET:${SUPABASE_ANON_KEY}}
+    chat:
+      primary-model: ${AI_CHAT_PRIMARY_MODEL:google/gemini-3.7-flash}
+      economy-model: ${AI_CHAT_ECONOMY_MODEL:google/gemini-2.5-flash-lite}
+      response-cache-ttl-seconds: ${AI_CHAT_RESPONSE_CACHE_TTL_SECONDS:300}
+    chat-cache:
+      enabled: ${AI_CHAT_CACHE_ENABLED:true}
+      ttl-days: ${AI_CHAT_CACHE_TTL_DAYS:30}
+      max-candidates: ${AI_CHAT_CACHE_MAX_CANDIDATES:200}
+      similarity-threshold: ${AI_CHAT_CACHE_SIMILARITY_THRESHOLD:0.88}
+      strict-similarity-threshold: ${AI_CHAT_CACHE_STRICT_SIMILARITY_THRESHOLD:0.94}
+    limits:
+      requests-per-minute: ${AI_CHAT_REQUESTS_PER_MINUTE:6}
+      requests-per-day: ${AI_CHAT_REQUESTS_PER_DAY:30}
+      tokens-per-day: ${AI_CHAT_TOKENS_PER_DAY:50000}
+      concurrent-requests: ${AI_CHAT_CONCURRENT_REQUESTS:2}
     billing:
       # Reserva curta para impedir chamadas concorrentes acima do saldo. Ao fim,
       # somente o custo real devolvido pelo OpenRouter permanece debitado.

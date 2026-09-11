@@ -3,6 +3,7 @@ package br.com.fiap.hackgov.api.controller;
 import br.com.fiap.hackgov.api.response.ErrorResponse;
 import br.com.fiap.hackgov.application.service.AiBillingService;
 import br.com.fiap.hackgov.application.service.AiChatSettingsService;
+import br.com.fiap.hackgov.application.service.AiUsageLimitExceededException;
 import br.com.fiap.hackgov.application.service.ChatAssistantService;
 import br.com.fiap.hackgov.application.service.ChatCacheService;
 import br.com.fiap.hackgov.application.service.InsufficientAiCreditsException;
@@ -79,6 +80,8 @@ public class ChatAssistantController {
             return ResponseEntity.ok(response);
         } catch (InsufficientAiCreditsException exception) {
             return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED).body(new ErrorResponse(exception.getMessage()));
+        } catch (AiUsageLimitExceededException exception) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(new ErrorResponse(exception.getMessage()));
         } catch (IllegalArgumentException exception) {
             if (reservation != null) {
                 aiBillingService.releaseReservation(reservation);

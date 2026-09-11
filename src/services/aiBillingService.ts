@@ -25,6 +25,20 @@ export interface AiBillingDashboard {
     upstreamInferenceCostUsd: number;
     chargedAmountBrl: number;
   };
+  balanceHealth: {
+    level: 'healthy' | 'low' | 'critical' | 'empty';
+    referenceBalanceBrl: number;
+    remainingPercent: number;
+    averageDailySpendBrl: number;
+    estimatedDaysRemaining?: number | null;
+    message: string;
+  };
+  usageLimits: {
+    requestsPerMinute: number;
+    requestsPerDay: number;
+    tokensPerDay: number;
+    concurrentRequests: number;
+  };
   usage: Array<{
     id: string;
     generationId?: string | null;

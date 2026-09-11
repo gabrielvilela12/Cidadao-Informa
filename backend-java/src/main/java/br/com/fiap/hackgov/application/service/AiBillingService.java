@@ -1,11 +1,13 @@
 package br.com.fiap.hackgov.application.service;
 
 import br.com.fiap.hackgov.application.dto.billing.AiBillingDashboardOutputDto;
+import br.com.fiap.hackgov.application.dto.billing.AiBillingDashboardOutputDto.BalanceHealthOutputDto;
 import br.com.fiap.hackgov.application.dto.billing.AiBillingDashboardOutputDto.SubscriptionOutputDto;
 import br.com.fiap.hackgov.application.dto.billing.AiBillingDashboardOutputDto.TopUpOutputDto;
 import br.com.fiap.hackgov.application.dto.billing.AiBillingDashboardOutputDto.TransactionOutputDto;
 import br.com.fiap.hackgov.application.dto.billing.AiBillingDashboardOutputDto.UsageOutputDto;
 import br.com.fiap.hackgov.application.dto.billing.AiBillingDashboardOutputDto.UsageSummaryOutputDto;
+import br.com.fiap.hackgov.application.dto.billing.AiBillingDashboardOutputDto.UsageLimitsOutputDto;
 import br.com.fiap.hackgov.application.dto.billing.AiBillingDashboardOutputDto.WalletOutputDto;
 import br.com.fiap.hackgov.domain.billing.AiCreditTransaction;
 import br.com.fiap.hackgov.domain.billing.AiCreditWallet;
@@ -27,7 +29,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.UUID;
@@ -38,6 +40,7 @@ public class AiBillingService {
     public static final String TOP_UP_PURPOSE = "ai_credit_topup";
     private static final BigDecimal HUNDRED = new BigDecimal("100");
     private static final int MONEY_SCALE = 6;
+    private static final ZoneId BUSINESS_ZONE = ZoneId.of("America/Sao_Paulo");
 
     private final JpaAiCreditWalletRepository walletRepository;
     private final JpaAiCreditTransactionRepository transactionRepository;
@@ -48,6 +51,10 @@ public class AiBillingService {
     private final BigDecimal usdToBrlRate;
     private final BigDecimal markupPercent;
     private final BigDecimal minimumTopUpBrl;
+    private final int requestsPerMinute;
+    private final int requestsPerDay;
+    private final long tokensPerDay;
+    private final int concurrentRequests;
 
     public AiBillingService(
             JpaAiCreditWalletRepository walletRepository,
@@ -58,7 +65,11 @@ public class AiBillingService {
             @Value("${app.ai.billing.chat-reservation-brl:0.10}") BigDecimal reservationBrl,
             @Value("${app.ai.billing.usd-to-brl-rate:5.50}") BigDecimal usdToBrlRate,
             @Value("${app.ai.billing.markup-percent:20.00}") BigDecimal markupPercent,
-            @Value("${app.ai.billing.minimum-top-up-brl:10.00}") BigDecimal minimumTopUpBrl
+            @Value("${app.ai.billing.minimum-top-up-brl:10.00}") BigDecimal minimumTopUpBrl,
+            @Value("${app.ai.limits.requests-per-minute:6}") int requestsPerMinute,
+            @Value("${app.ai.limits.requests-per-day:30}") int requestsPerDay,
+            @Value("${app.ai.limits.tokens-per-day:50000}") long tokensPerDay,
+            @Value("${app.ai.limits.concurrent-requests:2}") int concurrentRequests
     ) {
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
@@ -69,12 +80,17 @@ public class AiBillingService {
         this.usdToBrlRate = positive(usdToBrlRate, "Cotação USD/BRL inválida.");
         this.markupPercent = nonNegative(markupPercent, "Margem de IA inválida.");
         this.minimumTopUpBrl = positive(minimumTopUpBrl, "Recarga mínima inválida.");
+        this.requestsPerMinute = positiveLimit(requestsPerMinute, "Limite por minuto inválido.");
+        this.requestsPerDay = positiveLimit(requestsPerDay, "Limite diário de chamadas inválido.");
+        this.tokensPerDay = positiveLimit(tokensPerDay, "Limite diário de tokens inválido.");
+        this.concurrentRequests = positiveLimit(concurrentRequests, "Limite de concorrência inválido.");
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Reservation reserveChatUsage(String establishmentId, String userId) {
         requireActiveSubscription(establishmentId);
         AiCreditWallet wallet = lockedWallet(establishmentId);
+        enforceUsageLimits(userId);
         if (wallet.getBalanceBrl().compareTo(reservationBrl) < 0) {
             throw new InsufficientAiCreditsException(
                     "Saldo de IA insuficiente. Solicite uma recarga para continuar usando o chatbot."
@@ -182,7 +198,7 @@ public class AiBillingService {
         payment.setAmount(normalizedAmount.setScale(2, RoundingMode.HALF_UP));
         payment.setStatus("pending");
         payment.setPurpose(TOP_UP_PURPOSE);
-        payment.setDueDate(LocalDate.now(ZoneOffset.UTC));
+        payment.setDueDate(LocalDate.now(BUSINESS_ZONE));
         payment.setPaymentMethod("pending");
         payment.setExternalReference("AI-TOPUP-" + UUID.randomUUID());
         paymentRepository.save(payment);
@@ -244,9 +260,9 @@ public class AiBillingService {
                 establishmentId,
                 PageRequest.of(0, 100)
         );
-        Instant monthStart = LocalDate.now(ZoneOffset.UTC)
+        Instant monthStart = LocalDate.now(BUSINESS_ZONE)
                 .with(TemporalAdjusters.firstDayOfMonth())
-                .atStartOfDay(ZoneOffset.UTC)
+                .atStartOfDay(BUSINESS_ZONE)
                 .toInstant();
         List<AiUsageRecord> currentMonthUsage = usageRepository
                 .findByEstablishmentIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(establishmentId, monthStart);
@@ -277,6 +293,8 @@ public class AiBillingService {
                         subscription.getCurrentPeriodEnd()
                 ),
                 summarize(currentMonthUsage),
+                balanceHealth(wallet, transactions, currentMonthUsage),
+                new UsageLimitsOutputDto(requestsPerMinute, requestsPerDay, tokensPerDay, concurrentRequests),
                 latestUsage.stream().map(this::toUsageOutput).toList(),
                 transactions.stream().map(this::toTransactionOutput).toList(),
                 topUps.stream().map(this::toTopUpOutput).toList()
@@ -369,6 +387,95 @@ public class AiBillingService {
         );
     }
 
+    private void enforceUsageLimits(String userId) {
+        if (userId == null || userId.isBlank()) {
+            throw new AiUsageLimitExceededException("Usuário sem identificação para controle de consumo.");
+        }
+        Instant now = Instant.now();
+        Instant dayStart = LocalDate.now(BUSINESS_ZONE).atStartOfDay(BUSINESS_ZONE).toInstant();
+        if (usageRepository.countByUserIdAndCreatedAtGreaterThanEqual(userId, dayStart) >= requestsPerDay) {
+            throw new AiUsageLimitExceededException(
+                    "Você atingiu o limite diário de " + requestsPerDay + " respostas do chatbot. Tente novamente amanhã."
+            );
+        }
+        Long tokensToday = usageRepository.sumTotalTokensByUserSince(userId, dayStart);
+        if (tokensToday != null && tokensToday >= tokensPerDay) {
+            throw new AiUsageLimitExceededException(
+                    "Você atingiu o limite diário de tokens do chatbot. Tente novamente amanhã."
+            );
+        }
+        Instant minuteStart = now.minusSeconds(60);
+        if (transactionRepository.countByCreatedByAndTypeAndCreatedAtGreaterThanEqual(
+                userId, "usage", minuteStart) >= requestsPerMinute) {
+            throw new AiUsageLimitExceededException(
+                    "Muitas mensagens em pouco tempo. Aguarde um minuto antes de tentar novamente."
+            );
+        }
+        Instant activeReservationStart = now.minusSeconds(300);
+        if (transactionRepository.countByCreatedByAndTypeAndStatusAndCreatedAtGreaterThanEqual(
+                userId, "usage", "pending", activeReservationStart) >= concurrentRequests) {
+            throw new AiUsageLimitExceededException(
+                    "Você já possui respostas sendo processadas. Aguarde a conclusão antes de enviar outra mensagem."
+            );
+        }
+    }
+
+    private BalanceHealthOutputDto balanceHealth(
+            AiCreditWallet wallet,
+            List<AiCreditTransaction> transactions,
+            List<AiUsageRecord> currentMonthUsage
+    ) {
+        BigDecimal referenceBalance = transactions.stream()
+                .filter(transaction -> "completed".equalsIgnoreCase(transaction.getStatus()))
+                .filter(transaction -> transaction.getAmountBrl() != null
+                        && transaction.getAmountBrl().compareTo(BigDecimal.ZERO) > 0)
+                .map(AiCreditTransaction::getBalanceAfterBrl)
+                .findFirst()
+                .orElse(wallet.getTotalCreditedBrl());
+        if (referenceBalance == null || referenceBalance.compareTo(BigDecimal.ZERO) <= 0) {
+            referenceBalance = BigDecimal.ONE;
+        }
+        BigDecimal remainingPercent = wallet.getBalanceBrl()
+                .multiply(HUNDRED)
+                .divide(referenceBalance, 2, RoundingMode.HALF_UP)
+                .max(BigDecimal.ZERO)
+                .min(HUNDRED);
+        String level;
+        String message;
+        if (wallet.getBalanceBrl().compareTo(BigDecimal.ZERO) <= 0) {
+            level = "empty";
+            message = "Saldo esgotado: as respostas pagas do chatbot estão interrompidas.";
+        } else if (remainingPercent.compareTo(new BigDecimal("10")) <= 0) {
+            level = "critical";
+            message = "Saldo crítico: resta 10% ou menos dos créditos disponíveis.";
+        } else if (remainingPercent.compareTo(new BigDecimal("30")) <= 0) {
+            level = "low";
+            message = "Saldo baixo: resta 30% ou menos dos créditos disponíveis.";
+        } else {
+            level = "healthy";
+            message = "Saldo de IA dentro da faixa saudável.";
+        }
+
+        BigDecimal spentThisMonth = currentMonthUsage.stream()
+                .map(AiUsageRecord::getChargedAmountBrl)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        int elapsedDays = Math.max(1, LocalDate.now(BUSINESS_ZONE).getDayOfMonth());
+        BigDecimal averageDailySpend = spentThisMonth.divide(
+                BigDecimal.valueOf(elapsedDays), MONEY_SCALE, RoundingMode.HALF_UP);
+        Integer estimatedDays = averageDailySpend.compareTo(BigDecimal.ZERO) > 0
+                ? wallet.getBalanceBrl().divide(averageDailySpend, 0, RoundingMode.FLOOR)
+                        .min(new BigDecimal("9999")).intValue()
+                : null;
+        return new BalanceHealthOutputDto(
+                level,
+                referenceBalance,
+                remainingPercent,
+                averageDailySpend,
+                estimatedDays,
+                message
+        );
+    }
+
     private UsageOutputDto toUsageOutput(AiUsageRecord record) {
         return new UsageOutputDto(
                 record.getId(), record.getGenerationId(), record.getFeature(), record.getModel(),
@@ -401,6 +508,16 @@ public class AiBillingService {
 
     private static BigDecimal nonNegative(BigDecimal value, String message) {
         if (value == null || value.compareTo(BigDecimal.ZERO) < 0) throw new IllegalArgumentException(message);
+        return value;
+    }
+
+    private static int positiveLimit(int value, String message) {
+        if (value <= 0) throw new IllegalArgumentException(message);
+        return value;
+    }
+
+    private static long positiveLimit(long value, String message) {
+        if (value <= 0) throw new IllegalArgumentException(message);
         return value;
     }
 

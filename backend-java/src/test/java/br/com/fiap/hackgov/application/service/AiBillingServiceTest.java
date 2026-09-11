@@ -47,7 +47,11 @@ class AiBillingServiceTest {
                 new BigDecimal("0.10"),
                 new BigDecimal("5.50"),
                 new BigDecimal("20.00"),
-                new BigDecimal("10.00")
+                new BigDecimal("10.00"),
+                6,
+                30,
+                50000L,
+                2
         );
     }
 
@@ -110,6 +114,25 @@ class AiBillingServiceTest {
         assertMoney("0.001", recorded.getOpenRouterCostUsd());
         assertMoney("0.0008", recorded.getUpstreamInferenceCostUsd());
         assertMoney("0.006600", recorded.getChargedAmountBrl());
+    }
+
+    @Test
+    void blocksUserWhoReachedDailyRequestLimitBeforeReservingBalance() {
+        when(subscriptionRepository.findFirstByEstablishmentIdOrderByCreatedAtDesc("est-1"))
+                .thenReturn(Optional.of(activeSubscription()));
+        AiCreditWallet wallet = wallet("10.00");
+        when(walletRepository.findByEstablishmentIdForUpdate("est-1")).thenReturn(Optional.of(wallet));
+        when(usageRepository.countByUserIdAndCreatedAtGreaterThanEqual(
+                org.mockito.ArgumentMatchers.eq("user-1"), any()))
+                .thenReturn(30L);
+
+        assertThrows(
+                AiUsageLimitExceededException.class,
+                () -> service.reserveChatUsage("est-1", "user-1")
+        );
+
+        assertMoney("10.00", wallet.getBalanceBrl());
+        verify(transactionRepository, never()).save(any());
     }
 
     private Subscription activeSubscription() {

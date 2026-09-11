@@ -10,7 +10,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.math.BigDecimal;
 
@@ -23,7 +25,7 @@ public class ChatAssistantService {
     private static final int MAX_HISTORY_ITEMS_ACCEPTED = 20;
     private static final int MAX_HISTORY_CONTENT_LENGTH = 2_000;
     private static final int MAX_CONTEXT_VALUE_LENGTH = 200;
-    private static final String MODEL = "google/gemini-3.7-flash";
+    private static final String DEFAULT_PRIMARY_MODEL = "google/gemini-3.7-flash";
     private static final String OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
     private static final String DEFAULT_SYSTEM_PROMPT = "Você é o Assistente Virtual Oficial do Cidadão Informa, uma IA prestativa, acolhedora e inteligente especializada em orientar moradores sobre zeladoria urbana e serviços da cidade (como buracos no asfalto, iluminação pública, poda de árvores, descarte de lixo, calçadas, bueiros, acompanhamento de protocolos e transparência pública).\n\n"
             + "REGRAS:\n"
@@ -35,6 +37,9 @@ public class ChatAssistantService {
     private final String chatFunctionUrl;
     private final String supabaseAnonKey;
     private final String openRouterApiKey;
+    private final String primaryModel;
+    private final String economyModel;
+    private final int responseCacheTtlSeconds;
     private final AiPromptService aiPromptService;
 
     public ChatAssistantService(
@@ -43,12 +48,18 @@ public class ChatAssistantService {
             @Value("${app.supabase.chat-function-url:}") String configuredChatFunctionUrl,
             @Value("${app.supabase.anon-key}") String supabaseAnonKey,
             @Value("${OPENROUTER_API_KEY:}") String openRouterApiKey,
+            @Value("${app.ai.chat.primary-model:google/gemini-3.7-flash}") String primaryModel,
+            @Value("${app.ai.chat.economy-model:google/gemini-2.5-flash-lite}") String economyModel,
+            @Value("${app.ai.chat.response-cache-ttl-seconds:300}") int responseCacheTtlSeconds,
             AiPromptService aiPromptService
     ) {
         this.restClient = restClient;
         this.chatFunctionUrl = resolveChatFunctionUrl(priorityFunctionUrl, configuredChatFunctionUrl);
         this.supabaseAnonKey = supabaseAnonKey;
         this.openRouterApiKey = openRouterApiKey;
+        this.primaryModel = modelOrDefault(primaryModel, DEFAULT_PRIMARY_MODEL);
+        this.economyModel = modelOrDefault(economyModel, this.primaryModel);
+        this.responseCacheTtlSeconds = Math.max(60, Math.min(responseCacheTtlSeconds, 3600));
         this.aiPromptService = aiPromptService;
     }
 
@@ -104,7 +115,7 @@ public class ChatAssistantService {
                     return new ChatResponse(
                             true,
                             reply,
-                            completion.model() == null ? MODEL : completion.model(),
+                            completion.model() == null ? selectedModels(request.message()).get(0) : completion.model(),
                             List.of("Atendimento com IA"),
                             null,
                             completion.id(),
@@ -123,6 +134,8 @@ public class ChatAssistantService {
 
     private OpenRouterResponse callOpenRouterDirect(ChatRequest request) {
         String systemPrompt = aiPromptService.getPromptOrDefault("chatbot", DEFAULT_SYSTEM_PROMPT);
+        List<String> models = selectedModels(request.message());
+        boolean simpleRequest = isSimpleRequest(request.message());
 
         List<Map<String, String>> messages = new ArrayList<>();
         messages.add(Map.of("role", "system", "content", systemPrompt));
@@ -141,24 +154,26 @@ public class ChatAssistantService {
 
         messages.add(Map.of("role", "user", "content", request.message()));
 
-        Map<String, Object> body = Map.of(
-                "model", MODEL,
-                "temperature", 0.35,
-                "max_tokens", 800,
-                "messages", messages
-        );
+        Map<String, Object> body = new HashMap<>();
+        body.put("models", models);
+        body.put("temperature", 0.35);
+        body.put("max_tokens", simpleRequest ? 450 : 800);
+        body.put("messages", messages);
 
-        OpenRouterResponse response = restClient.post()
+        RestClient.RequestBodySpec requestSpec = restClient.post()
                 .uri(OPENROUTER_URL)
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + openRouterApiKey.trim())
                 .header("HTTP-Referer", "https://cidadaoinforma.app")
-                .header("X-Title", "Cidadao Informa - Assistente Virtual")
-                .contentType(MediaType.APPLICATION_JSON)
+                .header("X-Title", "Cidadao Informa - Assistente Virtual");
+        if (isResponseCacheSafe(request)) {
+            requestSpec.header("X-OpenRouter-Cache", "true");
+            requestSpec.header("X-OpenRouter-Cache-TTL", String.valueOf(responseCacheTtlSeconds));
+        }
+
+        return requestSpec.contentType(MediaType.APPLICATION_JSON)
                 .body(body)
                 .retrieve()
                 .body(OpenRouterResponse.class);
-
-        return response;
     }
 
     private ChatResponse buildLocalResponse(String userMessage) {
@@ -197,7 +212,39 @@ public class ChatAssistantService {
             topics = List.of("Ajuda ao Cidadão", "Serviços da Cidade");
         }
 
-        return new ChatResponse(true, reply, MODEL, topics, null, null, null, null);
+        return new ChatResponse(true, reply, primaryModel, topics, null, null, null, null);
+    }
+
+    private List<String> selectedModels(String message) {
+        return (isSimpleRequest(message)
+                ? List.of(economyModel, primaryModel)
+                : List.of(primaryModel, economyModel))
+                .stream()
+                .distinct()
+                .toList();
+    }
+
+    private boolean isSimpleRequest(String message) {
+        String normalized = message == null ? "" : message.toLowerCase(Locale.ROOT);
+        int words = normalized.isBlank() ? 0 : normalized.trim().split("\\s+").length;
+        return normalized.length() <= 240
+                && words <= 35
+                && !normalized.matches(".*(compare|analise|análise|relatorio|relatório|detalhe|explique tudo|legislacao|legislação).*");
+    }
+
+    private boolean isResponseCacheSafe(ChatRequest request) {
+        if (!isSimpleRequest(request.message()) || (request.history() != null && !request.history().isEmpty())) {
+            return false;
+        }
+        String message = request.message();
+        if (message.matches(".*(\\d|@).*")) return false;
+        String normalized = message.toLowerCase(Locale.ROOT);
+        if (normalized.matches(".*(cpf|cnpj|telefone|celular|email|e-mail).*")) return false;
+        return normalized.matches(".*(como|onde|quais|ajuda|mapa|transparência|transparencia|acessibilidade|conserto|solicitação|solicitacao|pedido).*");
+    }
+
+    private static String modelOrDefault(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value.trim();
     }
 
     private static String resolveChatFunctionUrl(String priorityFunctionUrl, String configuredUrl) {

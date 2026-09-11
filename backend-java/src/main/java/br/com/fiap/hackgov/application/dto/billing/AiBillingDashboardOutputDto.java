@@ -9,6 +9,8 @@ public record AiBillingDashboardOutputDto(
         WalletOutputDto wallet,
         SubscriptionOutputDto subscription,
         UsageSummaryOutputDto currentMonth,
+        BalanceHealthOutputDto balanceHealth,
+        UsageLimitsOutputDto usageLimits,
         List<UsageOutputDto> usage,
         List<TransactionOutputDto> transactions,
         List<TopUpOutputDto> topUps
@@ -38,6 +40,22 @@ public record AiBillingDashboardOutputDto(
             BigDecimal openRouterCostUsd,
             BigDecimal upstreamInferenceCostUsd,
             BigDecimal chargedAmountBrl
+    ) {}
+
+    public record BalanceHealthOutputDto(
+            String level,
+            BigDecimal referenceBalanceBrl,
+            BigDecimal remainingPercent,
+            BigDecimal averageDailySpendBrl,
+            Integer estimatedDaysRemaining,
+            String message
+    ) {}
+
+    public record UsageLimitsOutputDto(
+            int requestsPerMinute,
+            int requestsPerDay,
+            long tokensPerDay,
+            int concurrentRequests
     ) {}
 
     public record UsageOutputDto(

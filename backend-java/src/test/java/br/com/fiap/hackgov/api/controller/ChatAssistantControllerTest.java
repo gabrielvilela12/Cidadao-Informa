@@ -2,6 +2,7 @@ package br.com.fiap.hackgov.api.controller;
 
 import br.com.fiap.hackgov.application.service.AiBillingService;
 import br.com.fiap.hackgov.application.service.AiChatSettingsService;
+import br.com.fiap.hackgov.application.service.AiUsageLimitExceededException;
 import br.com.fiap.hackgov.application.service.ChatAssistantService;
 import br.com.fiap.hackgov.application.service.ChatCacheService;
 import br.com.fiap.hackgov.application.service.InsufficientAiCreditsException;
@@ -81,6 +82,24 @@ class ChatAssistantControllerTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         verifyNoInteractions(chatService, billingService, cacheService);
+    }
+
+    @Test
+    void returnsTooManyRequestsWhenCitizenReachedUsageLimit() {
+        ChatAssistantService chatService = mock(ChatAssistantService.class);
+        AiBillingService billingService = mock(AiBillingService.class);
+        ChatCacheService cacheService = mock(ChatCacheService.class);
+        AiChatSettingsService settingsService = mock(AiChatSettingsService.class);
+        ChatAssistantController controller = controller(chatService, billingService, cacheService, settingsService);
+        ChatAssistantService.ChatRequest request = request();
+        when(cacheService.findCachedResponse("est-1", request)).thenReturn(Optional.empty());
+        when(billingService.reserveChatUsage("est-1", "user-1"))
+                .thenThrow(new AiUsageLimitExceededException("Limite diário atingido."));
+
+        ResponseEntity<?> response = controller.chat(request, authentication("citizen"));
+
+        assertEquals(HttpStatus.TOO_MANY_REQUESTS, response.getStatusCode());
+        verifyNoInteractions(chatService);
     }
 
     @Test

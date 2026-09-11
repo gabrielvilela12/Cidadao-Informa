@@ -1,7 +1,12 @@
 import { createClient } from "supabase";
 
 const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") ?? "";
-const MODEL = "google/gemini-3.7-flash";
+const PRIMARY_MODEL = Deno.env.get("AI_CHAT_PRIMARY_MODEL") ?? "google/gemini-3.7-flash";
+const ECONOMY_MODEL = Deno.env.get("AI_CHAT_ECONOMY_MODEL") ?? "google/gemini-2.5-flash-lite";
+const configuredCacheTtl = Number(Deno.env.get("AI_CHAT_RESPONSE_CACHE_TTL_SECONDS") ?? "300");
+const RESPONSE_CACHE_TTL_SECONDS = Number.isFinite(configuredCacheTtl)
+  ? Math.min(3600, Math.max(60, configuredCacheTtl))
+  : 300;
 const OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -179,6 +184,21 @@ async function getManagedPrompt(agentKey: string, fallback: string): Promise<str
   }
 }
 
+function isSimpleRequest(message: string): boolean {
+  const normalized = normalize(message);
+  const words = normalized.split(/\s+/).filter(Boolean);
+  return message.length <= 240
+    && words.length <= 35
+    && !/(compare|analise|relatorio|detalhe|explique tudo|legislacao)/.test(normalized);
+}
+
+function isResponseCacheSafe(message: string, history?: ChatMessage[]): boolean {
+  if (!isSimpleRequest(message) || (history?.length ?? 0) > 0) return false;
+  if (/\d|@|cpf|cnpj|telefone|celular|email|e-mail|protocolo\s*#?\s*[a-z0-9-]+/i.test(message)) return false;
+  const normalized = normalize(message);
+  return /(como|onde|quais|ajuda|mapa|transparencia|acessibilidade|conserto|solicitacao|pedido)/.test(normalized);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -198,6 +218,11 @@ Deno.serve(async (req) => {
 
     const { contextText, topics } = retrieveKnowledge(userMessage);
     const managedSystemPrompt = await getManagedPrompt("chatbot", SYSTEM_PROMPT);
+    const simpleRequest = isSimpleRequest(userMessage);
+    const selectedModels = simpleRequest
+      ? [ECONOMY_MODEL, PRIMARY_MODEL]
+      : [PRIMARY_MODEL, ECONOMY_MODEL];
+    const cacheSafe = isResponseCacheSafe(userMessage, payload.history);
 
     // Se a chave não estiver configurada no Edge Function, retorna resposta local RAG com alto padrão
     if (!OPENROUTER_API_KEY) {
@@ -205,7 +230,7 @@ Deno.serve(async (req) => {
       return jsonResponse({
         success: true,
         reply: defaultReply,
-        model: MODEL,
+        model: selectedModels[0],
         topics,
         fallback: true,
       });
@@ -231,18 +256,24 @@ Deno.serve(async (req) => {
       content: userMessage,
     });
 
+    const openRouterHeaders: Record<string, string> = {
+      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "https://cidadaoinforma.app",
+      "X-Title": "Cidadao Informa - Assistente Virtual",
+    };
+    if (cacheSafe) {
+      openRouterHeaders["X-OpenRouter-Cache"] = "true";
+      openRouterHeaders["X-OpenRouter-Cache-TTL"] = String(RESPONSE_CACHE_TTL_SECONDS);
+    }
+
     const response = await fetch(OPENROUTER_CHAT_URL, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://cidadaoinforma.app",
-        "X-Title": "Cidadao Informa - Assistente Virtual",
-      },
+      headers: openRouterHeaders,
       body: JSON.stringify({
-        model: MODEL,
+        models: selectedModels,
         temperature: 0.3,
-        max_tokens: 800,
+        max_tokens: simpleRequest ? 450 : 800,
         messages,
       }),
     });
@@ -261,7 +292,7 @@ Deno.serve(async (req) => {
     return jsonResponse({
       success: true,
       reply,
-      model: data.model || MODEL,
+      model: data.model || selectedModels[0],
       topics,
       generationId: data.id || null,
       usage: data.usage

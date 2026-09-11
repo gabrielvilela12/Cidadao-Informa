@@ -99,6 +99,14 @@ AI_CHAT_RESERVATION_BRL=0.10
 AI_USD_TO_BRL_RATE=5.50
 AI_MARKUP_PERCENT=20.00
 AI_MINIMUM_TOP_UP_BRL=10.00
+AI_CHAT_PRIMARY_MODEL=google/gemini-3.7-flash
+AI_CHAT_ECONOMY_MODEL=google/gemini-2.5-flash-lite
+AI_CHAT_RESPONSE_CACHE_TTL_SECONDS=300
+AI_CHAT_CACHE_ENABLED=true
+AI_CHAT_REQUESTS_PER_MINUTE=6
+AI_CHAT_REQUESTS_PER_DAY=30
+AI_CHAT_TOKENS_PER_DAY=50000
+AI_CHAT_CONCURRENT_REQUESTS=2
 ```
 
 `.env.example` traz ainda as variáveis operacionais, com os mesmos valores que a
@@ -117,6 +125,13 @@ a API reserva `AI_CHAT_RESERVATION_BRL`; depois mantém debitado apenas o custo
 real informado em `usage.cost`, convertido pela cotação `AI_USD_TO_BRL_RATE` e
 pela margem `AI_MARKUP_PERCENT`. Visitantes recebem o RAG local gratuito e nunca
 chamam o OpenRouter diretamente pelo navegador.
+
+Perguntas simples são direcionadas primeiro ao modelo econômico e perguntas mais
+complexas ao modelo principal. Respostas genéricas sem dados pessoais podem ser
+reaproveitadas pelo cache do estabelecimento. A API também limita, por cidadão,
+as chamadas por minuto e por dia, os tokens diários e as requisições simultâneas.
+O dono do assinante e os servidores autorizados veem na tela de consumo o saldo,
+o custo detalhado, a previsão de duração e alertas quando restam 30%, 10% ou zero.
 
 Para habilitar a simulação de correção por IA, publique a função
 `generate-corrected-image` e configure nela os segredos `OPENROUTER_API_KEY` e

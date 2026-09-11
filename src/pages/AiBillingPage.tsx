@@ -6,11 +6,13 @@ import {
   Coins,
   CreditCard,
   DollarSign,
+  Gauge,
   Loader2,
   Menu,
   PlusCircle,
   RefreshCw,
   ReceiptText,
+  ShieldCheck,
   WalletCards,
   Zap,
 } from 'lucide-react';
@@ -127,7 +129,26 @@ export function AiBillingPage() {
     );
   }
 
-  const lowBalance = data.wallet.balanceBrl < 10;
+  const balanceHealth = data.balanceHealth ?? {
+    level: data.wallet.balanceBrl <= 0 ? 'empty' as const : 'healthy' as const,
+    referenceBalanceBrl: data.wallet.totalCreditedBrl,
+    remainingPercent: data.wallet.totalCreditedBrl > 0
+      ? Math.min(100, (data.wallet.balanceBrl / data.wallet.totalCreditedBrl) * 100)
+      : 0,
+    averageDailySpendBrl: 0,
+    estimatedDaysRemaining: null,
+    message: data.wallet.balanceBrl <= 0 ? 'Saldo esgotado.' : 'Saldo de IA dentro da faixa saudável.',
+  };
+  const usageLimits = data.usageLimits ?? {
+    requestsPerMinute: 6,
+    requestsPerDay: 30,
+    tokensPerDay: 50000,
+    concurrentRequests: 2,
+  };
+  const balanceAlert = balanceHealth.level !== 'healthy';
+  const alertTone = balanceHealth.level === 'low'
+    ? 'border-amber-300 bg-amber-50 text-amber-900'
+    : 'border-red-300 bg-red-50 text-red-900';
 
   return (
     <div className="h-full flex-1 overflow-y-auto bg-[#F4F8FC] text-[#0B1B33]">
@@ -144,15 +165,35 @@ export function AiBillingPage() {
           <button type="button" onClick={load} disabled={loading} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[#B9CBE2] bg-white px-4 text-sm font-bold text-blue-700 disabled:opacity-60"><RefreshCw size={17} className={loading ? 'animate-spin' : ''} />Atualizar</button>
         </header>
 
-        {lowBalance && <div className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"><AlertTriangle className="shrink-0" size={20} /><div><p className="font-black">Saldo baixo</p><p className="mt-1">{canManageCredits ? 'Faça uma recarga para evitar a interrupção das respostas pagas do chatbot.' : 'Avise o dono do assinante para realizar uma recarga e evitar a interrupção do chatbot.'}</p></div></div>}
+        {balanceAlert && <div className={`flex gap-3 rounded-lg border p-4 text-sm ${alertTone}`}><AlertTriangle className="shrink-0" size={20} /><div><p className="font-black">Alerta financeiro de IA</p><p className="mt-1">{balanceHealth.message} {canManageCredits ? 'Faça uma recarga para evitar interrupções.' : 'Avise o dono do assinante para realizar uma recarga.'}</p></div></div>}
         {error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div>}
         {success && <div role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{success}</div>}
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Kpi icon={<WalletCards />} label="Saldo disponível" value={brl.format(data.wallet.balanceBrl)} hint={`${brl.format(data.wallet.totalCreditedBrl)} recarregados`} tone="blue" />
+          <Kpi icon={<WalletCards />} label="Saldo disponível" value={brl.format(data.wallet.balanceBrl)} hint={`${balanceHealth.remainingPercent.toLocaleString('pt-BR')}% da última referência`} tone="blue" />
           <Kpi icon={<Zap />} label="Tokens no mês" value={integer.format(data.currentMonth.totalTokens)} hint={`${integer.format(data.currentMonth.requests)} chamadas`} tone="violet" />
           <Kpi icon={<DollarSign />} label="Cobrado no mês" value={brl.format(data.currentMonth.chargedAmountBrl)} hint={`${usd.format(data.currentMonth.openRouterCostUsd)} na OpenRouter`} tone="emerald" />
           <Kpi icon={<CreditCard />} label="Mensalidade" value={brl.format(data.subscription.monthlyAmountBrl)} hint={`${data.subscription.planName} · dia ${data.subscription.billingDay}`} tone="amber" />
+        </section>
+
+        <section className="grid gap-4 xl:grid-cols-2">
+          <article className="rounded-lg border border-[#CDD8E7] bg-white p-5">
+            <div className="flex items-center gap-3"><Gauge className="text-blue-700" /><div><h2 className="font-black">Previsão de saldo</h2><p className="text-sm text-slate-600">Estimativa baseada no consumo deste mês.</p></div></div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <Mini label="Saldo de referência" value={brl.format(balanceHealth.referenceBalanceBrl)} />
+              <Mini label="Média diária" value={brl.format(balanceHealth.averageDailySpendBrl)} />
+              <Mini label="Duração estimada" value={balanceHealth.estimatedDaysRemaining == null ? 'Sem consumo' : `${integer.format(balanceHealth.estimatedDaysRemaining)} dias`} />
+            </div>
+          </article>
+          <article className="rounded-lg border border-[#CDD8E7] bg-white p-5">
+            <div className="flex items-center gap-3"><ShieldCheck className="text-emerald-700" /><div><h2 className="font-black">Proteção contra abuso</h2><p className="text-sm text-slate-600">Limites automáticos aplicados individualmente a cada cidadão.</p></div></div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <Mini label="Chamadas/minuto" value={integer.format(usageLimits.requestsPerMinute)} />
+              <Mini label="Chamadas/dia" value={integer.format(usageLimits.requestsPerDay)} />
+              <Mini label="Tokens/dia" value={integer.format(usageLimits.tokensPerDay)} />
+              <Mini label="Simultâneas" value={integer.format(usageLimits.concurrentRequests)} />
+            </div>
+          </article>
         </section>
 
         <section className={`grid gap-4 ${canManageCredits ? 'xl:grid-cols-3' : ''}`}>

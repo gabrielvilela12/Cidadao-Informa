@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, PlusCircle, FileText, Map as MapIcon, User, LogOut, BarChart3, List, X, Sparkles, ChevronDown, ChevronLeft, Users, ShieldCheck, BellRing, Crown, Building2, WalletCards } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -6,10 +6,39 @@ import { CidadaoBrand } from './CidadaoBrand';
 import { AccessibilityIcon as A11yIcon } from './AccessibilityIcon';
 import type { AdminScreenPermission } from '../services/serverPermissionService';
 import { getRoleDisplayName, getRolePortalLabel } from '../types/auth';
+import { aiBillingService } from '../services/aiBillingService';
 
 export function Sidebar() {
   const { role, logout, user, hasAdminScreen, isMobileMenuOpen, toggleMobileMenu, isSidebarCollapsed, toggleSidebarCollapsed } = useApp();
   const navigate = useNavigate();
+  const [aiBalanceLevel, setAiBalanceLevel] = useState<'low' | 'critical' | 'empty' | null>(null);
+
+  useEffect(() => {
+    const canViewBilling = role === 'establishment_owner'
+      || (role === 'admin' && hasAdminScreen('AI'));
+    if (!canViewBilling) {
+      setAiBalanceLevel(null);
+      return;
+    }
+
+    let active = true;
+    const loadBalanceAlert = async () => {
+      try {
+        const dashboard = await aiBillingService.getMine();
+        if (!active) return;
+        const level = dashboard.balanceHealth?.level;
+        setAiBalanceLevel(level && level !== 'healthy' ? level : null);
+      } catch {
+        if (active) setAiBalanceLevel(null);
+      }
+    };
+    void loadBalanceAlert();
+    const timer = window.setInterval(loadBalanceAlert, 5 * 60 * 1000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [hasAdminScreen, role]);
 
   const handleLogout = async () => {
     await logout();
@@ -178,6 +207,7 @@ export function Sidebar() {
                   >
                     <link.icon size={18} />
                     <span>{link.label}</span>
+                    {link.to === '/admin-dono/ia' && aiBalanceLevel && <BalanceAlertBadge level={aiBalanceLevel} />}
                   </NavLink>
                 ))}
 
@@ -230,6 +260,7 @@ export function Sidebar() {
                           >
                             <link.icon size={17} />
                             <span>{link.label}</span>
+                            {link.to === '/admin/ia/consumo' && aiBalanceLevel && <BalanceAlertBadge level={aiBalanceLevel} />}
                           </NavLink>
                         ))}
                       </div>
@@ -285,5 +316,17 @@ export function Sidebar() {
         </div>
       </aside>
     </>
+  );
+}
+
+function BalanceAlertBadge({ level }: { level: 'low' | 'critical' | 'empty' }) {
+  const critical = level === 'critical' || level === 'empty';
+  return (
+    <span
+      className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${critical ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}`}
+      aria-label={critical ? 'Saldo de IA crítico' : 'Saldo de IA baixo'}
+    >
+      {level === 'empty' ? 'Sem saldo' : critical ? 'Crítico' : 'Baixo'}
+    </span>
   );
 }
