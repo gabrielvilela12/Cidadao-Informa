@@ -4,11 +4,10 @@ import { motion } from 'motion/react';
 import {
     MapPin, ArrowRight, Shield, Zap, Users, BarChart3,
     CheckCircle, ChevronRight, ChevronLeft, Star, UserRound, Camera, Monitor,
-    ClipboardList, Smile, Quote, Building2, CalendarCheck, Coins
+    ClipboardList, Smile, Quote
 } from 'lucide-react';
 import { CidadaoBrand } from '../components/CidadaoBrand';
 import { AccessibilityIcon } from '../components/AccessibilityIcon';
-import { COMMERCIAL_PLANS } from '../constants/commercialPlans';
 import { api } from '../services/api';
 
 interface PublicStats {
@@ -272,9 +271,9 @@ export function LandingPage() {
                         <a href="#resultados" className="text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]">
                             Resultados
                         </a>
-                        <a href="#planos" className="text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]">
+                        <Link to="/prefeitura" className="text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]">
                             Para prefeituras
-                        </a>
+                        </Link>
                         <Link to="/transparencia" className="text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]">
                             Transparência
                         </Link>
@@ -367,7 +366,7 @@ export function LandingPage() {
                                 <MotionLink
                                     whileHover={{ y: -2 }}
                                     whileTap={{ scale: 0.98 }}
-                                    to="/cadastro-prefeitura"
+                                    to="/prefeitura"
                                     className="flex min-h-14 w-full items-center justify-center gap-3 rounded-lg border border-emerald-200 bg-white/90 px-5 py-3 text-center text-base font-bold text-emerald-800 shadow-sm transition-colors hover:border-emerald-400 hover:bg-emerald-50"
                                 >
                                     <span className="whitespace-nowrap">Sou prefeitura</span>
@@ -494,71 +493,6 @@ export function LandingPage() {
                                 );
                             })}
                         </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* ── Results and testimonials ── */}
-            <section
-                id="planos"
-                className="scroll-mt-20 border-y border-slate-200 bg-white px-5 py-16 sm:px-8 lg:px-12 lg:py-24"
-            >
-                <div className="mx-auto max-w-[1540px]">
-                    <div className="mx-auto max-w-4xl text-center">
-                        <span className="inline-flex items-center gap-2 rounded-full bg-[#EAF2FF] px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-[#1351B4]">
-                            <Building2 size={17} aria-hidden="true" />
-                            Para prefeituras e órgãos públicos
-                        </span>
-                        <h2 className="mt-5 text-3xl font-black leading-tight text-[#071A3A] sm:text-4xl">
-                            Uma faixa para orientar. <span className="text-[#1657C8]">Uma proposta para cada operação.</span>
-                        </h2>
-                        <p className="mt-5 text-base leading-7 text-slate-600 sm:text-lg">
-                            Os valores abaixo são referências comerciais. A contratação final considera cidadãos ativos, cobertura regional, usuários internos da prefeitura, integrações, implantação, suporte e SLA.
-                        </p>
-                    </div>
-
-                    <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                        {COMMERCIAL_PLANS.map((plan) => (
-                            <article
-                                key={plan.code}
-                                className={`flex min-h-[300px] flex-col rounded-xl border p-6 shadow-[0_10px_30px_rgba(15,42,80,0.07)] ${plan.featured
-                                    ? 'border-[#1351B4] bg-[#F3F8FF] ring-2 ring-[#1351B4]/10'
-                                    : 'border-slate-200 bg-white'
-                                }`}
-                            >
-                                <div className="flex items-start justify-between gap-3">
-                                    <div>
-                                        <p className="text-xs font-black uppercase tracking-[0.1em] text-[#1351B4]">{plan.audience}</p>
-                                        <h3 className="mt-2 text-xl font-black text-[#071A3A]">{plan.name}</h3>
-                                    </div>
-                                    {plan.featured && (
-                                        <span className="shrink-0 rounded-full bg-[#1351B4] px-3 py-1 text-xs font-black text-white">Recomendado</span>
-                                    )}
-                                </div>
-                                <p className="mt-5 text-2xl font-black text-[#168821]">{plan.priceRange}</p>
-                                <p className="mt-4 flex-1 text-sm leading-6 text-slate-600">{plan.description}</p>
-                                <div className="mt-5 border-t border-slate-200 pt-4 text-sm font-bold text-slate-700">
-                                    <p className="flex items-center gap-2"><Users size={17} className="text-[#1351B4]" aria-hidden="true" />{plan.internalUsers}</p>
-                                </div>
-                            </article>
-                        ))}
-                    </div>
-
-                    <div className="mt-8 grid gap-4 rounded-xl bg-[#061B3A] p-6 text-white lg:grid-cols-[1fr_auto] lg:items-center lg:px-8">
-                        <div>
-                            <h3 className="text-xl font-black">Solicite uma análise comercial e marque uma reunião</h3>
-                            <p className="mt-2 max-w-4xl text-sm leading-6 text-blue-100">
-                                O envio não gera cobrança nem ativa uma assinatura. Nossa equipe avalia o cenário, confirma a faixa adequada e entra em contato para construir a proposta. Créditos de IA são pré-pagos e cobrados separadamente conforme o uso real.
-                            </p>
-                            <p className="mt-3 flex items-center gap-2 text-sm font-bold text-[#FFCD07]"><Coins size={17} aria-hidden="true" />Consumo de IA com carteira, limites e histórico por prefeitura.</p>
-                        </div>
-                        <Link
-                            to="/cadastro-prefeitura"
-                            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-[#FFCD07] px-6 text-sm font-black text-[#071A3A] transition-colors hover:bg-[#FFD83D]"
-                        >
-                            <CalendarCheck size={19} aria-hidden="true" />
-                            Solicitar análise
-                        </Link>
                     </div>
                 </div>
             </section>
@@ -783,7 +717,7 @@ export function LandingPage() {
                             <div className="mt-5 flex flex-col items-start gap-3">
                                 <a href="#como-funciona" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Como funciona</a>
                                 <a href="#beneficios" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Benefícios</a>
-                                <a href="#planos" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Planos para prefeituras</a>
+                                <Link to="/prefeitura" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Portal para prefeituras</Link>
                                 <Link to="/transparencia" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Transparência</Link>
                                 <Link to="/login" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Entrar</Link>
                             </div>

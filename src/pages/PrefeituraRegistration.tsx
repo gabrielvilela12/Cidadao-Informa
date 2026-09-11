@@ -180,7 +180,7 @@ export function PrefeituraRegistration() {
     <div className="min-h-dvh bg-[#F4F8FC] text-[#0B1B33]">
       <header className="border-b border-[#D9E1EC] bg-white">
         <div className="mx-auto flex h-20 max-w-[1280px] items-center justify-between px-5 sm:px-8">
-          <Link to="/" className="inline-flex items-center">
+          <Link to="/prefeitura" className="inline-flex items-center">
             <CidadaoBrand compact iconClassName="size-11" />
           </Link>
           <div className="flex items-center gap-2">
@@ -191,7 +191,7 @@ export function PrefeituraRegistration() {
               Portal do servidor
             </Link>
             <Link
-              to="/"
+              to="/prefeitura"
               className="inline-flex size-10 items-center justify-center rounded-lg border border-[#B9CBE2] bg-white text-[#0758BD] transition-colors hover:bg-blue-50"
               title="Voltar"
               aria-label="Voltar"

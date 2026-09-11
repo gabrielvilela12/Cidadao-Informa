@@ -25,6 +25,7 @@ import { ProtocolDetails } from './pages/ProtocolDetails';
 import { Login } from './pages/Login';
 import { OwnerBackofficeLanding } from './pages/OwnerBackofficeLanding';
 import { PrefeituraRegistration } from './pages/PrefeituraRegistration';
+import { PrefeituraLandingPage } from './pages/PrefeituraLandingPage';
 import { LandingPage } from './pages/LandingPage';
 import { Profile } from './pages/Profile';
 import { Accessibility } from './pages/Accessibility';
@@ -105,6 +106,10 @@ function AppContent() {
 
   if (routeLocation.pathname === '/cadastro-prefeitura') {
     return <PrefeituraRegistration />;
+  }
+
+  if (routeLocation.pathname === '/prefeitura') {
+    return <PrefeituraLandingPage />;
   }
 
   if (routeLocation.pathname === '/dono') {

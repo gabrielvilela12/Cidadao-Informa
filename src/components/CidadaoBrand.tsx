@@ -26,7 +26,7 @@ export function CidadaoBrand({
       <div className="leading-none">
         <div className="cidadao-wordmark font-black tracking-tight">
           <span className="text-[#1351B4]">Cidad&atilde;o</span>
-          <span className="text-[#FFCD07]"> In</span>
+          <span className="text-[#9A6700]"> In</span>
           <span className="text-[#168821]">forma</span>
         </div>
         {!compact && (
