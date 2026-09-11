@@ -507,9 +507,10 @@ export const api = {
         });
     },
 
-    approveEstablishmentApplication(applicationId: string) {
+    approveEstablishmentApplication(applicationId: string, monthlyAmount: number) {
         return apiRequest<PlatformOverview>(`/api/admin-master/applications/${encodeURIComponent(applicationId)}/approve`, {
             method: 'POST',
+            body: JSON.stringify({ monthlyAmount }),
         });
     },
 

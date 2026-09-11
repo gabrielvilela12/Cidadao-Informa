@@ -12,6 +12,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { CidadaoBrand } from '../components/CidadaoBrand';
+import { COMMERCIAL_PLAN_BY_CODE, COMMERCIAL_PLANS } from '../constants/commercialPlans';
 import { api, type PlatformPlan } from '../services/api';
 
 type FormState = {
@@ -48,26 +49,12 @@ const initialForm: FormState = {
   requesterPassword: '',
 };
 
-const fallbackPlans: PlatformPlan[] = [
-  {
-    code: 'base',
-    name: 'Base Municipal',
-    description: 'Entrada para uma prefeitura organizar protocolos e campanha local.',
-    sortOrder: 10,
-  },
-  {
-    code: 'regional',
-    name: 'Operacao Regional',
-    description: 'Estrutura para prefeitura ou orgao com cobertura ampliada por cidade ou estado.',
-    sortOrder: 20,
-  },
-  {
-    code: 'avancado',
-    name: 'Gestao Avancada',
-    description: 'Base para operacao com mais equipe, relatorios e gestao executiva.',
-    sortOrder: 30,
-  },
-];
+const fallbackPlans: PlatformPlan[] = COMMERCIAL_PLANS.map((plan, index) => ({
+  code: plan.code,
+  name: plan.name,
+  description: plan.description,
+  sortOrder: (index + 1) * 10,
+}));
 
 function onlyDigits(value: string) {
   return value.replace(/\D/g, '');
@@ -102,6 +89,7 @@ export function PrefeituraRegistration() {
     () => plans.find((plan) => plan.code === form.planCode) ?? plans[0],
     [form.planCode, plans],
   );
+  const selectedCommercialPlan = selectedPlan ? COMMERCIAL_PLAN_BY_CODE[selectedPlan.code] : undefined;
 
   const loadPlans = useCallback(async () => {
     setLoadingPlans(true);
@@ -217,10 +205,10 @@ export function PrefeituraRegistration() {
       <main className="mx-auto grid max-w-[1280px] grid-cols-1 gap-5 px-5 py-6 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:py-8">
         <section className="flex flex-col rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-[0_7px_20px_rgba(15,45,85,0.035)]">
           <div>
-            <p className="text-sm font-bold text-[#0758BD]">Cadastro institucional</p>
-            <h1 className="mt-2 text-3xl font-black leading-tight">Prefeitura na plataforma</h1>
+            <p className="text-sm font-bold text-[#0758BD]">Análise comercial</p>
+            <h1 className="mt-2 text-3xl font-black leading-tight">Solicite uma proposta para sua prefeitura</h1>
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              A prefeitura escolhe um plano, registra seus dados e aguarda a liberacao dos donos da plataforma.
+              Informe o cenário desejado. Nossa equipe analisa a operação e entra em contato para agendar uma reunião e construir a proposta final.
             </p>
           </div>
 
@@ -235,15 +223,15 @@ export function PrefeituraRegistration() {
           <div className="mt-7 grid gap-3">
             <InfoRow icon={<Building2 size={19} />} title="White-label" text="A cidade ou estado vira uma area atendida pela assinatura." />
             <InfoRow icon={<MapPinned size={19} />} title="Campanha regional" text="Protocolos da regiao assinante passam para o estabelecimento correto." />
-            <InfoRow icon={<UserRound size={19} />} title="Diretor" text="A conta do responsavel fica pronta para ativacao apos aprovacao." />
-            <InfoRow icon={<ShieldCheck size={19} />} title="Sem cobranca agora" text="Planos sao apenas base operacional nesta etapa." />
+            <InfoRow icon={<UserRound size={19} />} title="Contato institucional" text="O responsável recebe o retorno da equipe para alinhamento da reunião." />
+            <InfoRow icon={<ShieldCheck size={19} />} title="Sem cobrança automática" text="O envio não ativa assinatura nem gera pagamento. A faixa escolhida é apenas uma referência." />
           </div>
         </section>
 
         <form onSubmit={submit} className="rounded-lg border border-[#CDD8E7] bg-white shadow-[0_7px_20px_rgba(15,45,85,0.035)]">
           <div className="border-b border-[#E3EAF3] px-5 py-4">
-            <h2 className="font-black">Dados da prefeitura</h2>
-            <p className="mt-1 text-sm text-slate-600">Escolha o plano e cadastre o responsavel institucional.</p>
+            <h2 className="font-black">Solicitação de análise</h2>
+            <p className="mt-1 text-sm text-slate-600">Escolha uma faixa indicativa e informe o contato institucional.</p>
           </div>
 
           <div className="space-y-6 px-5 py-5">
@@ -254,16 +242,17 @@ export function PrefeituraRegistration() {
             )}
             {success && (
               <div role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
-                Cadastro recebido. A conta do responsavel sera liberada apos aprovacao.
+                Solicitação recebida. Nossa equipe analisará o cenário e entrará em contato por e-mail ou telefone para agendar a reunião.
               </div>
             )}
 
             <section>
               <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-black">Plano</h3>
+                <h3 className="text-sm font-black">Faixa de contratação desejada</h3>
                 {loadingPlans && <Loader2 size={17} className="animate-spin text-slate-500" />}
               </div>
-              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+              <p className="mt-1 text-xs leading-5 text-slate-500">Os valores são indicativos e não representam uma proposta fechada.</p>
+              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 {plans.map((plan) => {
                   const selected = selectedPlan?.code === plan.code;
                   return (
@@ -280,11 +269,21 @@ export function PrefeituraRegistration() {
                         <span className="font-black">{plan.name}</span>
                         {selected && <CheckCircle2 size={18} className="shrink-0 text-[#0758BD]" />}
                       </span>
+                      {COMMERCIAL_PLAN_BY_CODE[plan.code] && (
+                        <span className="mt-3 text-base font-black text-emerald-700">
+                          {COMMERCIAL_PLAN_BY_CODE[plan.code].priceRange}
+                        </span>
+                      )}
                       <span className="mt-2 text-sm leading-5 text-slate-600">{plan.description}</span>
                     </button>
                   );
                 })}
               </div>
+              {selectedCommercialPlan && (
+                <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
+                  <strong>{selectedCommercialPlan.audience}.</strong> A definição final considera usuários ativos, usuários internos da prefeitura, cobertura, integrações, implantação, suporte e SLA. A carteira pré-paga de IA é separada.
+                </div>
+              )}
             </section>
 
             <section className="border-t border-[#E3EAF3] pt-5">
@@ -441,7 +440,7 @@ export function PrefeituraRegistration() {
                   />
                 </label>
                 <label className="space-y-1.5 md:col-span-2">
-                  <span className={labelClassName}>Senha de acesso</span>
+                  <span className={labelClassName}>Senha para acesso futuro</span>
                   <input
                     required
                     type="password"
@@ -451,6 +450,7 @@ export function PrefeituraRegistration() {
                     placeholder="Minimo de 6 caracteres"
                     autoComplete="new-password"
                   />
+                  <span className="block text-xs leading-5 text-slate-500">O acesso permanece pendente e só é liberado depois da análise e aprovação da contratação.</span>
                 </label>
               </div>
             </section>
@@ -470,7 +470,7 @@ export function PrefeituraRegistration() {
               style={{ color: '#FFFFFF' }}
             >
               {saving ? <Loader2 size={17} className="animate-spin text-white" /> : <ArrowRight size={17} className="text-white" />}
-              <span className="text-white">Enviar cadastro</span>
+              <span className="text-white">Solicitar análise e reunião</span>
             </button>
           </div>
         </form>

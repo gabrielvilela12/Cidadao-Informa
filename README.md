@@ -127,6 +127,14 @@ real informado em `usage.cost`, convertido pela cotação `AI_USD_TO_BRL_RATE` e
 pela margem `AI_MARKUP_PERCENT`. Visitantes recebem o RAG local gratuito e nunca
 chamam o OpenRouter diretamente pelo navegador.
 
+Para prefeituras, a landing page apresenta faixas comerciais indicativas entre
+R$ 12.900/mês para pilotos e R$ 600.000+/mês para operações metropolitanas
+completas. Não existe contratação automática: a prefeitura solicita uma análise,
+e a equipe agenda uma reunião para definir cobertura, usuários ativos, usuários
+internos, integrações, implantação, suporte e SLA. O envio não gera cobrança e os
+créditos de IA continuam separados da mensalidade. A modelagem completa está em
+`docs/arquitetura-assinantes-e-consumo-ia.md`.
+
 Perguntas simples são direcionadas primeiro ao modelo econômico e perguntas mais
 complexas ao modelo principal. Respostas genéricas sem dados pessoais podem ser
 reaproveitadas pelo cache do estabelecimento. A API também limita, por cidadão,

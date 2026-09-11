@@ -108,10 +108,22 @@ export function AdminMasterDashboard() {
   const pendingApplications = applications.filter((item) => item.status.toLowerCase() === 'pending');
 
   const approveApplication = async (application: EstablishmentApplication) => {
+    const informedAmount = window.prompt(
+      `Informe a mensalidade acordada com ${application.establishmentName} (R$):`,
+    );
+    if (informedAmount === null) return;
+    const normalizedAmount = informedAmount.trim().includes(',')
+      ? informedAmount.trim().replace(/\./g, '').replace(',', '.')
+      : informedAmount.trim();
+    const monthlyAmount = Number(normalizedAmount);
+    if (!Number.isFinite(monthlyAmount) || monthlyAmount <= 0 || monthlyAmount > 10_000_000) {
+      window.alert('Informe um valor mensal válido, maior que zero e de até R$ 10.000.000,00.');
+      return;
+    }
     setReviewingId(application.id);
     setError('');
     try {
-      setOverview(await api.approveEstablishmentApplication(application.id));
+      setOverview(await api.approveEstablishmentApplication(application.id, monthlyAmount));
     } catch (err) {
       console.error('Erro ao aprovar prefeitura:', err);
       setError(err instanceof Error ? err.message : 'Não foi possível aprovar a prefeitura.');
@@ -452,7 +464,7 @@ function SubscriptionTableRow({ row }: { row: SubscriptionRow }) {
       </td>
       <td className="px-4 py-4">
         <p className="font-bold">{row.planName}</p>
-        <p className="text-xs text-slate-500">Base sem valor definido</p>
+        <p className="text-xs text-slate-500">Faixa pública; valor final definido em proposta</p>
       </td>
       <td className="px-4 py-4">
         <span className={`inline-flex rounded border px-2.5 py-1 text-xs font-black ${subscriptionStatusClass(row.subscriptionStatus)}`}>

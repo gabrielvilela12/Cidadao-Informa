@@ -96,10 +96,11 @@ O fluxo de entrada de uma nova prefeitura é:
 
 ```text
 Prefeitura consulta os planos públicos
-  → envia uma solicitação de cadastro com CNPJ
-  → dono da plataforma analisa
+  → escolhe uma faixa indicativa e envia uma solicitação com CNPJ
+  → dono da plataforma analisa e agenda a reunião comercial
+  → proposta define escopo e mensalidade final
   → solicitação é aprovada ou rejeitada
-  → aprovação cria ou libera o estabelecimento e sua estrutura comercial
+  → aprovação registra a mensalidade acordada e libera o estabelecimento
   → assinatura e campanha regional tornam a operação elegível
 ```
 
@@ -120,7 +121,7 @@ Para receber novos cidadãos e processar o chatbot, a prefeitura precisa:
 | `POST` | `/api/public/establishment-applications` | Solicitar cadastro de prefeitura |
 | `GET` | `/api/admin-master/overview` | Visão global do dono da plataforma |
 | `GET` | `/api/admin-master/establishments/{establishmentId}` | Detalhes da prefeitura |
-| `POST` | `/api/admin-master/applications/{applicationId}/approve` | Aprovar solicitação |
+| `POST` | `/api/admin-master/applications/{applicationId}/approve` | Aprovar solicitação informando `monthlyAmount` acordado |
 | `POST` | `/api/admin-master/applications/{applicationId}/reject` | Rejeitar solicitação |
 
 ## 6. Cadastro do cidadão e vínculo municipal
@@ -165,7 +166,57 @@ A assinatura comercial e a carteira de IA têm responsabilidades diferentes:
 
 Não existe, nesta versão, conversão automática da mensalidade em créditos nem integração automática com Pix, cartão ou boleto.
 
-### 7.1. Processo de recarga
+### 7.1. Modelo comercial e solicitação de análise
+
+O site não apresenta os valores como contratação automática. A prefeitura escolhe uma faixa indicativa e envia uma solicitação comercial. O fluxo esperado é:
+
+```text
+Prefeitura consulta as faixas públicas
+  → escolhe a referência mais próxima do seu cenário
+  → envia dados institucionais e de contato
+  → solicitação permanece pendente e sem cobrança
+  → dono da plataforma analisa cobertura, adoção, integrações e suporte
+  → equipe entra em contato e agenda uma reunião
+  → proposta final define escopo, implantação, mensalidade, capacidade e SLA
+  → assinatura só é ativada depois da aprovação comercial
+```
+
+Na aprovação, o dono da plataforma precisa informar a mensalidade acordada. A API rejeita valor ausente, zerado, negativo ou superior a R$ 10 milhões. O valor aprovado é gravado em `subscriptions.monthly_amount`; portanto, a faixa pública não substitui o preço negociado no contrato.
+
+As faixas comerciais de referência são:
+
+| Faixa | Cenário de referência | Mensalidade indicativa |
+| --- | --- | ---: |
+| Piloto institucional | Uma secretaria, subprefeitura ou região | R$ 12.900 a R$ 24.900 |
+| Operação municipal | Municípios pequenos e médios | R$ 15.000 a R$ 50.000 |
+| Grande cidade | Municípios entre 500 mil e 1 milhão de habitantes | R$ 40.000 a R$ 80.000 |
+| Metrópole regional | Secretaria, região ou operação parcial metropolitana | R$ 60.000 a R$ 150.000 |
+| Metrópole completa | Operação municipal de grande escala | R$ 200.000 a R$ 600.000 ou mais |
+
+Esses números não constituem uma proposta comercial fechada. O enquadramento final considera:
+
+- cidadãos ativos no mês, em vez de cobrar apenas pela população total;
+- quantidade de usuários internos da prefeitura;
+- cobertura municipal, regional ou estadual;
+- volume de protocolos, documentos e imagens;
+- integrações com sistemas públicos;
+- implantação, treinamento e migração de dados;
+- suporte, disponibilidade e SLA contratados;
+- necessidade de infraestrutura dedicada.
+
+Na comunicação comercial, **usuário interno da prefeitura** significa diretor, gestor, atendente ou agente público autorizado a operar o painel. Não significa servidor de hospedagem.
+
+O consumo de IA não faz parte dessas faixas: ele continua em uma carteira pré-paga separada, com débito conforme o custo real, a cotação configurada e a margem comercial. Assim, uma cidade maior não transforma automaticamente a mensalidade em risco ilimitado de consumo.
+
+As faixas são uma hipótese comercial do Cidadão Informa, não uma reprodução direta de outro contrato. Para verificar ordem de grandeza, foram consultadas referências públicas com escopos diferentes:
+
+- [Maragogi/AL: R$ 7.200 mensais para plataforma SaaS integrada e estimativa de 240 usuários](https://transparencia.maragogi.al.gov.br/uploads/110/1/contratos/2025/136/1754066569_contrato-1doc-assinado.pdf);
+- [Taubaté/SP: valor máximo de R$ 514.604,73 por 12 meses para comunicação multicanal e atendimento virtual](https://taubate.sp.gov.br/licitacoes/pregao-eletronico/25225-contratacao-de-empresa-especializada-para-a-prestacao-de-servicos-em-fornecimento-e-consultoria-de-software-na-modalidade-saas-de-comunicacao-multicanal-e-atendimento-virt);
+- [São Caetano do Sul/SP: suíte ampla de gestão pública por R$ 165.331,20 mensais, além de implantação](https://www.camarascs.sp.gov.br/index.php/listar-contratos/4049-contrato-n-06-2026).
+
+Como os módulos, níveis de serviço e volumes não são idênticos, essas contratações servem apenas como referência de mercado. A proposta do Cidadão Informa deve ser validada em pilotos e ajustada com dados reais de adoção e custo de atendimento.
+
+### 7.2. Processo de recarga
 
 ```text
 Diretor solicita uma recarga
@@ -180,7 +231,7 @@ O valor mínimo padrão de recarga é R$ 10,00.
 
 O dono da plataforma também pode adicionar crédito manual com uma descrição de ajuste.
 
-### 7.2. Endpoints financeiros
+### 7.3. Endpoints financeiros
 
 | Método | Endpoint | Quem acessa | Uso |
 | --- | --- | --- | --- |

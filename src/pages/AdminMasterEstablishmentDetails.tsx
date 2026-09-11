@@ -219,7 +219,7 @@ export function AdminMasterEstablishmentDetails() {
         )}
 
         <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <Metric icon={<Building2 size={21} />} label="Plano" value={establishment.planName} hint="Base sem valor definido" tone="blue" />
+          <Metric icon={<Building2 size={21} />} label="Plano" value={establishment.planName} hint="Valor definido na proposta comercial" tone="blue" />
           <Metric icon={<ShieldCheck size={21} />} label="Assinatura" value={subscriptionStatusLabel(establishment.subscriptionStatus)} hint={`Ciclo até ${periodLabel(establishment.currentPeriodEnd)}`} tone="emerald" />
           <Metric icon={<ReceiptText size={21} />} label="Registros" value={String(payments.length)} hint="Pagamentos ficam para a próxima etapa" tone="amber" />
           <Metric icon={<FileText size={21} />} label="Protocolos" value={String(protocols.length)} hint={`${establishment.admins} servidor(es), ${establishment.citizens} cidadão(s)`} tone="slate" />
@@ -228,7 +228,7 @@ export function AdminMasterEstablishmentDetails() {
         <section className="rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-[0_7px_20px_rgba(15,45,85,0.035)]">
           <div className="grid gap-4 lg:grid-cols-3">
             <InfoBlock label="Campanha" value={establishment.campaignName || 'Sem campanha'} detail={establishment.campaignScope === 'state' ? `Estado: ${establishment.campaignState || establishment.state}` : `Cidade: ${establishment.campaignCity || establishment.city}/${establishment.campaignState || establishment.state}`} />
-            <InfoBlock label="Modelo" value="Sem valores" detail="Plano vinculado apenas à base operacional" />
+            <InfoBlock label="Modelo" value="Proposta personalizada" detail="A faixa pública orienta; o contrato define o valor final" />
             <InfoBlock label="Equipe" value={`${establishment.owners} diretor(es)`} detail={`${establishment.admins} servidor(es) vinculados`} />
           </div>
         </section>

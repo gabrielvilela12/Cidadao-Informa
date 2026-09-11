@@ -3,6 +3,7 @@ package br.com.fiap.hackgov.api.controller;
 import br.com.fiap.hackgov.api.response.ErrorResponse;
 import br.com.fiap.hackgov.application.dto.adminmaster.EstablishmentDetailsOutputDto;
 import br.com.fiap.hackgov.application.dto.onboarding.ReviewEstablishmentApplicationInputDto;
+import br.com.fiap.hackgov.application.dto.onboarding.ApproveEstablishmentApplicationInputDto;
 import br.com.fiap.hackgov.application.service.AiBillingService;
 import br.com.fiap.hackgov.application.service.PlatformOnboardingService;
 import br.com.fiap.hackgov.application.service.PlatformOverviewService;
@@ -74,11 +75,12 @@ public class AdminMasterController {
     @PostMapping("/applications/{applicationId}/approve")
     public ResponseEntity<?> approveApplication(
             @PathVariable String applicationId,
+            @RequestBody ApproveEstablishmentApplicationInputDto input,
             Authentication authentication
     ) {
         try {
             AuthenticatedUser user = requirePlatformOwner(authentication);
-            onboardingService.approve(applicationId, user.userId());
+            onboardingService.approve(applicationId, user.userId(), input);
             return ResponseEntity.ok(platformOverviewService.getOverview());
         } catch (IllegalArgumentException exception) {
             HttpStatus status = "Acesso restrito aos donos da plataforma.".equals(exception.getMessage())

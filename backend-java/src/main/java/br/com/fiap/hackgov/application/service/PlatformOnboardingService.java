@@ -2,6 +2,7 @@ package br.com.fiap.hackgov.application.service;
 
 import br.com.fiap.hackgov.application.dto.onboarding.CreateEstablishmentApplicationInputDto;
 import br.com.fiap.hackgov.application.dto.onboarding.EstablishmentApplicationOutputDto;
+import br.com.fiap.hackgov.application.dto.onboarding.ApproveEstablishmentApplicationInputDto;
 import br.com.fiap.hackgov.application.dto.onboarding.PlatformPlanOutputDto;
 import br.com.fiap.hackgov.application.dto.onboarding.ReviewEstablishmentApplicationInputDto;
 import br.com.fiap.hackgov.application.util.AuthUtils;
@@ -164,8 +165,20 @@ public class PlatformOnboardingService {
     }
 
     @Transactional
-    public EstablishmentApplicationOutputDto approve(String applicationId, String reviewerUserId) {
+    public EstablishmentApplicationOutputDto approve(
+            String applicationId,
+            String reviewerUserId,
+            ApproveEstablishmentApplicationInputDto input
+    ) {
         EstablishmentApplication application = pendingApplication(applicationId);
+        BigDecimal monthlyAmount = input == null ? null : input.monthlyAmount();
+        if (monthlyAmount == null || monthlyAmount.signum() <= 0) {
+            throw new IllegalArgumentException("Informe a mensalidade acordada na proposta comercial.");
+        }
+        if (monthlyAmount.compareTo(new BigDecimal("10000000.00")) > 0) {
+            throw new IllegalArgumentException("A mensalidade não pode ultrapassar R$ 10.000.000,00.");
+        }
+        monthlyAmount = monthlyAmount.setScale(2, java.math.RoundingMode.HALF_UP);
         PlatformPlan plan = planRepository.findById(application.getPlanCode())
                 .orElseThrow(() -> new IllegalArgumentException("Plano da solicitação não encontrado."));
         User requester = userRepository.getById(application.getRequesterUserId())
@@ -190,7 +203,7 @@ public class PlatformOnboardingService {
         subscription.setEstablishmentId(createdEstablishment.getId());
         subscription.setPlanName(plan.getName());
         subscription.setStatus("active");
-        subscription.setMonthlyAmount(BigDecimal.ZERO);
+        subscription.setMonthlyAmount(monthlyAmount);
         subscription.setBillingDay(10);
         subscription.setStartedAt(now);
         subscription.setCurrentPeriodEnd(now.plus(30, ChronoUnit.DAYS));
