@@ -125,10 +125,6 @@ public class PlatformOnboardingService {
             throw new IllegalArgumentException("A senha do responsável deve ter pelo menos 6 caracteres.");
         }
 
-        PlatformPlan plan = planRepository.findById(required(input.planCode(), "Escolha um plano."))
-                .filter(candidate -> "active".equalsIgnoreCase(candidate.getStatus()))
-                .orElseThrow(() -> new IllegalArgumentException("Plano indisponível."));
-
         if (userRepository.getByCpf(requesterCpf).isPresent()) {
             throw new IllegalArgumentException("Já existe uma conta cadastrada com este CPF.");
         }
@@ -157,11 +153,11 @@ public class PlatformOnboardingService {
         application.setLogoUrl(blankToNull(input.logoUrl()));
         application.setCampaignName(blankToNull(input.campaignName()));
         application.setCampaignScope(campaignScope);
-        application.setPlanCode(plan.getCode());
+        application.setPlanCode(null);
         application.setRequesterUserId(createdRequester.getId());
         application.setStatus("pending");
 
-        return toOutput(applicationRepository.save(application), plan);
+        return toOutput(applicationRepository.save(application), null);
     }
 
     @Transactional
@@ -171,6 +167,7 @@ public class PlatformOnboardingService {
             ApproveEstablishmentApplicationInputDto input
     ) {
         EstablishmentApplication application = pendingApplication(applicationId);
+        String planCode = required(input == null ? null : input.planCode(), "Defina o plano aprovado.");
         BigDecimal monthlyAmount = input == null ? null : input.monthlyAmount();
         if (monthlyAmount == null || monthlyAmount.signum() <= 0) {
             throw new IllegalArgumentException("Informe a mensalidade acordada na proposta comercial.");
@@ -179,8 +176,9 @@ public class PlatformOnboardingService {
             throw new IllegalArgumentException("A mensalidade não pode ultrapassar R$ 10.000.000,00.");
         }
         monthlyAmount = monthlyAmount.setScale(2, java.math.RoundingMode.HALF_UP);
-        PlatformPlan plan = planRepository.findById(application.getPlanCode())
-                .orElseThrow(() -> new IllegalArgumentException("Plano da solicitação não encontrado."));
+        PlatformPlan plan = planRepository.findById(planCode)
+                .filter(candidate -> "active".equalsIgnoreCase(candidate.getStatus()))
+                .orElseThrow(() -> new IllegalArgumentException("Plano aprovado indisponível."));
         User requester = userRepository.getById(application.getRequesterUserId())
                 .orElseThrow(() -> new IllegalArgumentException("Responsável da solicitação não encontrado."));
 
@@ -233,6 +231,7 @@ public class PlatformOnboardingService {
         userRepository.update(requester);
 
         application.setStatus("approved");
+        application.setPlanCode(plan.getCode());
         application.setReviewedBy(reviewerUserId);
         application.setReviewedAt(now);
         application.setCreatedEstablishmentId(createdEstablishment.getId());
@@ -250,7 +249,9 @@ public class PlatformOnboardingService {
             ReviewEstablishmentApplicationInputDto input
     ) {
         EstablishmentApplication application = pendingApplication(applicationId);
-        PlatformPlan plan = planRepository.findById(application.getPlanCode()).orElse(null);
+        PlatformPlan plan = application.getPlanCode() == null
+                ? null
+                : planRepository.findById(application.getPlanCode()).orElse(null);
         userRepository.getById(application.getRequesterUserId()).ifPresent(user -> {
             user.setStatus("rejected");
             userRepository.update(user);

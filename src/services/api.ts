@@ -255,8 +255,8 @@ export interface EstablishmentApplication {
     logoUrl?: string | null;
     campaignName?: string | null;
     campaignScope: string;
-    planCode: string;
-    planName: string;
+    planCode?: string | null;
+    planName?: string | null;
     requesterName: string;
     requesterEmail: string;
     requesterCpf: string;
@@ -298,7 +298,6 @@ export interface CreateEstablishmentApplicationInput {
     logoUrl?: string;
     campaignName?: string;
     campaignScope: string;
-    planCode: string;
     requesterName: string;
     requesterEmail: string;
     requesterCpf: string;
@@ -507,10 +506,10 @@ export const api = {
         });
     },
 
-    approveEstablishmentApplication(applicationId: string, monthlyAmount: number) {
+    approveEstablishmentApplication(applicationId: string, planCode: string, monthlyAmount: number) {
         return apiRequest<PlatformOverview>(`/api/admin-master/applications/${encodeURIComponent(applicationId)}/approve`, {
             method: 'POST',
-            body: JSON.stringify({ monthlyAmount }),
+            body: JSON.stringify({ planCode, monthlyAmount }),
         });
     },
 

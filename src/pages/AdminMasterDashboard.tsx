@@ -108,6 +108,24 @@ export function AdminMasterDashboard() {
   const pendingApplications = applications.filter((item) => item.status.toLowerCase() === 'pending');
 
   const approveApplication = async (application: EstablishmentApplication) => {
+    const availablePlans = overview?.plans ?? [];
+    if (availablePlans.length === 0) {
+      window.alert('Nenhum plano ativo está disponível para aprovação.');
+      return;
+    }
+    const planOptions = availablePlans.map((plan) => `${plan.code} — ${plan.name}`).join('\n');
+    const informedPlanCode = window.prompt(
+      `Defina o plano aprovado para ${application.establishmentName}:\n\n${planOptions}`,
+      application.planCode || availablePlans[0].code,
+    );
+    if (informedPlanCode === null) return;
+    const selectedPlan = availablePlans.find(
+      (plan) => plan.code.toLowerCase() === informedPlanCode.trim().toLowerCase(),
+    );
+    if (!selectedPlan) {
+      window.alert('Informe exatamente o código de um dos planos disponíveis.');
+      return;
+    }
     const informedAmount = window.prompt(
       `Informe a mensalidade acordada com ${application.establishmentName} (R$):`,
     );
@@ -123,7 +141,7 @@ export function AdminMasterDashboard() {
     setReviewingId(application.id);
     setError('');
     try {
-      setOverview(await api.approveEstablishmentApplication(application.id, monthlyAmount));
+      setOverview(await api.approveEstablishmentApplication(application.id, selectedPlan.code, monthlyAmount));
     } catch (err) {
       console.error('Erro ao aprovar prefeitura:', err);
       setError(err instanceof Error ? err.message : 'Não foi possível aprovar a prefeitura.');
@@ -391,8 +409,8 @@ function ApplicationTableRow({
         </div>
       </td>
       <td className="px-4 py-4">
-        <p className="font-bold">{application.planName}</p>
-        <p className="text-xs text-slate-500">Plano informado na solicitação</p>
+        <p className="font-bold">{application.planName || 'A definir'}</p>
+        <p className="text-xs text-slate-500">Definido pelos responsáveis após a reunião</p>
       </td>
       <td className="px-4 py-4">
         <p className="font-bold">{application.requesterName || 'Responsável não informado'}</p>

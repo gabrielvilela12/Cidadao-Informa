@@ -236,7 +236,7 @@ export function PrefeituraLandingPage() {
                 Uma referência comercial. <span className="text-[#1657C8]">Uma proposta para cada operação.</span>
               </h2>
               <p className="mt-5 text-base leading-7 text-slate-600 sm:text-lg">
-                O valor final considera cidadãos ativos, cobertura regional, usuários internos, integrações, implantação, suporte e SLA.
+                Consulte as faixas sem precisar escolher um plano. Após a análise e a reunião, os responsáveis definem o plano e o valor final considerando cidadãos ativos, cobertura regional, usuários internos, integrações, implantação, suporte e SLA.
               </p>
             </div>
 
@@ -349,6 +349,7 @@ export function PrefeituraLandingPage() {
             <Link to="/login-servidor" className="transition-colors hover:text-[#1351B4]">Portal do servidor</Link>
             <Link to="/termos-de-uso" className="transition-colors hover:text-[#1351B4]">Termos de uso</Link>
             <Link to="/privacidade" className="transition-colors hover:text-[#1351B4]">Privacidade</Link>
+            <a href="mailto:cidadao.informa@outlook.com" className="transition-colors hover:text-[#1351B4]">cidadao.informa@outlook.com</a>
           </nav>
         </div>
       </footer>

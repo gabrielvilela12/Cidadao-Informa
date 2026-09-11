@@ -27,7 +27,7 @@ public class GeocodingService {
     private static final Logger LOGGER = LoggerFactory.getLogger(GeocodingService.class);
 
     private static final String NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
-    private static final String USER_AGENT = "CidadaoInforma/1.0 (suporte@cidadaoinforma.com.br)";
+    private static final String USER_AGENT = "CidadaoInforma/1.0 (cidadao.informa@outlook.com)";
     private static final long MIN_INTERVAL_MS = 1100;
     private static final int DEFAULT_BATCH = 8;
     private static final int MAX_BATCH = 15;

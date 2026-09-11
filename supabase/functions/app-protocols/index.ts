@@ -585,7 +585,7 @@ async function getPublicStats() {
 // e gravado em protocols.latitude/longitude, virando cache permanente: cada
 // endereco e consultado uma unica vez na vida.
 
-const NOMINATIM_USER_AGENT = "CidadaoInforma/1.0 (suporte@cidadaoinforma.com.br)";
+const NOMINATIM_USER_AGENT = "CidadaoInforma/1.0 (cidadao.informa@outlook.com)";
 const NOMINATIM_MIN_INTERVAL_MS = 1100;
 
 function sleep(ms: number): Promise<void> {

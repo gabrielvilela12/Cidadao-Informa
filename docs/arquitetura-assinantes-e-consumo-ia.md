@@ -96,9 +96,9 @@ O fluxo de entrada de uma nova prefeitura é:
 
 ```text
 Prefeitura consulta os planos públicos
-  → escolhe uma faixa indicativa e envia uma solicitação com CNPJ
+  → consulta as faixas indicativas e envia uma solicitação com CNPJ, sem escolher plano
   → dono da plataforma analisa e agenda a reunião comercial
-  → proposta define escopo e mensalidade final
+  → proposta define plano, escopo e mensalidade final
   → solicitação é aprovada ou rejeitada
   → aprovação registra a mensalidade acordada e libera o estabelecimento
   → assinatura e campanha regional tornam a operação elegível
@@ -121,7 +121,7 @@ Para receber novos cidadãos e processar o chatbot, a prefeitura precisa:
 | `POST` | `/api/public/establishment-applications` | Solicitar cadastro de prefeitura |
 | `GET` | `/api/admin-master/overview` | Visão global do dono da plataforma |
 | `GET` | `/api/admin-master/establishments/{establishmentId}` | Detalhes da prefeitura |
-| `POST` | `/api/admin-master/applications/{applicationId}/approve` | Aprovar solicitação informando `monthlyAmount` acordado |
+| `POST` | `/api/admin-master/applications/{applicationId}/approve` | Aprovar solicitação informando `planCode` e `monthlyAmount` acordados |
 | `POST` | `/api/admin-master/applications/{applicationId}/reject` | Rejeitar solicitação |
 
 ## 6. Cadastro do cidadão e vínculo municipal
@@ -168,20 +168,20 @@ Não existe, nesta versão, conversão automática da mensalidade em créditos n
 
 ### 7.1. Modelo comercial e solicitação de análise
 
-O site não apresenta os valores como contratação automática. A prefeitura escolhe uma faixa indicativa e envia uma solicitação comercial. O fluxo esperado é:
+O site não apresenta os valores como contratação automática. A prefeitura consulta as faixas indicativas e envia uma solicitação comercial sem escolher plano. O fluxo esperado é:
 
 ```text
 Prefeitura consulta as faixas públicas
-  → escolhe a referência mais próxima do seu cenário
+  → usa os preços somente como referência, sem selecionar um plano
   → envia dados institucionais e de contato
   → solicitação permanece pendente e sem cobrança
   → dono da plataforma analisa cobertura, adoção, integrações e suporte
   → equipe entra em contato e agenda uma reunião
-  → proposta final define escopo, implantação, mensalidade, capacidade e SLA
+  → proposta final define plano, escopo, implantação, mensalidade, capacidade e SLA
   → assinatura só é ativada depois da aprovação comercial
 ```
 
-Na aprovação, o dono da plataforma precisa informar a mensalidade acordada. A API rejeita valor ausente, zerado, negativo ou superior a R$ 10 milhões. O valor aprovado é gravado em `subscriptions.monthly_amount`; portanto, a faixa pública não substitui o preço negociado no contrato.
+Na aprovação, o dono da plataforma precisa informar o plano e a mensalidade acordados. A API rejeita plano inativo ou inexistente e valor ausente, zerado, negativo ou superior a R$ 10 milhões. O plano fica registrado na solicitação aprovada e na assinatura; o valor é gravado em `subscriptions.monthly_amount`. Portanto, as faixas públicas não substituem a decisão comercial tomada após a análise e a reunião.
 
 As faixas comerciais de referência são:
 

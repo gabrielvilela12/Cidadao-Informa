@@ -42,7 +42,7 @@ public class EstablishmentApplication {
     @Column(name = "campaign_scope", nullable = false)
     private String campaignScope;
 
-    @Column(name = "plan_code", nullable = false)
+    @Column(name = "plan_code")
     private String planCode;
 
     @Column(name = "requester_user_id", nullable = false)

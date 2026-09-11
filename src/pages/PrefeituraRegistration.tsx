@@ -1,15 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type React from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
-  Building2,
-  CheckCircle2,
   Home,
   Loader2,
-  MapPinned,
-  ShieldCheck,
-  UserRound,
 } from 'lucide-react';
 import { CidadaoBrand } from '../components/CidadaoBrand';
 import { COMMERCIAL_PLAN_BY_CODE, COMMERCIAL_PLANS } from '../constants/commercialPlans';
@@ -24,7 +19,6 @@ type FormState = {
   logoUrl: string;
   campaignName: string;
   campaignScope: string;
-  planCode: string;
   requesterName: string;
   requesterEmail: string;
   requesterCpf: string;
@@ -41,7 +35,6 @@ const initialForm: FormState = {
   logoUrl: '',
   campaignName: '',
   campaignScope: 'city',
-  planCode: '',
   requesterName: '',
   requesterEmail: '',
   requesterCpf: '',
@@ -85,12 +78,6 @@ export function PrefeituraRegistration() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  const selectedPlan = useMemo(
-    () => plans.find((plan) => plan.code === form.planCode) ?? plans[0],
-    [form.planCode, plans],
-  );
-  const selectedCommercialPlan = selectedPlan ? COMMERCIAL_PLAN_BY_CODE[selectedPlan.code] : undefined;
-
   const loadPlans = useCallback(async () => {
     setLoadingPlans(true);
     try {
@@ -98,17 +85,9 @@ export function PrefeituraRegistration() {
       const sortedPlans = [...data].sort((a, b) => a.sortOrder - b.sortOrder);
       if (sortedPlans.length > 0) {
         setPlans(sortedPlans);
-        setForm((current) => ({
-          ...current,
-          planCode: current.planCode || sortedPlans[0].code,
-        }));
       }
     } catch (err) {
       console.warn('Nao foi possivel carregar planos publicos.', err);
-      setForm((current) => ({
-        ...current,
-        planCode: current.planCode || fallbackPlans[0].code,
-      }));
     } finally {
       setLoadingPlans(false);
     }
@@ -141,10 +120,6 @@ export function PrefeituraRegistration() {
       if (form.requesterPassword.length < 6) {
         throw new Error('A senha deve ter pelo menos 6 caracteres.');
       }
-      if (!selectedPlan?.code) {
-        throw new Error('Escolha um plano para continuar.');
-      }
-
       await api.createEstablishmentApplication({
         establishmentName: form.establishmentName.trim(),
         document,
@@ -154,7 +129,6 @@ export function PrefeituraRegistration() {
         logoUrl: form.logoUrl.trim() || undefined,
         campaignName: form.campaignName.trim() || undefined,
         campaignScope: form.campaignScope,
-        planCode: selectedPlan.code,
         requesterName: form.requesterName.trim(),
         requesterEmail: form.requesterEmail.trim(),
         requesterCpf,
@@ -163,7 +137,7 @@ export function PrefeituraRegistration() {
       });
 
       setSuccess(true);
-      setForm({ ...initialForm, planCode: selectedPlan.code });
+      setForm(initialForm);
     } catch (err) {
       console.error('Erro ao enviar cadastro da prefeitura:', err);
       setError(err instanceof Error ? err.message : 'Nao foi possivel enviar o cadastro.');
@@ -202,36 +176,12 @@ export function PrefeituraRegistration() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-[1280px] grid-cols-1 gap-5 px-5 py-6 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:py-8">
-        <section className="flex flex-col rounded-lg border border-[#CDD8E7] bg-white p-5 shadow-[0_7px_20px_rgba(15,45,85,0.035)]">
-          <div>
-            <p className="text-sm font-bold text-[#0758BD]">Análise comercial</p>
-            <h1 className="mt-2 text-3xl font-black leading-tight">Solicite uma proposta para sua prefeitura</h1>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
-              Informe o cenário desejado. Nossa equipe analisa a operação e entra em contato para agendar uma reunião e construir a proposta final.
-            </p>
-          </div>
-
-          <div className="mt-7 overflow-hidden rounded-lg border border-[#E3EAF3] bg-[#F7F9FC]">
-            <img
-              src="/hero-dashboard-mockup.png"
-              alt="Painel do Cidadao Informa com mapa e protocolos"
-              className="aspect-[16/10] w-full object-cover object-center"
-            />
-          </div>
-
-          <div className="mt-7 grid gap-3">
-            <InfoRow icon={<Building2 size={19} />} title="White-label" text="A cidade ou estado vira uma area atendida pela assinatura." />
-            <InfoRow icon={<MapPinned size={19} />} title="Campanha regional" text="Protocolos da regiao assinante passam para o estabelecimento correto." />
-            <InfoRow icon={<UserRound size={19} />} title="Contato institucional" text="O responsável recebe o retorno da equipe para alinhamento da reunião." />
-            <InfoRow icon={<ShieldCheck size={19} />} title="Sem cobrança automática" text="O envio não ativa assinatura nem gera pagamento. A faixa escolhida é apenas uma referência." />
-          </div>
-        </section>
-
+      <main className="mx-auto max-w-[960px] px-5 py-6 sm:px-8 lg:py-8">
         <form onSubmit={submit} className="rounded-lg border border-[#CDD8E7] bg-white shadow-[0_7px_20px_rgba(15,45,85,0.035)]">
-          <div className="border-b border-[#E3EAF3] px-5 py-4">
-            <h2 className="font-black">Solicitação de análise</h2>
-            <p className="mt-1 text-sm text-slate-600">Escolha uma faixa indicativa e informe o contato institucional.</p>
+          <div className="border-b border-[#E3EAF3] px-5 py-5 sm:px-7">
+            <p className="text-sm font-bold text-[#0758BD]">Análise comercial</p>
+            <h1 className="mt-1 text-2xl font-black leading-tight sm:text-3xl">Solicite uma proposta para sua prefeitura</h1>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Informe os dados institucionais. Nossa equipe analisará o cenário e entrará em contato para agendar uma reunião.</p>
           </div>
 
           <div className="space-y-6 px-5 py-5">
@@ -242,52 +192,39 @@ export function PrefeituraRegistration() {
             )}
             {success && (
               <div role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
-                Solicitação recebida. Nossa equipe analisará o cenário e entrará em contato por e-mail ou telefone para agendar a reunião.
+                Solicitação recebida. Nossa equipe analisará o cenário e entrará em contato para a reunião, quando o plano e o valor final serão definidos.
               </div>
             )}
 
             <section>
               <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-black">Faixa de contratação desejada</h3>
+                <h2 className="text-sm font-black">Faixas de preço para referência</h2>
                 {loadingPlans && <Loader2 size={17} className="animate-spin text-slate-500" />}
               </div>
-              <p className="mt-1 text-xs leading-5 text-slate-500">Os valores são indicativos e não representam uma proposta fechada.</p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">Não é necessário escolher um plano. Os valores são apenas indicativos; os responsáveis definirão o plano e a mensalidade na reunião, após a análise.</p>
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                {plans.map((plan) => {
-                  const selected = selectedPlan?.code === plan.code;
-                  return (
-                    <button
+                {plans.map((plan) => (
+                    <article
                       key={plan.code}
-                      type="button"
-                      onClick={() => updateForm('planCode', plan.code)}
-                      className={`flex min-h-[132px] flex-col rounded-lg border p-4 text-left transition-colors ${selected
-                        ? 'border-[#0758BD] bg-blue-50 text-[#0B1B33] shadow-[0_0_0_2px_rgba(7,88,189,0.08)]'
-                        : 'border-[#CDD8E7] bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50/50'
-                      }`}
+                      className="flex min-h-[132px] flex-col rounded-lg border border-[#CDD8E7] bg-[#F7F9FC] p-4 text-left text-slate-700"
                     >
-                      <span className="flex items-center justify-between gap-2">
-                        <span className="font-black">{plan.name}</span>
-                        {selected && <CheckCircle2 size={18} className="shrink-0 text-[#0758BD]" />}
-                      </span>
+                      <span className="font-black text-[#0B1B33]">{plan.name}</span>
                       {COMMERCIAL_PLAN_BY_CODE[plan.code] && (
                         <span className="mt-3 text-base font-black text-emerald-700">
                           {COMMERCIAL_PLAN_BY_CODE[plan.code].priceRange}
                         </span>
                       )}
                       <span className="mt-2 text-sm leading-5 text-slate-600">{plan.description}</span>
-                    </button>
-                  );
-                })}
+                    </article>
+                ))}
               </div>
-              {selectedCommercialPlan && (
-                <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
-                  <strong>{selectedCommercialPlan.audience}.</strong> A definição final considera usuários ativos, usuários internos da prefeitura, cobertura, integrações, implantação, suporte e SLA. A carteira pré-paga de IA é separada.
-                </div>
-              )}
+              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
+                A definição final considera usuários ativos, usuários internos da prefeitura, cobertura, integrações, implantação, suporte e SLA. A carteira pré-paga de IA é separada.
+              </div>
             </section>
 
             <section className="border-t border-[#E3EAF3] pt-5">
-              <h3 className="text-sm font-black">White-label</h3>
+              <h2 className="text-sm font-black">Dados da prefeitura</h2>
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <label className="space-y-1.5">
                   <span className={labelClassName}>Prefeitura</span>
@@ -365,7 +302,7 @@ export function PrefeituraRegistration() {
             </section>
 
             <section className="border-t border-[#E3EAF3] pt-5">
-              <h3 className="text-sm font-black">Campanha</h3>
+              <h2 className="text-sm font-black">Campanha</h2>
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <label className="space-y-1.5">
                   <span className={labelClassName}>Nome da campanha</span>
@@ -391,7 +328,7 @@ export function PrefeituraRegistration() {
             </section>
 
             <section className="border-t border-[#E3EAF3] pt-5">
-              <h3 className="text-sm font-black">Responsavel</h3>
+              <h2 className="text-sm font-black">Responsável</h2>
               <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <label className="space-y-1.5">
                   <span className={labelClassName}>Nome</span>
@@ -469,24 +406,12 @@ export function PrefeituraRegistration() {
               className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#0758BD] px-5 text-sm font-bold !text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
               style={{ color: '#FFFFFF' }}
             >
-              {saving ? <Loader2 size={17} className="animate-spin text-white" /> : <ArrowRight size={17} className="text-white" />}
-              <span className="text-white">Solicitar análise e reunião</span>
+              {saving ? <Loader2 size={17} className="dashboard-inverse-text animate-spin" /> : <ArrowRight size={17} className="dashboard-inverse-text" />}
+              <span className="dashboard-inverse-text">Solicitar análise e reunião</span>
             </button>
           </div>
         </form>
       </main>
-    </div>
-  );
-}
-
-function InfoRow({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
-  return (
-    <div className="flex gap-3 rounded-lg border border-[#E3EAF3] bg-[#F7F9FC] p-3">
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[#0758BD]">{icon}</span>
-      <div>
-        <p className="font-black">{title}</p>
-        <p className="mt-0.5 text-sm leading-5 text-slate-600">{text}</p>
-      </div>
     </div>
   );
 }

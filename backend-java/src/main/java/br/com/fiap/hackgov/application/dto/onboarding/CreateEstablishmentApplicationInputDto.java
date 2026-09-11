@@ -9,7 +9,6 @@ public record CreateEstablishmentApplicationInputDto(
         String logoUrl,
         String campaignName,
         String campaignScope,
-        String planCode,
         String requesterName,
         String requesterEmail,
         String requesterCpf,

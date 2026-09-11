@@ -727,8 +727,8 @@ export function LandingPage() {
                             <h3 className="font-black text-[#071A3A]">Suporte</h3>
                             <div className="mt-5 flex flex-col items-start gap-3">
                                 <Link to="/acessibilidade" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Acessibilidade</Link>
-                                <a href="mailto:suporte@cidadaoinforma.com.br" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Central de ajuda</a>
-                                <a href="mailto:contato@cidadaoinforma.com.br" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Contato</a>
+                                <a href="mailto:cidadao.informa@outlook.com" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">Central de ajuda</a>
+                                <a href="mailto:cidadao.informa@outlook.com" className="text-sm font-medium text-slate-600 transition-colors hover:text-[#1351B4]">cidadao.informa@outlook.com</a>
                             </div>
                         </nav>
 
