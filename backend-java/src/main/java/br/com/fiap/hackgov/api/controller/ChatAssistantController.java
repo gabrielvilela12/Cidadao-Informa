@@ -2,6 +2,7 @@ package br.com.fiap.hackgov.api.controller;
 
 import br.com.fiap.hackgov.api.response.ErrorResponse;
 import br.com.fiap.hackgov.application.service.AiBillingService;
+import br.com.fiap.hackgov.application.service.AiChatRequestLimitService;
 import br.com.fiap.hackgov.application.service.AiChatSettingsService;
 import br.com.fiap.hackgov.application.service.AiUsageLimitExceededException;
 import br.com.fiap.hackgov.application.service.ChatAssistantService;
@@ -29,17 +30,20 @@ public class ChatAssistantController {
     private final AiBillingService aiBillingService;
     private final ChatCacheService chatCacheService;
     private final AiChatSettingsService chatSettingsService;
+    private final AiChatRequestLimitService chatRequestLimitService;
 
     public ChatAssistantController(
             ChatAssistantService chatAssistantService,
             AiBillingService aiBillingService,
             ChatCacheService chatCacheService,
-            AiChatSettingsService chatSettingsService
+            AiChatSettingsService chatSettingsService,
+            AiChatRequestLimitService chatRequestLimitService
     ) {
         this.chatAssistantService = chatAssistantService;
         this.aiBillingService = aiBillingService;
         this.chatCacheService = chatCacheService;
         this.chatSettingsService = chatSettingsService;
+        this.chatRequestLimitService = chatRequestLimitService;
     }
 
     @PostMapping
@@ -51,6 +55,8 @@ public class ChatAssistantController {
         try {
             AuthenticatedUser user = requireCitizenTenantUser(authentication);
             chatSettingsService.requireEnabled(user.establishmentId());
+            requireValidQuestion(request);
+            chatRequestLimitService.checkAndRecord(user.establishmentId(), user.userId());
 
             var cachedResponse = chatCacheService.findCachedResponse(user.establishmentId(), request);
             if (cachedResponse.isPresent()) {
@@ -92,6 +98,12 @@ public class ChatAssistantController {
                 aiBillingService.releaseReservation(reservation);
             }
             return ResponseEntity.internalServerError().body(new ErrorResponse("Erro ao consultar o assistente virtual."));
+        }
+    }
+
+    private void requireValidQuestion(ChatAssistantService.ChatRequest request) {
+        if (request == null || request.message() == null || request.message().isBlank()) {
+            throw new IllegalArgumentException("A mensagem não pode ser vazia.");
         }
     }
 

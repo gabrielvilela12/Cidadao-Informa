@@ -35,6 +35,7 @@ export interface AiBillingDashboard {
   };
   usageLimits: {
     requestsPerMinute: number;
+    requestsPerHour: number;
     requestsPerDay: number;
     tokensPerDay: number;
     concurrentRequests: number;

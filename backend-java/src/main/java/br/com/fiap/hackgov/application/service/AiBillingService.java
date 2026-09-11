@@ -52,6 +52,7 @@ public class AiBillingService {
     private final BigDecimal markupPercent;
     private final BigDecimal minimumTopUpBrl;
     private final int requestsPerMinute;
+    private final int requestsPerHour;
     private final int requestsPerDay;
     private final long tokensPerDay;
     private final int concurrentRequests;
@@ -67,6 +68,7 @@ public class AiBillingService {
             @Value("${app.ai.billing.markup-percent:20.00}") BigDecimal markupPercent,
             @Value("${app.ai.billing.minimum-top-up-brl:10.00}") BigDecimal minimumTopUpBrl,
             @Value("${app.ai.limits.requests-per-minute:6}") int requestsPerMinute,
+            @Value("${app.ai.limits.requests-per-hour:10}") int requestsPerHour,
             @Value("${app.ai.limits.requests-per-day:30}") int requestsPerDay,
             @Value("${app.ai.limits.tokens-per-day:50000}") long tokensPerDay,
             @Value("${app.ai.limits.concurrent-requests:2}") int concurrentRequests
@@ -81,6 +83,7 @@ public class AiBillingService {
         this.markupPercent = nonNegative(markupPercent, "Margem de IA inválida.");
         this.minimumTopUpBrl = positive(minimumTopUpBrl, "Recarga mínima inválida.");
         this.requestsPerMinute = positiveLimit(requestsPerMinute, "Limite por minuto inválido.");
+        this.requestsPerHour = positiveLimit(requestsPerHour, "Limite por hora inválido.");
         this.requestsPerDay = positiveLimit(requestsPerDay, "Limite diário de chamadas inválido.");
         this.tokensPerDay = positiveLimit(tokensPerDay, "Limite diário de tokens inválido.");
         this.concurrentRequests = positiveLimit(concurrentRequests, "Limite de concorrência inválido.");
@@ -294,7 +297,13 @@ public class AiBillingService {
                 ),
                 summarize(currentMonthUsage),
                 balanceHealth(wallet, transactions, currentMonthUsage),
-                new UsageLimitsOutputDto(requestsPerMinute, requestsPerDay, tokensPerDay, concurrentRequests),
+                new UsageLimitsOutputDto(
+                        requestsPerMinute,
+                        requestsPerHour,
+                        requestsPerDay,
+                        tokensPerDay,
+                        concurrentRequests
+                ),
                 latestUsage.stream().map(this::toUsageOutput).toList(),
                 transactions.stream().map(this::toTransactionOutput).toList(),
                 topUps.stream().map(this::toTopUpOutput).toList()

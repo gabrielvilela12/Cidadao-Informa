@@ -1,6 +1,7 @@
 package br.com.fiap.hackgov.api.controller;
 
 import br.com.fiap.hackgov.application.service.AiBillingService;
+import br.com.fiap.hackgov.application.service.AiChatRequestLimitService;
 import br.com.fiap.hackgov.application.service.AiChatSettingsService;
 import br.com.fiap.hackgov.application.service.AiUsageLimitExceededException;
 import br.com.fiap.hackgov.application.service.ChatAssistantService;
@@ -18,6 +19,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -103,6 +105,30 @@ class ChatAssistantControllerTest {
     }
 
     @Test
+    void blocksEleventhHourlyQuestionBeforeConsultingCacheOrWallet() {
+        ChatAssistantService chatService = mock(ChatAssistantService.class);
+        AiBillingService billingService = mock(AiBillingService.class);
+        ChatCacheService cacheService = mock(ChatCacheService.class);
+        AiChatSettingsService settingsService = mock(AiChatSettingsService.class);
+        AiChatRequestLimitService requestLimitService = mock(AiChatRequestLimitService.class);
+        ChatAssistantController controller = new ChatAssistantController(
+                chatService,
+                billingService,
+                cacheService,
+                settingsService,
+                requestLimitService
+        );
+        doThrow(new AiUsageLimitExceededException("Limite de 10 perguntas atingido."))
+                .when(requestLimitService).checkAndRecord("est-1", "user-1");
+
+        ResponseEntity<?> response = controller.chat(request(), authentication("citizen"));
+
+        assertEquals(HttpStatus.TOO_MANY_REQUESTS, response.getStatusCode());
+        verify(requestLimitService).checkAndRecord("est-1", "user-1");
+        verifyNoInteractions(chatService, billingService, cacheService);
+    }
+
+    @Test
     void blocksNonCitizenAccounts() {
         ChatAssistantService chatService = mock(ChatAssistantService.class);
         AiBillingService billingService = mock(AiBillingService.class);
@@ -122,7 +148,13 @@ class ChatAssistantControllerTest {
             ChatCacheService cacheService,
             AiChatSettingsService settingsService
     ) {
-        return new ChatAssistantController(chatService, billingService, cacheService, settingsService);
+        return new ChatAssistantController(
+                chatService,
+                billingService,
+                cacheService,
+                settingsService,
+                mock(AiChatRequestLimitService.class)
+        );
     }
 
     private ChatAssistantService.ChatRequest request() {

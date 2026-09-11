@@ -49,6 +49,7 @@ class AiBillingServiceTest {
                 new BigDecimal("20.00"),
                 new BigDecimal("10.00"),
                 6,
+                10,
                 30,
                 50000L,
                 2

@@ -139,11 +139,12 @@ export function AiBillingPage() {
     estimatedDaysRemaining: null,
     message: data.wallet.balanceBrl <= 0 ? 'Saldo esgotado.' : 'Saldo de IA dentro da faixa saudável.',
   };
-  const usageLimits = data.usageLimits ?? {
-    requestsPerMinute: 6,
-    requestsPerDay: 30,
-    tokensPerDay: 50000,
-    concurrentRequests: 2,
+  const usageLimits = {
+    requestsPerMinute: data.usageLimits?.requestsPerMinute ?? 6,
+    requestsPerHour: data.usageLimits?.requestsPerHour ?? 10,
+    requestsPerDay: data.usageLimits?.requestsPerDay ?? 30,
+    tokensPerDay: data.usageLimits?.tokensPerDay ?? 50000,
+    concurrentRequests: data.usageLimits?.concurrentRequests ?? 2,
   };
   const balanceAlert = balanceHealth.level !== 'healthy';
   const alertTone = balanceHealth.level === 'low'
@@ -187,8 +188,9 @@ export function AiBillingPage() {
           </article>
           <article className="rounded-lg border border-[#CDD8E7] bg-white p-5">
             <div className="flex items-center gap-3"><ShieldCheck className="text-emerald-700" /><div><h2 className="font-black">Proteção contra abuso</h2><p className="text-sm text-slate-600">Limites automáticos aplicados individualmente a cada cidadão.</p></div></div>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               <Mini label="Chamadas/minuto" value={integer.format(usageLimits.requestsPerMinute)} />
+              <Mini label="Perguntas/hora" value={integer.format(usageLimits.requestsPerHour)} />
               <Mini label="Chamadas/dia" value={integer.format(usageLimits.requestsPerDay)} />
               <Mini label="Tokens/dia" value={integer.format(usageLimits.tokensPerDay)} />
               <Mini label="Simultâneas" value={integer.format(usageLimits.concurrentRequests)} />

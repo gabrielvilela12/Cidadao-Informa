@@ -104,6 +104,7 @@ AI_CHAT_ECONOMY_MODEL=google/gemini-2.5-flash-lite
 AI_CHAT_RESPONSE_CACHE_TTL_SECONDS=300
 AI_CHAT_CACHE_ENABLED=true
 AI_CHAT_REQUESTS_PER_MINUTE=6
+AI_CHAT_REQUESTS_PER_HOUR=10
 AI_CHAT_REQUESTS_PER_DAY=30
 AI_CHAT_TOKENS_PER_DAY=50000
 AI_CHAT_CONCURRENT_REQUESTS=2
@@ -451,6 +452,7 @@ Supabase direto: nada no código atual as invoca.
 | Arquivo | Assunto |
 |---|---|
 | `RELATORIO_ARQUITETURA_AMBIENTES.md` | Arquitetura, ambientes, variáveis e diagnóstico |
+| `docs/arquitetura-assinantes-e-consumo-ia.md` | Perfis de dono, assinantes, vínculo municipal, carteira e consumo do chatbot |
 | `backend-java/DEPLOY-FLY.md` | Passo a passo da migração do backend para o Fly.io |
 | `supabase/seed/README.md` | Base de demonstração: aplicar, apresentar e remover |
 | `src/__tests__/integration/aiPriority.checklist.md` | Verificação manual da triagem por IA |

@@ -53,6 +53,7 @@ public record AiBillingDashboardOutputDto(
 
     public record UsageLimitsOutputDto(
             int requestsPerMinute,
+            int requestsPerHour,
             int requestsPerDay,
             long tokensPerDay,
             int concurrentRequests

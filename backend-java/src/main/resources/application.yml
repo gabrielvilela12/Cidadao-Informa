@@ -83,6 +83,7 @@ app:
       strict-similarity-threshold: ${AI_CHAT_CACHE_STRICT_SIMILARITY_THRESHOLD:0.94}
     limits:
       requests-per-minute: ${AI_CHAT_REQUESTS_PER_MINUTE:6}
+      requests-per-hour: ${AI_CHAT_REQUESTS_PER_HOUR:10}
       requests-per-day: ${AI_CHAT_REQUESTS_PER_DAY:30}
       tokens-per-day: ${AI_CHAT_TOKENS_PER_DAY:50000}
       concurrent-requests: ${AI_CHAT_CONCURRENT_REQUESTS:2}
