@@ -24,12 +24,12 @@ class AdminCitizensControllerTest {
         GetAdminCitizensUseCase useCase = mock(GetAdminCitizensUseCase.class);
         ServerStatePermissionService permissions = mock(ServerStatePermissionService.class);
         when(permissions.allowedStates("user-id")).thenReturn(Set.of("SP"));
-        when(useCase.list(Set.of("SP"))).thenReturn(List.of());
+        when(useCase.list(Set.of("SP"), null)).thenReturn(List.of());
         AdminAccessService access = mock(AdminAccessService.class);
         AdminCitizensController controller = new AdminCitizensController(useCase, permissions, access);
 
         assertEquals(HttpStatus.OK, controller.list(authentication("admin")).getStatusCode());
-        verify(useCase).list(Set.of("SP"));
+        verify(useCase).list(Set.of("SP"), null);
         verify(access).requireScreen("user-id", AdminAccessService.CITIZENS);
     }
 
@@ -53,12 +53,29 @@ class AdminCitizensControllerTest {
         ServerStatePermissionService permissions = mock(ServerStatePermissionService.class);
         AdminAccessService access = mock(AdminAccessService.class);
         when(permissions.allowedStates("user-id")).thenReturn(Set.copyOf(ServerStatePermissionService.ALL_STATES));
-        when(useCase.list(Set.copyOf(ServerStatePermissionService.ALL_STATES))).thenReturn(List.of());
+        when(useCase.list(Set.copyOf(ServerStatePermissionService.ALL_STATES), null)).thenReturn(List.of());
 
         AdminCitizensController controller = new AdminCitizensController(useCase, permissions, access);
 
         assertEquals(HttpStatus.OK, controller.list(authentication("master")).getStatusCode());
         verify(access).requireScreen("user-id", AdminAccessService.CITIZENS);
+    }
+
+    @Test
+    void passesMunicipalityScopeToCitizensUseCase() {
+        GetAdminCitizensUseCase useCase = mock(GetAdminCitizensUseCase.class);
+        ServerStatePermissionService permissions = mock(ServerStatePermissionService.class);
+        AdminAccessService access = mock(AdminAccessService.class);
+        when(permissions.allowedStates("user-id")).thenReturn(Set.of("SP"));
+        AdminCitizensController controller = new AdminCitizensController(useCase, permissions, access);
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn(
+                new AuthenticatedUser("user-id", "Servidor", "22233344455", "admin", "est-demo-ribeirao-preto")
+        );
+
+        controller.list(authentication);
+
+        verify(useCase).list(Set.of("SP"), "est-demo-ribeirao-preto");
     }
 
     private Authentication authentication(String role) {

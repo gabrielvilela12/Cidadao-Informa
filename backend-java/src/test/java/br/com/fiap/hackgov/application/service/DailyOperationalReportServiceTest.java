@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -69,10 +70,48 @@ class DailyOperationalReportServiceTest {
         assertThat(detailCaptor.getValue()).singleElement().satisfies(item -> {
             assertThat(item.isCreatedDuringPeriod()).isTrue();
             assertThat(item.getRegion()).isEqualTo("Centro");
+            assertThat(item.getEstablishmentId()).isEqualTo("est-sp");
             assertThat(item.getSpentDuringPeriod()).isEqualByComparingTo("150.50");
             assertThat(item.getStatusChanges()).hasSize(1);
         });
         verify(reports).lockGeneration("daily-report:" + date);
+    }
+
+    @Test
+    void scopesDailyReportToOneMunicipalityEvenWhenBothAreInSp() {
+        JpaProtocolRepository protocols = mock(JpaProtocolRepository.class);
+        ProtocolAuditRepository audits = mock(ProtocolAuditRepository.class);
+        DailyOperationalReportRepository reports = mock(DailyOperationalReportRepository.class);
+        DailyOperationalReportProtocolRepository details = mock(DailyOperationalReportProtocolRepository.class);
+        DailyOperationalReportService service = new DailyOperationalReportService(
+                protocols, audits, reports, details, new ObjectMapper());
+        UUID reportId = UUID.randomUUID();
+        DailyOperationalReport report = new DailyOperationalReport();
+        report.setId(reportId);
+        report.setReportDate(LocalDate.of(2026, 9, 12));
+        report.setPeriodStart(Instant.parse("2026-09-12T03:00:00Z"));
+        report.setPeriodEnd(Instant.parse("2026-09-13T03:00:00Z"));
+        report.setGeneratedAt(Instant.parse("2026-09-13T03:10:00Z"));
+        DailyOperationalReportProtocol ribeirao = new DailyOperationalReportProtocol();
+        ribeirao.setProtocolId("rp-1");
+        ribeirao.setCategory("Física");
+        ribeirao.setAddress("Rua A, Ribeirão Preto - SP");
+        ribeirao.setRegion("Centro");
+        ribeirao.setCurrentStatus("Aberto");
+        ribeirao.setProtocolCreatedAt(Instant.parse("2026-09-12T12:00:00Z"));
+        ribeirao.setCreatedDuringPeriod(true);
+        ribeirao.setSpentDuringPeriod(BigDecimal.ZERO);
+        when(reports.findAllByOrderByReportDateDesc()).thenReturn(List.of(report));
+        when(reports.findById(reportId)).thenReturn(Optional.of(report));
+        when(details.findByReportIdAndEstablishmentIdOrderByProtocolCreatedAtDesc(reportId, "est-rp"))
+                .thenReturn(List.of(ribeirao));
+
+        var summaries = service.listForEstablishment("est-rp");
+        var detail = service.detailForEstablishment(reportId, "est-rp");
+
+        assertThat(summaries).singleElement().satisfies(item -> assertThat(item.newProtocolsCount()).isEqualTo(1));
+        assertThat(detail.protocols()).singleElement().satisfies(item -> assertThat(item.protocolId()).isEqualTo("rp-1"));
+        assertThrows(IllegalArgumentException.class, () -> service.detailForEstablishment(reportId, "est-sp"));
     }
 
     private JpaProtocolRepository.DailyReportProtocolProjection projection(
@@ -82,6 +121,7 @@ class DailyOperationalReportServiceTest {
             public String getCategory() { return category; }
             public String getAddress() { return address; }
             public String getStateCode() { return "SP"; }
+            public String getEstablishmentId() { return "est-sp"; }
             public Instant getCreatedAt() { return createdAt; }
             public String getStatus() { return status; }
             public BigDecimal getResolutionCost() { return cost; }

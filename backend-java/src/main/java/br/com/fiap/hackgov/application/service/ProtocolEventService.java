@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.LongFunction;
@@ -38,7 +39,7 @@ public class ProtocolEventService {
     private static final long DELIVERED_ID_RETENTION_MINUTES = 5L;
     private static final int MAX_EVENTS_PER_POLL = 1_000;
 
-    private final Map<SseEmitter, Set<String>> emitters = new ConcurrentHashMap<>();
+    private final Map<SseEmitter, SubscriberScope> emitters = new ConcurrentHashMap<>();
     private final Map<String, Instant> deliveredEventIds = new ConcurrentHashMap<>();
     private final JpaProtocolRepository protocolRepository;
     private final LongFunction<SseEmitter> emitterFactory;
@@ -58,13 +59,17 @@ public class ProtocolEventService {
     }
 
     public SseEmitter subscribe(Set<String> allowedStates) {
+        return subscribe(allowedStates, null);
+    }
+
+    public SseEmitter subscribe(Set<String> allowedStates, String establishmentId) {
         if (emitters.isEmpty()) {
             trackingStartedAt = Instant.now();
             deliveredEventIds.clear();
         }
 
         SseEmitter emitter = emitterFactory.apply(EMITTER_TIMEOUT_MS);
-        emitters.put(emitter, Set.copyOf(allowedStates));
+        emitters.put(emitter, new SubscriberScope(Set.copyOf(allowedStates), establishmentId));
 
         Runnable remove = () -> emitters.remove(emitter);
         emitter.onCompletion(remove);
@@ -188,8 +193,12 @@ public class ProtocolEventService {
     }
 
     private void broadcastProtocol(ProtocolSummaryOutputDto protocol) {
-        emitters.forEach((emitter, states) -> {
-            if (protocol.stateCode() == null || !states.contains(protocol.stateCode())) return;
+        emitters.forEach((emitter, scope) -> {
+            if (scope.establishmentId() != null && !scope.establishmentId().isBlank()) {
+                if (!Objects.equals(scope.establishmentId(), protocol.establishmentId())) return;
+            } else if (protocol.stateCode() == null || !scope.states().contains(protocol.stateCode())) {
+                return;
+            }
             try {
                 emitter.send(SseEmitter.event()
                         .id(protocol.id())
@@ -204,5 +213,8 @@ public class ProtocolEventService {
     }
 
     private record ConnectedEvent(Instant connectedAt) {
+    }
+
+    private record SubscriberScope(Set<String> states, String establishmentId) {
     }
 }

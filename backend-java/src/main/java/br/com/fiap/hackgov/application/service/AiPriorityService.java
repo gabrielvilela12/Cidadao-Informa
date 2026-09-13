@@ -163,12 +163,30 @@ public class AiPriorityService {
                 .toList();
     }
 
+    public List<AiJobLog> getAuditLogs(int days, Set<String> allowedStates, String establishmentId) {
+        if (establishmentId == null || establishmentId.isBlank()) return getAuditLogs(days, allowedStates);
+        Set<String> protocolIds = protocolRepository.getByEstablishmentId(establishmentId).stream()
+                .map(Protocol::getId).collect(java.util.stream.Collectors.toSet());
+        return getAuditLogs(days).stream()
+                .filter(log -> protocolIds.contains(log.getProtocolId()))
+                .toList();
+    }
+
     public List<AiPriorityJob> getFailedJobs() {
         return jobRepository.findFailedJobsForRetry(LocalDateTime.now().minusHours(24));
     }
 
     public List<AiPriorityJob> getFailedJobs(Set<String> allowedStates) {
         Set<String> protocolIds = protocolRepository.getByStates(allowedStates).stream()
+                .map(Protocol::getId).collect(java.util.stream.Collectors.toSet());
+        return getFailedJobs().stream()
+                .filter(job -> protocolIds.contains(job.getProtocolId()))
+                .toList();
+    }
+
+    public List<AiPriorityJob> getFailedJobs(Set<String> allowedStates, String establishmentId) {
+        if (establishmentId == null || establishmentId.isBlank()) return getFailedJobs(allowedStates);
+        Set<String> protocolIds = protocolRepository.getByEstablishmentId(establishmentId).stream()
                 .map(Protocol::getId).collect(java.util.stream.Collectors.toSet());
         return getFailedJobs().stream()
                 .filter(job -> protocolIds.contains(job.getProtocolId()))

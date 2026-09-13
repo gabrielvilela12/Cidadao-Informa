@@ -50,6 +50,13 @@ public class ProtocolRepositoryImpl implements ProtocolRepository {
     }
 
     @Override
+    public List<Protocol> getByUserIdAndEstablishmentId(String userId, String establishmentId) {
+        return establishmentId == null || establishmentId.isBlank()
+                ? List.of()
+                : repository.findByUserIdAndEstablishmentIdOrderByCreatedAtDesc(userId, establishmentId);
+    }
+
+    @Override
     public List<Protocol> getByLocationAndCause(String locationKey, String causeKey) {
         return locationKey == null || locationKey.isBlank() || causeKey == null || causeKey.isBlank()
                 ? List.of()
@@ -87,6 +94,16 @@ public class ProtocolRepositoryImpl implements ProtocolRepository {
     public List<CitizenProtocolStats> getCitizenStatsByStates(Set<String> states) {
         if (states.isEmpty()) return List.of();
         return repository.findCitizenProtocolStatsByStateCodeIn(states).stream()
+                .map(item -> new CitizenProtocolStats(
+                        item.getUserId(), item.getProtocolCount(), item.getOpenProtocolCount(), item.getLastProtocolAt()
+                ))
+                .toList();
+    }
+
+    @Override
+    public List<CitizenProtocolStats> getCitizenStatsByEstablishmentId(String establishmentId) {
+        if (establishmentId == null || establishmentId.isBlank()) return List.of();
+        return repository.findCitizenProtocolStatsByEstablishmentId(establishmentId).stream()
                 .map(item -> new CitizenProtocolStats(
                         item.getUserId(), item.getProtocolCount(), item.getOpenProtocolCount(), item.getLastProtocolAt()
                 ))

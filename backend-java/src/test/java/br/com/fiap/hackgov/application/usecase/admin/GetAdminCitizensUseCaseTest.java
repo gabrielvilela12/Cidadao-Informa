@@ -43,7 +43,7 @@ class GetAdminCitizensUseCaseTest {
                 )
         ));
 
-        List<AdminCitizenSummaryOutputDto> result = useCase.list(Set.of("SP"));
+        List<AdminCitizenSummaryOutputDto> result = useCase.list(Set.of("SP"), null);
 
         assertEquals(1, result.size());
         assertEquals(2, result.get(0).protocolCount());
@@ -58,7 +58,7 @@ class GetAdminCitizensUseCaseTest {
         when(userRepository.getById("ana")).thenReturn(Optional.of(citizen));
         when(protocolRepository.getByUserIdAndStates("ana", Set.of("SP"))).thenReturn(List.of(protocol));
 
-        AdminCitizenDetailOutputDto result = useCase.detail("ana", Set.of("SP"));
+        AdminCitizenDetailOutputDto result = useCase.detail("ana", Set.of("SP"), null);
 
         assertEquals("Ana", result.name());
         assertEquals(1, result.protocolCount());
@@ -72,7 +72,47 @@ class GetAdminCitizensUseCaseTest {
         when(userRepository.getById("admin")).thenReturn(Optional.of(admin));
 
         assertThrows(GetAdminCitizensUseCase.CitizenNotFoundException.class,
-                () -> useCase.detail("admin", Set.of("SP")));
+                () -> useCase.detail("admin", Set.of("SP"), null));
+    }
+
+    @Test
+    void separatesCitizensOfTwoMunicipalitiesInTheSameState() {
+        User ribeirao = citizen("rp", "Ribeirão", null);
+        ribeirao.setEstablishmentId("est-rp");
+        User saoPaulo = citizen("sp", "São Paulo", null);
+        saoPaulo.setEstablishmentId("est-sp");
+        when(userRepository.getByRole("citizen")).thenReturn(List.of(ribeirao, saoPaulo));
+        when(protocolRepository.getCitizenStatsByEstablishmentId("est-rp")).thenReturn(List.of(
+                new ProtocolRepository.CitizenProtocolStats("rp", 3, 2, Instant.parse("2026-09-01T10:00:00Z"))
+        ));
+
+        var result = useCase.list(Set.of("SP"), "est-rp");
+
+        assertEquals(1, result.size());
+        assertEquals("rp", result.getFirst().id());
+        assertEquals(3, result.getFirst().protocolCount());
+    }
+
+    @Test
+    void rejectsCitizenDetailsFromAnotherMunicipality() {
+        User saoPaulo = citizen("sp", "São Paulo", null);
+        saoPaulo.setEstablishmentId("est-sp");
+        when(userRepository.getById("sp")).thenReturn(Optional.of(saoPaulo));
+
+        assertThrows(GetAdminCitizensUseCase.CitizenNotFoundException.class,
+                () -> useCase.detail("sp", Set.of("SP"), "est-rp"));
+    }
+
+    @Test
+    void showsRegisteredCitizenWithoutProtocolsInOwnMunicipality() {
+        User ribeirao = citizen("rp", "Ribeirão", null);
+        ribeirao.setEstablishmentId("est-rp");
+        when(userRepository.getByRole("citizen")).thenReturn(List.of(ribeirao));
+
+        var result = useCase.list(Set.of("SP"), "est-rp");
+
+        assertEquals(1, result.size());
+        assertEquals(0, result.getFirst().protocolCount());
     }
 
     private User citizen(String id, String name, String phone) {

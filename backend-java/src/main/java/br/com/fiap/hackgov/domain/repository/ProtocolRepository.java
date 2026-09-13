@@ -22,6 +22,8 @@ public interface ProtocolRepository {
 
     List<Protocol> getByUserIdAndStates(String userId, Set<String> states);
 
+    List<Protocol> getByUserIdAndEstablishmentId(String userId, String establishmentId);
+
     /** Mesma causa no mesmo local, em ordem cronologica para identificar o principal. */
     List<Protocol> getByLocationAndCause(String locationKey, String causeKey);
 
@@ -35,6 +37,8 @@ public interface ProtocolRepository {
     List<CitizenProtocolStats> getCitizenStats();
 
     List<CitizenProtocolStats> getCitizenStatsByStates(Set<String> states);
+
+    List<CitizenProtocolStats> getCitizenStatsByEstablishmentId(String establishmentId);
 
     /**
      * Recorte leve e sem dados pessoais usado exclusivamente pelas estatísticas

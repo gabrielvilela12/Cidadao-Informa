@@ -33,7 +33,7 @@ public class AdminCitizensController {
     public ResponseEntity<?> list(Authentication authentication) {
         AuthenticatedUser admin = requireAdmin(authentication);
         accessService.requireScreen(admin.userId(), AdminAccessService.CITIZENS);
-        return ResponseEntity.ok(useCase.list(permissionService.allowedStates(admin.userId())));
+        return ResponseEntity.ok(useCase.list(permissionService.allowedStates(admin.userId()), admin.establishmentId()));
     }
 
     @GetMapping("/{id}")
@@ -41,7 +41,7 @@ public class AdminCitizensController {
         AuthenticatedUser admin = requireAdmin(authentication);
         accessService.requireScreen(admin.userId(), AdminAccessService.CITIZENS);
         try {
-            return ResponseEntity.ok(useCase.detail(id, permissionService.allowedStates(admin.userId())));
+            return ResponseEntity.ok(useCase.detail(id, permissionService.allowedStates(admin.userId()), admin.establishmentId()));
         } catch (GetAdminCitizensUseCase.CitizenNotFoundException exception) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, exception.getMessage());
         }

@@ -48,6 +48,26 @@ class ProtocolEventServiceTest {
         verify(emitter, times(1)).send(any(SseEmitter.SseEventBuilder.class));
     }
 
+    @Test
+    void doesNotBroadcastAnotherMunicipalityInTheSameState() throws Exception {
+        JpaProtocolRepository repository = mock(JpaProtocolRepository.class);
+        SseEmitter emitter = mock(SseEmitter.class);
+        ProtocolEventService service = new ProtocolEventService(repository, ignored -> emitter);
+        ProtocolEventProjection ribeirao = protocol("rp-1");
+        ProtocolEventProjection saoPaulo = protocol("sp-1");
+        when(ribeirao.getEstablishmentId()).thenReturn("est-rp");
+        when(saoPaulo.getEstablishmentId()).thenReturn("est-sp");
+
+        service.subscribe(Set.of("SP"), "est-rp");
+        reset(emitter);
+        when(repository.findAllProjectedByCreatedAtAfterOrderByCreatedAtAsc(any(Instant.class), any(Pageable.class)))
+                .thenReturn(List.of(ribeirao, saoPaulo));
+
+        service.pollCreatedProtocols();
+
+        verify(emitter, times(1)).send(any(SseEmitter.SseEventBuilder.class));
+    }
+
     private ProtocolEventProjection protocol(String id) {
         ProtocolEventProjection projection = mock(ProtocolEventProjection.class);
         when(projection.getId()).thenReturn(id);

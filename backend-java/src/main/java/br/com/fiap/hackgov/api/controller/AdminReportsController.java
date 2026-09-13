@@ -30,14 +30,18 @@ public class AdminReportsController {
     public ResponseEntity<?> list(Authentication authentication) {
         AuthenticatedUser admin = requireAdmin(authentication);
         accessService.requireScreen(admin.userId(), AdminAccessService.REPORTS);
-        return ResponseEntity.ok(service.list(permissionService.allowedStates(admin.userId())));
+        return ResponseEntity.ok(admin.establishmentId() == null || admin.establishmentId().isBlank()
+                ? service.list(permissionService.allowedStates(admin.userId()))
+                : service.listForEstablishment(admin.establishmentId()));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> detail(@PathVariable UUID id, Authentication authentication) {
         AuthenticatedUser admin = requireAdmin(authentication);
         accessService.requireScreen(admin.userId(), AdminAccessService.REPORTS);
-        return ResponseEntity.ok(service.detail(id, permissionService.allowedStates(admin.userId())));
+        return ResponseEntity.ok(admin.establishmentId() == null || admin.establishmentId().isBlank()
+                ? service.detail(id, permissionService.allowedStates(admin.userId()))
+                : service.detailForEstablishment(id, admin.establishmentId()));
     }
 
     private AuthenticatedUser requireAdmin(Authentication authentication) {

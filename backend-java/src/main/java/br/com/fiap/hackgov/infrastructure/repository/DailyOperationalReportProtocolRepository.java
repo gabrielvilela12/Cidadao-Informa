@@ -11,4 +11,6 @@ public interface DailyOperationalReportProtocolRepository extends JpaRepository<
     List<DailyOperationalReportProtocol> findByReportIdOrderByProtocolCreatedAtDesc(UUID reportId);
     List<DailyOperationalReportProtocol> findByReportIdAndStateCodeInOrderByProtocolCreatedAtDesc(
             UUID reportId, Collection<String> states);
+    List<DailyOperationalReportProtocol> findByReportIdAndEstablishmentIdOrderByProtocolCreatedAtDesc(
+            UUID reportId, String establishmentId);
 }

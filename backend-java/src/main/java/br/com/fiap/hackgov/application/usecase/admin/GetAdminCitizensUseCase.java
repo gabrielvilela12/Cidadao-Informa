@@ -22,13 +22,17 @@ public class GetAdminCitizensUseCase {
         this.protocolRepository = protocolRepository;
     }
 
-    public List<AdminCitizenSummaryOutputDto> list(Set<String> allowedStates) {
-        Map<String, ProtocolRepository.CitizenProtocolStats> statsByCitizen = protocolRepository
-                .getCitizenStatsByStates(allowedStates).stream()
+    public List<AdminCitizenSummaryOutputDto> list(Set<String> allowedStates, String establishmentId) {
+        boolean scoped = establishmentId != null && !establishmentId.isBlank();
+        Map<String, ProtocolRepository.CitizenProtocolStats> statsByCitizen = (scoped
+                ? protocolRepository.getCitizenStatsByEstablishmentId(establishmentId)
+                : protocolRepository.getCitizenStatsByStates(allowedStates)).stream()
                 .collect(Collectors.toMap(ProtocolRepository.CitizenProtocolStats::userId, stats -> stats));
 
         return userRepository.getByRole("citizen").stream()
-                .filter(citizen -> statsByCitizen.containsKey(citizen.getId()))
+                .filter(citizen -> scoped
+                        ? establishmentId.equals(citizen.getEstablishmentId())
+                        : statsByCitizen.containsKey(citizen.getId()))
                 .map(citizen -> {
                     ProtocolRepository.CitizenProtocolStats stats = statsByCitizen.get(citizen.getId());
                     return stats == null
@@ -43,13 +47,17 @@ public class GetAdminCitizensUseCase {
                 .toList();
     }
 
-    public AdminCitizenDetailOutputDto detail(String citizenId, Set<String> allowedStates) {
+    public AdminCitizenDetailOutputDto detail(String citizenId, Set<String> allowedStates, String establishmentId) {
+        boolean scoped = establishmentId != null && !establishmentId.isBlank();
         User citizen = userRepository.getById(citizenId)
                 .filter(user -> "citizen".equalsIgnoreCase(user.getRole()))
+                .filter(user -> !scoped || establishmentId.equals(user.getEstablishmentId()))
                 .orElseThrow(() -> new CitizenNotFoundException(citizenId));
 
-        var protocols = protocolRepository.getByUserIdAndStates(citizenId, allowedStates);
-        if (protocols.isEmpty()) throw new CitizenNotFoundException(citizenId);
+        var protocols = scoped
+                ? protocolRepository.getByUserIdAndEstablishmentId(citizenId, establishmentId)
+                : protocolRepository.getByUserIdAndStates(citizenId, allowedStates);
+        if (!scoped && protocols.isEmpty()) throw new CitizenNotFoundException(citizenId);
         return AdminCitizenDetailOutputDto.from(citizen, protocols);
     }
 

@@ -161,7 +161,7 @@ public class ProtocolsController {
             return ResponseEntity.ok()
                     .header("Cache-Control", "no-cache, no-transform")
                     .header("X-Accel-Buffering", "no")
-                    .body(protocolEventService.subscribe(permissionService.allowedStates(admin.userId())));
+                    .body(protocolEventService.subscribe(permissionService.allowedStates(admin.userId()), admin.establishmentId()));
         } catch (IllegalArgumentException exception) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, exception.getMessage());
         }

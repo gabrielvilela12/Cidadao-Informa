@@ -20,6 +20,7 @@ public class DailyOperationalReportProtocol {
     @Column(nullable = false) private String category;
     @Column(nullable = false) private String address;
     @Column(name = "state_code") private String stateCode;
+    @Column(name = "establishment_id") private String establishmentId;
     @Column(nullable = false) private String region;
     @Column(name = "current_status", nullable = false) private String currentStatus;
     @Column(name = "protocol_created_at", nullable = false) private Instant protocolCreatedAt;
@@ -41,6 +42,8 @@ public class DailyOperationalReportProtocol {
     public void setAddress(String value) { this.address = value; }
     public String getStateCode() { return stateCode; }
     public void setStateCode(String value) { this.stateCode = value; }
+    public String getEstablishmentId() { return establishmentId; }
+    public void setEstablishmentId(String value) { this.establishmentId = value; }
     public String getRegion() { return region; }
     public void setRegion(String value) { this.region = value; }
     public String getCurrentStatus() { return currentStatus; }

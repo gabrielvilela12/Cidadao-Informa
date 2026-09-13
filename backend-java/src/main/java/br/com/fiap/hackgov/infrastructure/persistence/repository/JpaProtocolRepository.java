@@ -34,6 +34,9 @@ public interface JpaProtocolRepository extends JpaRepository<Protocol, String> {
     List<Protocol> findByUserIdAndStateCodeInOrderByCreatedAtDesc(String userId, Collection<String> states);
 
     @EntityGraph(attributePaths = "user")
+    List<Protocol> findByUserIdAndEstablishmentIdOrderByCreatedAtDesc(String userId, String establishmentId);
+
+    @EntityGraph(attributePaths = "user")
     List<Protocol> findByLocationKeyAndCauseKeyOrderByCreatedAtAsc(String locationKey, String causeKey);
 
     @EntityGraph(attributePaths = "user")
@@ -114,6 +117,18 @@ public interface JpaProtocolRepository extends JpaRepository<Protocol, String> {
     List<CitizenProtocolStatsProjection> findCitizenProtocolStatsByStateCodeIn(
             @Param("states") Collection<String> states);
 
+    @Query("""
+            select p.userId as userId,
+                   count(p.id) as protocolCount,
+                   sum(case when p.status in ('Concluido', 'Concluído', 'Resolved', 'Closed') then 0 else 1 end) as openProtocolCount,
+                   max(p.createdAt) as lastProtocolAt
+              from Protocol p
+             where p.establishmentId = :establishmentId
+             group by p.userId
+            """)
+    List<CitizenProtocolStatsProjection> findCitizenProtocolStatsByEstablishmentId(
+            @Param("establishmentId") String establishmentId);
+
     interface CitizenProtocolStatsProjection {
         String getUserId();
         long getProtocolCount();
@@ -123,6 +138,7 @@ public interface JpaProtocolRepository extends JpaRepository<Protocol, String> {
 
     @Query("""
             select p.id as id, p.category as category, p.address as address, p.stateCode as stateCode,
+                   p.establishmentId as establishmentId,
                    p.createdAt as createdAt, p.status as status, p.resolutionCost as resolutionCost
               from Protocol p
              where p.createdAt >= :start and p.createdAt < :end
@@ -132,6 +148,7 @@ public interface JpaProtocolRepository extends JpaRepository<Protocol, String> {
 
     @Query("""
             select p.id as id, p.category as category, p.address as address, p.stateCode as stateCode,
+                   p.establishmentId as establishmentId,
                    p.createdAt as createdAt, p.status as status, p.resolutionCost as resolutionCost
               from Protocol p
              where p.id in :ids
@@ -143,6 +160,7 @@ public interface JpaProtocolRepository extends JpaRepository<Protocol, String> {
         String getCategory();
         String getAddress();
         String getStateCode();
+        String getEstablishmentId();
         Instant getCreatedAt();
         String getStatus();
         BigDecimal getResolutionCost();

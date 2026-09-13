@@ -100,7 +100,7 @@ public class AiPriorityController {
             AuthenticatedUser admin = requireAdmin(authentication);
             accessService.requireScreen(admin.userId(), AdminAccessService.AI);
             return ResponseEntity.ok(aiPriorityService.getAuditLogs(
-                    days, permissionService.allowedStates(admin.userId())));
+                    days, permissionService.allowedStates(admin.userId()), admin.establishmentId()));
         } catch (Exception exception) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse(exception.getMessage()));
@@ -113,7 +113,7 @@ public class AiPriorityController {
             AuthenticatedUser admin = requireAdmin(authentication);
             accessService.requireScreen(admin.userId(), AdminAccessService.AI);
             return ResponseEntity.ok(aiPriorityService.getFailedJobs(
-                    permissionService.allowedStates(admin.userId())));
+                    permissionService.allowedStates(admin.userId()), admin.establishmentId()));
         } catch (Exception exception) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(new ErrorResponse(exception.getMessage()));

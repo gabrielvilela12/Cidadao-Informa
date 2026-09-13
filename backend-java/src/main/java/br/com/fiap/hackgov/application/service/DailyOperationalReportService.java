@@ -128,6 +128,21 @@ public class DailyOperationalReportService {
     }
 
     @Transactional(readOnly = true)
+    public List<DailyReportSummaryOutputDto> listForEstablishment(String establishmentId) {
+        if (establishmentId == null || establishmentId.isBlank()) return List.of();
+        return reportRepository.findAllByOrderByReportDateDesc().stream()
+                .map(report -> DailyReportDetailOutputDto.scoped(report,
+                        detailRepository.findByReportIdAndEstablishmentIdOrderByProtocolCreatedAtDesc(
+                                report.getId(), establishmentId)))
+                .filter(detail -> detail.protocolsInvolvedCount() > 0)
+                .map(detail -> new DailyReportSummaryOutputDto(
+                        detail.id(), detail.reportDate(), detail.generatedAt(), detail.newProtocolsCount(),
+                        detail.statusChangesCount(), detail.protocolsInvolvedCount(), detail.totalSpent(),
+                        detail.regionsCount()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public DailyReportDetailOutputDto detail(UUID id) {
         DailyOperationalReport report = reportRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Relatório diário não encontrado."));
@@ -148,6 +163,19 @@ public class DailyOperationalReportService {
         return DailyReportDetailOutputDto.scoped(report, details);
     }
 
+    @Transactional(readOnly = true)
+    public DailyReportDetailOutputDto detailForEstablishment(UUID id, String establishmentId) {
+        DailyOperationalReport report = reportRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Relatório diário não encontrado."));
+        List<DailyOperationalReportProtocol> details = establishmentId == null || establishmentId.isBlank()
+                ? List.of()
+                : detailRepository.findByReportIdAndEstablishmentIdOrderByProtocolCreatedAtDesc(id, establishmentId);
+        if (details.isEmpty()) {
+            throw new IllegalArgumentException("Relatório sem protocolos desta prefeitura.");
+        }
+        return DailyReportDetailOutputDto.scoped(report, details);
+    }
+
     private DailyOperationalReportProtocol detail(UUID reportId,
                                                     JpaProtocolRepository.DailyReportProtocolProjection protocol,
                                                     Instant start, Instant end,
@@ -160,6 +188,7 @@ public class DailyOperationalReportService {
         item.setCategory(protocol.getCategory());
         item.setAddress(protocol.getAddress());
         item.setStateCode(protocol.getStateCode());
+        item.setEstablishmentId(protocol.getEstablishmentId());
         item.setRegion(region(protocol.getAddress()));
         item.setCurrentStatus(protocol.getStatus());
         item.setProtocolCreatedAt(protocol.getCreatedAt());

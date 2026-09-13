@@ -145,6 +145,57 @@ class AdminAccessServiceTest {
         assertTrue(profile.screens().contains(AdminAccessService.USER_MANAGEMENT));
     }
 
+    @Test
+    void listsOnlyServersFromActorsMunicipality() {
+        User actor = admin("actor");
+        actor.setEstablishmentId("est-rp");
+        User otherCity = admin("sp-server");
+        otherCity.setEstablishmentId("est-sp");
+        when(users.getById("actor")).thenReturn(Optional.of(actor));
+        when(users.getByRole("admin")).thenReturn(List.of(actor, otherCity));
+        when(users.getByRole("master")).thenReturn(List.of());
+
+        var result = service.listManageable("actor");
+
+        assertEquals(1, result.size());
+        assertEquals("actor", result.getFirst().userId());
+    }
+
+    @Test
+    void rejectsEditingServerFromAnotherMunicipality() {
+        User actor = admin("actor");
+        actor.setEstablishmentId("est-rp");
+        User otherCity = admin("sp-server");
+        otherCity.setEstablishmentId("est-sp");
+        when(users.getById("actor")).thenReturn(Optional.of(actor));
+        when(users.getById("sp-server")).thenReturn(Optional.of(otherCity));
+
+        assertThrows(AdminAccessService.AdminAccessDeniedException.class, () -> service.update(
+                "actor", "sp-server", "admin", List.of("SP"), List.of()
+        ));
+    }
+
+    @Test
+    void newServerInheritsActorsMunicipality() {
+        User actor = admin("actor");
+        actor.setEstablishmentId("est-rp");
+        when(users.getById("actor")).thenReturn(Optional.of(actor));
+        when(users.getByCpf("12345678901")).thenReturn(Optional.empty());
+        when(users.getByEmail("novo@gov.br")).thenReturn(Optional.empty());
+        when(users.add(any(User.class))).thenAnswer(invocation -> {
+            User created = invocation.getArgument(0);
+            assertEquals("est-rp", created.getEstablishmentId());
+            created.setId("created");
+            created.setCreatedAt(Instant.parse("2026-09-13T12:00:00Z"));
+            return created;
+        });
+
+        service.create("actor", "Novo Admin", "novo@gov.br", "12345678901", "senha123",
+                "admin", List.of("SP"), List.of(AdminAccessService.CITIZENS));
+
+        verify(users).add(any(User.class));
+    }
+
     private ServerScreenPermission screen(String userId, String key) {
         ServerScreenPermission permission = new ServerScreenPermission();
         permission.setUserId(userId);

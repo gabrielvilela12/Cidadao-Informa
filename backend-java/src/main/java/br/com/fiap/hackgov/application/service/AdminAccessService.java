@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -63,6 +64,8 @@ public class AdminAccessService {
         if (AdminRoles.isMaster(actor.getRole())) manageableUsers.addAll(userRepository.getByRole(AdminRoles.MASTER));
 
         return manageableUsers.stream()
+                .filter(user -> actor.getEstablishmentId() == null
+                        || Objects.equals(actor.getEstablishmentId(), user.getEstablishmentId()))
                 .map(user -> toOutput(user,
                         statePermissionService.allowedStates(user.getId()),
                         screenPermissions(user.getId())))
@@ -103,6 +106,7 @@ public class AdminAccessService {
         user.setCpf(normalizedCpf);
         user.setPasswordHash(AuthUtils.hashPassword(password));
         user.setRole(role);
+        user.setEstablishmentId(actor.getEstablishmentId());
         User created = userRepository.add(user);
 
         statePermissionService.update(created.getId(), delegation.states().stream().toList());
@@ -119,6 +123,10 @@ public class AdminAccessService {
         requireScreen(actorUserId, USER_MANAGEMENT);
         User actor = requireAdminUser(actorUserId);
         User target = requireAdminUser(targetUserId);
+        if (actor.getEstablishmentId() != null
+                && !Objects.equals(actor.getEstablishmentId(), target.getEstablishmentId())) {
+            throw new AdminAccessDeniedException("Você só pode alterar servidores da sua prefeitura.");
+        }
         String role = requestedRole == null || requestedRole.isBlank()
                 ? target.getRole().toLowerCase(Locale.ROOT)
                 : normalizeRole(requestedRole);
