@@ -97,6 +97,22 @@ export function AdminRequestsQueue() {
     !protocol.location_grouped || protocol.id === protocol.primary_protocol_id
   )), [protocols]);
 
+  const latestProtocolByGroup = useMemo(() => {
+    const latest = new Map<string, Protocol>();
+    protocols.forEach((protocol) => {
+      const groupId = protocol.location_grouped
+        ? (protocol.primary_protocol_id || protocol.id)
+        : protocol.id;
+      const current = latest.get(groupId);
+      if (!current || protocolOpenedAt(protocol) > protocolOpenedAt(current)) {
+        latest.set(groupId, protocol);
+      }
+    });
+    return latest;
+  }, [protocols]);
+
+  const latestReport = (protocol: Protocol) => latestProtocolByGroup.get(protocol.id) ?? protocol;
+
   const counts = useMemo(() => ({
     open: protocols.filter((item) => statusMatches(item.status, 'open')).length,
     analysis: protocols.filter((item) => statusMatches(item.status, 'analysis')).length,
@@ -117,7 +133,7 @@ export function AdminRequestsQueue() {
       || (priorityFilter === 'processing' ? !protocol.ai_priority : protocol.ai_priority === priorityFilter);
     const slaLate = isSlaLate(protocol);
     const matchesSla = slaFilter === 'all' || (slaFilter === 'late' ? slaLate : !slaLate);
-    const openedOn = protocolDateKey(protocol);
+    const openedOn = protocolDateKey(latestReport(protocol));
     const matchesDate = (!startDate || (openedOn !== null && openedOn >= startDate))
       && (!endDate || (openedOn !== null && openedOn <= endDate));
 
@@ -127,7 +143,7 @@ export function AdminRequestsQueue() {
       && matchesPriority
       && matchesSla
       && matchesDate;
-  }).sort((a, b) => protocolOpenedAt(b) - protocolOpenedAt(a)), [categoryFilter, endDate, priorityFilter, queueProtocols, searchTerm, slaFilter, startDate, statusFilter]);
+  }).sort((a, b) => protocolOpenedAt(latestReport(b)) - protocolOpenedAt(latestReport(a))), [categoryFilter, endDate, latestProtocolByGroup, priorityFilter, queueProtocols, searchTerm, slaFilter, startDate, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProtocols.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -304,7 +320,12 @@ export function AdminRequestsQueue() {
                       </div>
                     </td>
                     <td className="px-3 py-2.5"><CategoryBadge category={protocol.category} /></td>
-                    <td className="px-3 py-2.5 text-xs font-medium text-slate-700">{protocol.date}</td>
+                    <td
+                      className="px-3 py-2.5 text-xs font-medium text-slate-700"
+                      title={protocol.location_grouped ? 'Data do relato mais recente deste grupo' : undefined}
+                    >
+                      {latestReport(protocol).date}
+                    </td>
                     <td className="px-3 py-2.5"><SlaCell protocol={protocol} /></td>
                     <td className="px-3 py-2.5"><StatusPill status={protocol.status} /></td>
                     <td className="px-3 py-2.5"><PriorityPill protocol={protocol} /></td>
