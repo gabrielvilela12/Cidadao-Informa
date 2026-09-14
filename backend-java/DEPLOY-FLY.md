@@ -91,8 +91,8 @@ demorar segundos, o `auto_stop_machines = 'off'` não pegou.
 ### 6. Apontar o frontend
 
 Este é o passo que efetiva a migração. No `vercel.json`, troque os destinos que
-hoje apontam para `{ "service": "backend" }` pela URL pública do Fly, e remova o
-serviço `backend` do bloco `services` — sem ele a Vercel para de construir a
+hoje apontam para `{ "service": "api" }` pela URL pública do Fly, e remova o
+serviço `api` do bloco `services` — sem ele a Vercel para de construir a
 imagem Java:
 
 ```json
