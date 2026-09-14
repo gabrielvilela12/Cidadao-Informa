@@ -29,7 +29,7 @@ class CreateProtocolUseCaseTest {
         Protocol existing = new Protocol();
         existing.setStatus("Em Análise");
         when(permissions.resolveState("SP", "Praça da Sé, 10 - Sé, São Paulo - SP")).thenReturn("SP");
-        when(campaignRouting.resolveActiveCampaign("São Paulo", "Praça da Sé, 10 - Sé, São Paulo - SP", "SP"))
+        when(campaignRouting.resolveActiveCampaignForProtocol("São Paulo", "Praça da Sé, 10 - Sé, São Paulo - SP", "SP", null))
                 .thenReturn(campaign("campaign-sp", "est-sp"));
         when(repository.getByLocationAndCause(
                 "praca da se 10 se sao paulo sp",
@@ -51,7 +51,7 @@ class CreateProtocolUseCaseTest {
                 -23.5505,
                 -46.6333,
                 List.of()
-        ), "citizen-2", "Maria");
+        ), "citizen-2", "Maria", null);
 
         assertEquals("Em Análise", output.status());
     }
@@ -63,7 +63,7 @@ class CreateProtocolUseCaseTest {
         RegionalCampaignRoutingService campaignRouting = mock(RegionalCampaignRoutingService.class);
         CreateProtocolUseCase useCase = new CreateProtocolUseCase(repository, permissions, campaignRouting);
         when(permissions.resolveState("SP", "Praça da Sé, 10 - Sé, São Paulo - SP")).thenReturn("SP");
-        when(campaignRouting.resolveActiveCampaign("São Paulo", "Praça da Sé, 10 - Sé, São Paulo - SP", "SP"))
+        when(campaignRouting.resolveActiveCampaignForProtocol("São Paulo", "Praça da Sé, 10 - Sé, São Paulo - SP", "SP", null))
                 .thenReturn(campaign("campaign-sp", "est-sp"));
         when(repository.getByLocationAndCause(
                 "praca da se 10 se sao paulo sp",
@@ -85,7 +85,7 @@ class CreateProtocolUseCaseTest {
                 -23.5505,
                 -46.6333,
                 List.of()
-        ), "citizen-3", "João");
+        ), "citizen-3", "João", null);
 
         assertEquals("Aberto", output.status());
     }
@@ -98,7 +98,7 @@ class CreateProtocolUseCaseTest {
         CreateProtocolUseCase useCase = new CreateProtocolUseCase(repository, permissions, campaignRouting);
         String address = "Rua 10, 25 - Centro, Goiânia - GO";
         when(permissions.resolveState("GO", address)).thenReturn("GO");
-        when(campaignRouting.resolveActiveCampaign("Goiânia", address, "GO"))
+        when(campaignRouting.resolveActiveCampaignForProtocol("Goiânia", address, "GO", "est-sp"))
                 .thenReturn(campaign("campaign-go", "est-goiania"));
         when(repository.getByLocationAndCause(
                 "rua 10 25 centro goiania go",
@@ -120,7 +120,7 @@ class CreateProtocolUseCaseTest {
                 -16.6869,
                 -49.2648,
                 List.of()
-        ), "citizen-from-sp", "Ana");
+        ), "citizen-from-sp", "Ana", "est-sp");
 
         assertEquals("est-goiania", output.establishmentId());
         assertEquals("campaign-go", output.campaignId());
@@ -134,7 +134,7 @@ class CreateProtocolUseCaseTest {
         CreateProtocolUseCase useCase = new CreateProtocolUseCase(repository, permissions, campaignRouting);
         String address = "Rua das Flores, 10 - Centro, Palmas - TO";
         when(permissions.resolveState("TO", address)).thenReturn("TO");
-        when(campaignRouting.resolveActiveCampaign("Palmas", address, "TO"))
+        when(campaignRouting.resolveActiveCampaignForProtocol("Palmas", address, "TO", null))
                 .thenThrow(new IllegalArgumentException(
                         "Ainda não existe campanha ativa para a região informada. Nenhum protocolo foi salvo."
                 ));
@@ -148,7 +148,7 @@ class CreateProtocolUseCaseTest {
                 -10.1844,
                 -48.3336,
                 List.of()
-        ), "citizen-id", "Bruno"));
+        ), "citizen-id", "Bruno", null));
         verify(repository, never()).add(any(Protocol.class));
     }
 

@@ -43,6 +43,9 @@ public class RegionalCampaign {
     @Column(name = "status", nullable = false)
     private String status;
 
+    @Column(name = "is_demo", nullable = false)
+    private boolean demo;
+
     @Column(name = "starts_at", nullable = false)
     private Instant startsAt;
 
@@ -134,6 +137,14 @@ public class RegionalCampaign {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public boolean isDemo() {
+        return demo;
+    }
+
+    public void setDemo(boolean demo) {
+        this.demo = demo;
     }
 
     public Instant getStartsAt() {

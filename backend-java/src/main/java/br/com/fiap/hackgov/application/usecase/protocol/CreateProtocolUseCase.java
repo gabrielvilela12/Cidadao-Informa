@@ -34,7 +34,8 @@ public class CreateProtocolUseCase {
     public ProtocolOutputDto execute(
             ProtocolInputDto input,
             String userId,
-            String requester
+            String requester,
+            String establishmentId
     ) {
         if (input.category() == null || input.category().isBlank()
                 || input.description() == null || input.description().isBlank()
@@ -45,10 +46,11 @@ public class CreateProtocolUseCase {
         validateCoordinates(input.latitude(), input.longitude());
         List<String> imageUrls = validateImages(input.imageUrls());
         String stateCode = permissionService.resolveState(input.stateCode(), input.address());
-        RegionalCampaign campaign = campaignRoutingService.resolveActiveCampaign(
+        RegionalCampaign campaign = campaignRoutingService.resolveActiveCampaignForProtocol(
                 input.city(),
                 input.address(),
-                stateCode
+                stateCode,
+                establishmentId
         );
 
         Protocol protocol = new Protocol();

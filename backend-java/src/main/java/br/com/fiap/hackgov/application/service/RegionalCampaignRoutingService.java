@@ -50,6 +50,28 @@ public class RegionalCampaignRoutingService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public RegionalCampaign resolveActiveCampaignForProtocol(
+            String city, String address, String stateCode, String establishmentId
+    ) {
+        if (establishmentId != null && !establishmentId.isBlank()) {
+            String state = stateCode == null ? "" : stateCode.trim().toUpperCase(Locale.ROOT);
+            String normalizedCity = comparable(resolveCity(city, address, state));
+            var demoCampaign = campaignRepository
+                    .findByEstablishmentIdAndStatusIgnoreCaseOrderByCreatedAtDesc(establishmentId, "active")
+                    .stream()
+                    .filter(RegionalCampaign::isDemo)
+                    .filter(this::isCampaignRunning)
+                    .filter(this::hasEnabledSubscription)
+                    .filter(campaign -> state.equalsIgnoreCase(campaign.getState()))
+                    .filter(campaign -> "state".equalsIgnoreCase(campaign.getScopeType())
+                            || normalizedCity.equals(comparable(campaign.getCity())))
+                    .findFirst();
+            if (demoCampaign.isPresent()) return demoCampaign.get();
+        }
+        return resolveActiveCampaign(city, address, stateCode);
+    }
+
     private RegionalCampaign resolveActiveCampaign(
             String city,
             String address,
@@ -70,6 +92,7 @@ public class RegionalCampaignRoutingService {
         List<RegionalCampaign> candidates = campaignRepository
                 .findByStateIgnoreCaseAndStatusIgnoreCaseOrderByCreatedAtDesc(state, "active")
                 .stream()
+                .filter(campaign -> !campaign.isDemo())
                 .filter(this::isCampaignRunning)
                 .filter(this::hasEnabledSubscription)
                 .toList();

@@ -103,7 +103,8 @@ public class ProtocolsController {
             ProtocolOutputDto created = createProtocolUseCase.execute(
                     input,
                     user.userId(),
-                    user.name()
+                    user.name(),
+                    user.establishmentId()
             );
 
             auditService.append(

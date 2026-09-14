@@ -2,6 +2,7 @@ package br.com.fiap.hackgov.infrastructure.service;
 
 import br.com.fiap.hackgov.application.service.JwtService;
 import br.com.fiap.hackgov.domain.entity.User;
+import br.com.fiap.hackgov.domain.repository.UserRepository;
 import br.com.fiap.hackgov.infrastructure.security.AuthenticatedUser;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -17,6 +18,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.Optional;
+import java.util.Objects;
 
 @Service
 public class JwtServiceImpl implements JwtService {
@@ -31,9 +33,11 @@ public class JwtServiceImpl implements JwtService {
     private static final String CLAIM_ESTABLISHMENT_ID = "establishment_id";
 
     private final SecretKey signingKey;
+    private final UserRepository userRepository;
 
-    public JwtServiceImpl(@Value("${app.jwt.secret}") String secret) {
+    public JwtServiceImpl(@Value("${app.jwt.secret}") String secret, UserRepository userRepository) {
         this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -66,13 +70,15 @@ public class JwtServiceImpl implements JwtService {
                 return Optional.empty();
             }
 
-            return Optional.of(new AuthenticatedUser(
-                    userId,
-                    claims.get(CLAIM_NAME, String.class),
-                    claims.get(CLAIM_CPF, String.class),
-                    claims.get(CLAIM_ROLE, String.class),
-                    claims.get(CLAIM_ESTABLISHMENT_ID, String.class)
-            ));
+            return userRepository.getById(userId)
+                    .filter(user -> "active".equalsIgnoreCase(user.getStatus()))
+                    .filter(user -> Objects.equals(user.getRole(), claims.get(CLAIM_ROLE, String.class)))
+                    .filter(user -> Objects.equals(user.getEstablishmentId(),
+                            claims.get(CLAIM_ESTABLISHMENT_ID, String.class)))
+                    .map(user -> new AuthenticatedUser(
+                            user.getId(), user.getName(), user.getCpf(),
+                            user.getRole(), user.getEstablishmentId()
+                    ));
         } catch (JwtException | IllegalArgumentException ex) {
             return Optional.empty();
         }

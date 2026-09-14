@@ -57,6 +57,26 @@ const protocolDateKey = (protocol: Protocol) => {
   return fallback ? `${fallback[3]}-${fallback[2]}-${fallback[1]}` : null;
 };
 
+const localDateKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const lastWeekStart = () => {
+  const date = new Date();
+  date.setDate(date.getDate() - 7);
+  return localDateKey(date);
+};
+
+const protocolOpenedAt = (protocol: Protocol) => {
+  const timestamp = Date.parse(protocol.created_at ?? '');
+  if (Number.isFinite(timestamp)) return timestamp;
+  const day = protocolDateKey(protocol);
+  return day ? Date.parse(`${day}T00:00:00`) : 0;
+};
+
 export function AdminRequestsQueue() {
   const { protocols, loading } = useProtocols('admin');
   const navigate = useNavigate();
@@ -65,8 +85,8 @@ export function AdminRequestsQueue() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [slaFilter, setSlaFilter] = useState('all');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState(lastWeekStart);
+  const [endDate, setEndDate] = useState(() => localDateKey(new Date()));
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const pageSize = 10;
@@ -107,7 +127,7 @@ export function AdminRequestsQueue() {
       && matchesPriority
       && matchesSla
       && matchesDate;
-  }), [categoryFilter, endDate, priorityFilter, queueProtocols, searchTerm, slaFilter, startDate, statusFilter]);
+  }).sort((a, b) => protocolOpenedAt(b) - protocolOpenedAt(a)), [categoryFilter, endDate, priorityFilter, queueProtocols, searchTerm, slaFilter, startDate, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProtocols.length / pageSize));
   const safePage = Math.min(page, totalPages);

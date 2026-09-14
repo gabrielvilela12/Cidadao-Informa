@@ -175,10 +175,6 @@ type DemoAccount = {
 };
 
 const DEMO_PASSWORD = 'Demo@123';
-const DEMO_SERVER_REGIONS = [
-    { city: 'Ribeirão Preto', cpf: '22233344455', establishmentId: 'est-demo-ribeirao-preto' },
-    { city: 'São Paulo', cpf: '44455566677', establishmentId: 'est-demo-sao-paulo' },
-] as const;
 const MAX_RESIDENCE_PROOF_BYTES = 3 * 1024 * 1024;
 const RESIDENCE_PROOF_ACCEPT = 'application/pdf,image/jpeg,image/png,image/webp';
 const DEMO_ACCOUNTS: DemoAccount[] = [
@@ -191,12 +187,13 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
         className: 'border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-300 hover:bg-blue-100',
     },
     {
-        label: 'Servidor',
+        label: 'Servidor RP',
         cpf: '22233344455',
         password: DEMO_PASSWORD,
         role: 'admin',
         icon: Shield,
         className: 'border-amber-200 bg-amber-50 text-amber-800 hover:border-amber-300 hover:bg-amber-100',
+        establishmentId: 'est-demo-campanha-ribeirao-preto',
     },
     {
         label: 'Dono',
@@ -226,7 +223,6 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
     const [loading, setLoading] = useState(false);
     const [errorDesc, setErrorDesc] = useState('');
     const [acceptedTerms, setAcceptedTerms] = useState(false);
-    const [showDemoRegions, setShowDemoRegions] = useState(false);
     const authMode: 'citizen' | 'admin' = portal === 'citizen' ? 'citizen' : 'admin';
 
     const sanitizeCPF = (raw: string) => raw.replace(/\D/g, '');
@@ -366,7 +362,6 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
     };
 
     const handleDemoAccess = async (account: DemoAccount) => {
-        setShowDemoRegions(false);
         setIsRegistering(false);
         setCpf(formatCPF(account.cpf));
         setPassword(account.password);
@@ -381,7 +376,7 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
                 throw new ApiError('Conta de demonstração configurada para outro perfil.', true);
             }
             if (account.establishmentId && data.establishmentId !== account.establishmentId) {
-                throw new ApiError('A conta demo não está vinculada à região selecionada.', true);
+                throw new ApiError('A conta demo não está vinculada à campanha de Ribeirão Preto.', true);
             }
 
             loginSuccess(
@@ -409,7 +404,6 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
 
     const switchMode = (toRegister: boolean) => {
         setIsRegistering(toRegister);
-        setShowDemoRegions(false);
         setErrorDesc('');
         setAcceptedTerms(false);
         navigate(toRegister ? '/cadastro' : '/login');
@@ -557,10 +551,7 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
                                                     key={account.cpf}
                                                     type="button"
                                                     disabled={loading}
-                                                    onClick={() => account.role === 'admin'
-                                                        ? setShowDemoRegions((current) => !current)
-                                                        : handleDemoAccess(account)}
-                                                    aria-expanded={account.role === 'admin' ? showDemoRegions : undefined}
+                                                    onClick={() => handleDemoAccess(account)}
                                                     className={`inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-black transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${account.className}`}
                                                 >
                                                     <Icon size={14} aria-hidden="true" />
@@ -569,27 +560,10 @@ export function Login({ initialMode = false, portal = 'citizen' }: { initialMode
                                             );
                                         })}
                                     </div>
-                                    {showDemoRegions && (
-                                        <div role="group" aria-label="Região da demonstração do servidor" className="rounded-xl border border-amber-200 bg-amber-50/60 p-3">
-                                            <p className="mb-2 text-center text-xs font-bold text-amber-900">Qual prefeitura deseja conhecer?</p>
-                                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                                {DEMO_SERVER_REGIONS.map((region) => (
-                                                    <button
-                                                        key={region.establishmentId}
-                                                        type="button"
-                                                        disabled={loading}
-                                                        onClick={() => handleDemoAccess({
-                                                            ...DEMO_ACCOUNTS[1],
-                                                            cpf: region.cpf,
-                                                            establishmentId: region.establishmentId,
-                                                        })}
-                                                        className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-amber-200 bg-white px-2 text-xs font-bold text-amber-900 transition-colors hover:border-amber-400 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-                                                    >
-                                                        <MapPin size={14} aria-hidden="true" /> {region.city}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
+                                    {portal === 'server' && (
+                                        <p className="text-center text-xs text-slate-600">
+                                            O servidor demo acessa somente a campanha de Ribeirão Preto. Funcionários de outras prefeituras entram com CPF e senha no formulário acima.
+                                        </p>
                                     )}
                                 </div>
                             )}
