@@ -262,15 +262,6 @@ export function LandingPage() {
                     <CidadaoBrand iconClassName="size-12" />
 
                     <div className="hidden items-center gap-6 xl:flex">
-                        <a href="#como-funciona" className="text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]">
-                            Como funciona
-                        </a>
-                        <a href="#beneficios" className="text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]">
-                            Benefícios
-                        </a>
-                        <a href="#resultados" className="text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]">
-                            Resultados
-                        </a>
                         <Link to="/prefeitura" className="text-sm font-semibold text-slate-700 transition-colors hover:text-[#1351B4]">
                             Para prefeituras
                         </Link>
