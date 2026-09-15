@@ -103,6 +103,7 @@ public class GetTransparencyUseCase {
                 priorities,
                 monthlyEvolution(protocols, generatedAt),
                 sla,
+                calculateStatistics(protocols, generatedAt),
                 new TransparencyOutputDto.AiSummary(
                         total,
                         classified,
@@ -124,6 +125,64 @@ public class GetTransparencyUseCase {
                 ),
                 geography(protocols),
                 recentProtocols(protocols)
+        );
+    }
+
+    private TransparencyOutputDto.StatisticalSummary calculateStatistics(
+            List<ProtocolRepository.TransparencyProtocol> protocols,
+            Instant now
+    ) {
+        List<Double> resolutionHours = protocols.stream()
+                .filter(this::isCompleted)
+                .filter(item -> item.createdAt() != null && item.resolvedAt() != null)
+                .filter(item -> !item.resolvedAt().isBefore(item.createdAt()))
+                .map(item -> Duration.between(item.createdAt(), item.resolvedAt()).toMillis() / 3_600_000.0)
+                .toList();
+        List<Double> backlogAgeDays = protocols.stream()
+                .filter(item -> !isCompleted(item))
+                .filter(item -> item.createdAt() != null && !item.createdAt().isAfter(now))
+                .map(item -> Duration.between(item.createdAt(), now).toMillis() / 86_400_000.0)
+                .toList();
+        List<Double> resolutionCosts = protocols.stream()
+                .filter(this::isCompleted)
+                .map(ProtocolRepository.TransparencyProtocol::resolutionCost)
+                .filter(java.util.Objects::nonNull)
+                .filter(cost -> cost.signum() >= 0)
+                .map(BigDecimal::doubleValue)
+                .toList();
+
+        long completed = protocols.stream().filter(this::isCompleted).count();
+        return new TransparencyOutputDto.StatisticalSummary(
+                describe(resolutionHours),
+                describe(backlogAgeDays),
+                describe(resolutionCosts),
+                completed - resolutionHours.size(),
+                percentage(resolutionHours.size(), completed),
+                percentage(resolutionCosts.size(), completed)
+        );
+    }
+
+    private TransparencyOutputDto.SampleSummary describe(List<Double> source) {
+        if (source.isEmpty()) {
+            return new TransparencyOutputDto.SampleSummary(0, null, null, null, null);
+        }
+        List<Double> values = source.stream().sorted().toList();
+        int size = values.size();
+        double mean = values.stream().mapToDouble(Double::doubleValue).average().orElseThrow();
+        double median = size % 2 == 0
+                ? (values.get(size / 2 - 1) + values.get(size / 2)) / 2.0
+                : values.get(size / 2);
+        int p90Index = Math.max(0, (int) Math.ceil(size * 0.90) - 1);
+        double variance = values.stream()
+                .mapToDouble(value -> Math.pow(value - mean, 2))
+                .average()
+                .orElse(0);
+        return new TransparencyOutputDto.SampleSummary(
+                size,
+                roundTwoDecimals(mean),
+                roundTwoDecimals(median),
+                roundTwoDecimals(values.get(p90Index)),
+                roundTwoDecimals(Math.sqrt(variance))
         );
     }
 
@@ -325,6 +384,10 @@ public class GetTransparencyUseCase {
 
     private double roundToGrid(double value) {
         return Math.round(value / PUBLIC_GRID_SIZE) * PUBLIC_GRID_SIZE;
+    }
+
+    private double roundTwoDecimals(double value) {
+        return Math.round(value * 100.0) / 100.0;
     }
 
     private record GridPoint(double latitude, double longitude) {

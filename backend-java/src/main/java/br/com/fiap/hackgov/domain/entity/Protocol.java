@@ -9,6 +9,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
@@ -22,6 +23,7 @@ import br.com.fiap.hackgov.domain.util.ProtocolCauseKey;
 
 @Entity
 @Table(name = "protocols")
+@SQLRestriction("deleted_at IS NULL")
 public class Protocol {
 
     @Id
@@ -54,6 +56,15 @@ public class Protocol {
 
     @Column(name = "resolution_cost", precision = 12, scale = 2)
     private BigDecimal resolutionCost;
+
+    @Column(name = "resolved_at")
+    private Instant resolvedAt;
+
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
+    @Column(name = "deleted_by")
+    private String deletedBy;
 
     @Column(name = "user_id", nullable = false)
     private String userId;
@@ -218,6 +229,30 @@ public class Protocol {
 
     public void setResolutionCost(BigDecimal resolutionCost) {
         this.resolutionCost = resolutionCost;
+    }
+
+    public Instant getResolvedAt() {
+        return resolvedAt;
+    }
+
+    public void setResolvedAt(Instant resolvedAt) {
+        this.resolvedAt = resolvedAt;
+    }
+
+    public Instant getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(Instant deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public String getDeletedBy() {
+        return deletedBy;
+    }
+
+    public void setDeletedBy(String deletedBy) {
+        this.deletedBy = deletedBy;
     }
 
     public String getUserId() {

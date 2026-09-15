@@ -15,6 +15,7 @@ interface ApiProtocol {
     requester?: string;
     phone?: string;
     createdAt: string;
+    resolvedAt?: string | null;
     /** Posição confirmada no mapa. Depende do backend Java expor o campo. */
     latitude?: number | null;
     longitude?: number | null;
@@ -89,6 +90,14 @@ export interface TransparencyData {
         late: number;
         onTimeRate: number | null;
     };
+    statistics: {
+        resolutionTimeHours: DescriptiveStatistics;
+        openBacklogAgeDays: DescriptiveStatistics;
+        resolutionCostBrl: DescriptiveStatistics;
+        completedWithoutResolvedAt: number;
+        resolutionTimeCoverageRate: number | null;
+        resolutionCostCoverageRate: number | null;
+    };
     ai: {
         total: number;
         classified: number;
@@ -127,6 +136,14 @@ export interface TransparencyData {
 export interface TransparencyMetric {
     label: string;
     value: number;
+}
+
+export interface DescriptiveStatistics {
+    sampleSize: number;
+    mean: number | null;
+    median: number | null;
+    p90: number | null;
+    standardDeviation: number | null;
 }
 
 export interface DailyReportSummary {
@@ -321,6 +338,7 @@ function mapProtocol(item: ApiProtocol): Protocol {
     return {
         ...item,
         created_at: item.createdAt,
+        resolved_at: item.resolvedAt ?? null,
         state_code: item.stateCode ?? null,
         establishment_id: item.establishmentId ?? null,
         campaign_id: item.campaignId ?? null,
@@ -459,6 +477,12 @@ export const api = {
     async getProtocolById(id: string) {
         const data = await apiRequest<ApiProtocol>(`/api/protocols/${encodeURIComponent(id)}`);
         return mapProtocol(data);
+    },
+
+    async deleteProtocol(id: string) {
+        await apiRequest<null>(`/api/protocols/${encodeURIComponent(id)}`, {
+            method: 'DELETE',
+        });
     },
 
     async getPublicProtocolById(id: string) {

@@ -13,6 +13,7 @@ public record ProtocolOutputDto(
         String address,
         String stateCode,
         Instant createdAt,
+        Instant resolvedAt,
         String status,
         BigDecimal resolutionCost,
         String userId,
@@ -44,6 +45,7 @@ public record ProtocolOutputDto(
                 protocol.getAddress(),
                 protocol.getStateCode(),
                 protocol.getCreatedAt(),
+                protocol.getResolvedAt(),
                 protocol.getStatus(),
                 protocol.getResolutionCost(),
                 protocol.getUserId(),
@@ -80,7 +82,7 @@ public record ProtocolOutputDto(
         ProtocolOutputDto base = from(protocol);
         return new ProtocolOutputDto(
                 base.id(), base.category(), base.description(), base.address(), base.stateCode(),
-                base.createdAt(), base.status(), base.resolutionCost(), base.userId(), base.establishmentId(),
+                base.createdAt(), base.resolvedAt(), base.status(), base.resolutionCost(), base.userId(), base.establishmentId(),
                 base.campaignId(), base.requester(), base.phone(), base.aiPriority(), base.aiStatus(), base.latitude(), base.longitude(),
                 base.imageUrls(), base.correctedImageUrls(), base.correctionStatus(), base.correctionError(),
                 base.correctionGeneratedAt(), base.correctionReport(), locationGroupCount, locationGrouped,

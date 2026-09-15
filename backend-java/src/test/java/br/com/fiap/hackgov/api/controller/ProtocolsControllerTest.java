@@ -33,7 +33,10 @@ import java.util.stream.IntStream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -91,6 +94,7 @@ class ProtocolsControllerTest {
         ProtocolOutputDto output = assertInstanceOf(ProtocolOutputDto.class, response.getBody());
         assertEquals("Concluído", output.status());
         assertEquals(cost, output.resolutionCost());
+        assertNotNull(original.getResolvedAt());
         assertEquals("11999999999", output.phone());
         verify(repository, times(2)).getById(protocolId);
     }
@@ -138,6 +142,97 @@ class ProtocolsControllerTest {
         assertTrue(output.locationGrouped());
         assertEquals(2, output.locationReports().size());
         verify(repository, times(2)).update(org.mockito.ArgumentMatchers.any(Protocol.class));
+    }
+
+    @Test
+    void citizenOwnerCanLogicallyDeleteOwnOpenProtocol() {
+        ProtocolRepository repository = mock(ProtocolRepository.class);
+        ProtocolAuditService auditService = mock(ProtocolAuditService.class);
+        ProtocolsController controller = controller(repository, auditService);
+        Protocol protocol = protocol("protocol-owned", "Aberto", null);
+        when(repository.getById(protocol.getId())).thenReturn(Optional.of(protocol));
+
+        ResponseEntity<?> response = controller.deleteProtocol(
+                protocol.getId(),
+                authentication("citizen-id", "citizen")
+        );
+
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        assertNotNull(protocol.getDeletedAt());
+        assertEquals("citizen-id", protocol.getDeletedBy());
+        verify(repository).update(protocol);
+        verify(auditService).append(
+                org.mockito.ArgumentMatchers.eq(protocol.getId()),
+                org.mockito.ArgumentMatchers.eq("PROTOCOL_LOGICALLY_DELETED"),
+                org.mockito.ArgumentMatchers.eq("citizen-id"),
+                org.mockito.ArgumentMatchers.eq("citizen"),
+                org.mockito.ArgumentMatchers.eq("Aberto"),
+                org.mockito.ArgumentMatchers.eq("Aberto"),
+                org.mockito.ArgumentMatchers.anyMap()
+        );
+    }
+
+    @Test
+    void anotherCitizenCannotDeleteProtocol() {
+        ProtocolRepository repository = mock(ProtocolRepository.class);
+        Protocol protocol = protocol("protocol-other", "Aberto", null);
+        when(repository.getById(protocol.getId())).thenReturn(Optional.of(protocol));
+
+        ResponseEntity<?> response = controller(repository, mock(ProtocolAuditService.class)).deleteProtocol(
+                protocol.getId(),
+                authentication("different-citizen", "citizen")
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertNull(protocol.getDeletedAt());
+        verify(repository, never()).update(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void administratorCannotDeleteCitizenProtocol() {
+        ProtocolRepository repository = mock(ProtocolRepository.class);
+
+        ResponseEntity<?> response = controller(repository, mock(ProtocolAuditService.class)).deleteProtocol(
+                "protocol-owned",
+                authentication("admin-id", "admin")
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        verify(repository, never()).getById(org.mockito.ArgumentMatchers.anyString());
+        verify(repository, never()).update(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void citizenCannotDeleteProtocolAfterServiceStarted() {
+        ProtocolRepository repository = mock(ProtocolRepository.class);
+        Protocol protocol = protocol("protocol-analysis", "Em Análise", null);
+        when(repository.getById(protocol.getId())).thenReturn(Optional.of(protocol));
+
+        ResponseEntity<?> response = controller(repository, mock(ProtocolAuditService.class)).deleteProtocol(
+                protocol.getId(),
+                authentication("citizen-id", "citizen")
+        );
+
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        verify(repository, never()).update(org.mockito.ArgumentMatchers.any());
+    }
+
+    private ProtocolsController controller(ProtocolRepository repository, ProtocolAuditService auditService) {
+        return new ProtocolsController(
+                mock(CreateProtocolUseCase.class), mock(GetProtocolsUseCase.class),
+                mock(GetPublicStatsUseCase.class), repository, auditService,
+                mock(AiPriorityService.class), mock(AiImageCorrectionService.class),
+                mock(GeocodingService.class), mock(ProtocolEventService.class),
+                new ProtocolLocationGroupService(repository), mock(ServerStatePermissionService.class)
+        );
+    }
+
+    private Authentication authentication(String userId, String role) {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn(
+                new AuthenticatedUser(userId, "Usuário", "00000000000", role)
+        );
+        return authentication;
     }
 
     private Protocol protocol(String id, String status, BigDecimal resolutionCost) {

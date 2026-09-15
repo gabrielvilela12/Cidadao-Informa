@@ -28,6 +28,8 @@ export interface Protocol {
   phone?: string;
   /** Timestamp ISO de abertura, usado no cálculo de SLA. */
   created_at?: string;
+  /** Timestamp ISO da conclusao mais recente; nulo para ativos e legado sem historico. */
+  resolved_at?: string | null;
   /** Posicao confirmada pelo solicitante. null = sem localizacao confirmada. */
   latitude?: number | null;
   /** Posicao confirmada pelo solicitante. null = sem localizacao confirmada. */

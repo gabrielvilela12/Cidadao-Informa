@@ -15,10 +15,10 @@ O corte temporal recomendado é 11/06/2026, data do resumo da Fase 4. A compara�
 | Parte exigida | Situação atual | Direção para o documento |
 | --- | --- | --- |
 | Versão atual do projeto | Forte | Comparar a Fase 4 com a arquitetura e as funções atuais, destacando impacto público e não apenas quantidade de telas. |
-| Backlog atualizado | Parcial | Preservar as histórias anteriores, revisar o estado delas e adicionar histórias de front-end, segurança, arquivos, auditoria e relatórios. |
-| API RESTful e integração | Forte, mas CRUD incompleto | A API Java possui várias rotas, Swagger, JWT, autorização e tratamento de erros. O recurso protocolo não possui `DELETE`; a operação deve pertencer ao cidadão dono do protocolo, e não ao servidor. |
-| Estruturas e estatística | Parcialmente forte | Há listas, conjuntos, mapas e uma fila persistente de jobs. Não há uma pilha de negócio explícita. Os painéis já oferecem contagens, taxas, séries e distribuições, mas a análise acadêmica deve acrescentar média, mediana, dispersão e interpretação. |
-| Governança e auditoria | Forte, com lacunas | Há perfis, escopo por prefeitura/UF/tela, JWT, rate limiting, CORS, RLS e cadeia de hashes. Ainda é recomendável auditar consulta sensível, exportação e exclusão lógica. |
+| Backlog atualizado | Concluído | O backlog definitivo e os critérios prioritários estão em `entrega-fase-5/backlog-fase-5.md`. |
+| API RESTful e integração | Forte, com CRUD principal completo | O protocolo possui criação, leitura, atualização e exclusão lógica exclusiva do cidadão proprietário, integrada à interface. |
+| Estruturas e estatística | Forte | Há listas, conjuntos, mapas, fila persistente de jobs e pilha LIFO de filtros. A transparência calcula média, mediana, P90, desvio-padrão e cobertura. |
+| Governança e auditoria | Forte, com lacunas | Há perfis, escopo por prefeitura/UF/tela, JWT, rate limiting, CORS, RLS e cadeia de hashes. A exclusão lógica já é auditada; ainda é recomendável auditar consulta sensível e exportação. |
 | Entregáveis finais | A produzir | Documento em Word/PDF, apresentação com até 10 slides e PDF, roteiro/vídeo de até 5 minutos, link do vídeo e ZIP validado. |
 
 ## 3. Estrutura recomendada do documento final
@@ -71,7 +71,7 @@ Abrir a seção com uma tabela “antes x agora x impacto”. Depois, desenvolve
 - Apresentar o mecanismo como “cadeia de auditoria encadeada por hashes”: cada registro guarda seu próprio hash e o hash do registro anterior, permitindo detectar alterações na sequência.
 - Separar funcionalidades plenamente implementadas das parciais ou planejadas.
 - Não usar métricas inventadas. Resultados quantitativos devem vir da API, do banco ou da base de demonstração identificada como tal.
-- Atualizar a informação do README sobre migrations: o repositório atual já ultrapassa a V29.
+- Informação do README atualizada para refletir as migrations até a V33.
 
 ## 5. Parte 2 — Ajustes no Product Backlog
 
@@ -89,10 +89,10 @@ Manter as US01–US14 para conservar a rastreabilidade da Fase 4, atualizar seus
 | US18 | Front-end/operação | Como servidor, quero receber novas solicitações e identificar ocorrências recorrentes no território, para reagir mais rapidamente. | Alta | Implementada |
 | US19 | Arquivos/relatórios | Como gestor, quero exportar fechamentos em PDF e planilha, para analisar e prestar contas. | Alta | Implementada |
 | US20 | Segurança/auditoria | Como encarregado de governança, quero registrar consultas a cadastros sensíveis e exportações, para saber quem acessou ou extraiu dados pessoais. | Alta | Pendente |
-| US21 | CRUD/auditoria | Como cidadão, quero excluir logicamente um protocolo criado por mim, para retirá-lo das consultas e da minha área sem permitir que terceiros apaguem meus registros. | Alta | Pendente |
+| US21 | CRUD/auditoria | Como cidadão, quero excluir logicamente um protocolo criado por mim, para retirá-lo das consultas e da minha área sem permitir que terceiros apaguem meus registros. | Alta | Implementada |
 | US22 | Arquivos/segurança | Como titular dos dados, quero que anexos sejam armazenados de forma privada e entregues por acesso temporário, para reduzir exposição indevida. | Alta | Parcial |
 | US23 | API | Como integrador, quero respostas de erro padronizadas e documentação OpenAPI completa, para tratar falhas de modo previsível. | Alta | Parcial |
-| US24 | Estatística | Como gestor, quero visualizar tendência, mediana, dispersão, SLA e recorrência, para priorizar ações com base em evidências. | Média | Parcial |
+| US24 | Estatística | Como gestor, quero visualizar tendência, mediana, dispersão, SLA e recorrência, para priorizar ações com base em evidências. | Média | Implementada |
 | US25 | Estruturas/front-end | Como servidor, quero desfazer alterações de filtros do painel, para recuperar rapidamente a visão anterior. | Baixa | Implementada com pilha LIFO limitada a 20 snapshots |
 | US26 | Auditoria | Como auditor, quero verificar a integridade da cadeia e localizar eventos por protocolo, ator, ação e período, para investigar mudanças críticas. | Média | Parcial |
 
@@ -111,12 +111,12 @@ Manter as US01–US14 para conservar a rastreabilidade da Fase 4, atualizar seus
 
 - Deve permitir acesso sem autenticação somente a dados definidos como públicos.
 - Deve ocultar nome, CPF, e-mail, telefone e endereço residencial do cidadão.
-- Deve trocar o endereço completo da ocorrência por bairro/cidade ou outra localização reduzida.
-- Deve reduzir a precisão das coordenadas ou trabalhar com agrupamentos geográficos.
+- Deve separar o endereço residencial, que permanece privado, do endereço da ocorrência, necessário para localizar o problema.
+- O mapa estatístico deve trabalhar com agrupamentos geográficos, sem impedir que o detalhe público preserve a localização da ocorrência definida pelo produto.
 - Não deve devolver fotos originais sem consentimento e moderação; quando necessário, deve usar uma versão pública tratada.
 - Deve apresentar indicadores calculados a partir dos protocolos persistidos.
 - Deve informar data/hora de geração e cobertura dos dados.
-- Deve exibir consulta pública de protocolo com localização reduzida e sem dados administrativos sensíveis.
+- Deve exibir a localização da ocorrência na consulta pública sem incluir dados pessoais ou administrativos do cidadão.
 
 #### US17 — Controle de acesso delegado
 
@@ -185,7 +185,7 @@ Manter as US01–US14 para conservar a rastreabilidade da Fase 4, atualizar seus
 | Recurso | Operações relevantes |
 | --- | --- |
 | Autenticação | `POST /api/auth/login`, `POST /api/auth/register`, `GET /api/auth/me`, `PATCH /api/auth/me/phone` |
-| Protocolos | `POST /api/protocols`, `GET /api/protocols`, `GET /api/protocols/{id}`, `GET /api/protocols/public/{id}`, `PATCH /api/protocols/{id}/status` |
+| Protocolos | `POST /api/protocols`, `GET /api/protocols`, `GET /api/protocols/{id}`, `GET /api/protocols/public/{id}`, `PATCH /api/protocols/{id}/status`, `DELETE /api/protocols/{id}` |
 | Tempo real e auditoria | `GET /api/protocols/events`, `GET /api/protocols/{id}/audit`, `GET /api/protocols/audit/verify` |
 | IA | consulta/regeneração/prioridade manual, correção de imagem, chatbot, prompts e logs |
 | Gestão | cidadãos, permissões de servidores, relatórios e alertas recorrentes |
@@ -196,12 +196,12 @@ Manter as US01–US14 para conservar a rastreabilidade da Fase 4, atualizar seus
 
 | Recurso principal | Create | Read | Update | Delete | Conclusão atual |
 | --- | --- | --- | --- | --- | --- |
-| Protocolos | Sim | Sim | Sim, por status/prioridade/custo | Não | Incompleto até implementar exclusão lógica pelo cidadão proprietário |
+| Protocolos | Sim | Sim | Sim, por status/prioridade/custo | Sim, lógico e pelo cidadão proprietário | CRUD principal completo e auditado |
 | Usuário/cidadão | Cadastro | Perfil e consultas administrativas | Telefone e permissões | Não | CRUD parcial; exclusão pode depender de política LGPD/retenção |
 | Permissões | Criação do servidor/permissões | Listagem/perfil | Substituição de escopos | Substituição remove vínculos antigos | CRUD funcional no domínio de associação, mas não equivale a excluir usuário |
 | Relatórios | Geração agendada | Lista e detalhe | Não aplicável ao fechamento imutável | Não aplicável/retido | Explicar que nem todo recurso de domínio deve aceitar todas as operações |
 
-Antes da entrega, implementar o `DELETE` lógico para o cidadão proprietário. A solução deve incluir migration com `deleted_at` e `deleted_by`, autorização por propriedade, filtros nas consultas públicas e operacionais, auditoria, testes e documentação. O servidor público não deve receber permissão para apagar protocolos de cidadãos.
+O `DELETE` lógico foi implementado para o cidadão proprietário, com `deleted_at`, `deleted_by`, autorização por propriedade, exclusão das consultas normais, auditoria, testes e integração no front-end. O servidor público não recebe permissão para apagar protocolos de cidadãos.
 
 ### Boas práticas a evidenciar
 
@@ -318,7 +318,7 @@ Evitar concluir causalidade apenas a partir de correlação ou frequência.
 | Consulta do detalhe de cidadão | A implementar | `SENSITIVE_CITIZEN_VIEWED` |
 | Exportação administrativa | A implementar | `DATA_EXPORTED` |
 | Alteração de permissão/papel/UF | A implementar ou confirmar | `USER_ACCESS_CHANGED` |
-| Exclusão lógica | A implementar | `PROTOCOL_LOGICALLY_DELETED` |
+| Exclusão lógica | Implementada | `PROTOCOL_LOGICALLY_DELETED` |
 | Aprovação/rejeição de prefeitura e alteração financeira | A implementar ou confirmar | eventos próprios com ator e valores protegidos |
 
 ### Logs técnicos x registros de auditoria
@@ -352,7 +352,7 @@ Usar uma comparação curta:
 - Credenciais do banco e Supabase mantidas fora do bundle React.
 - Front-end acessando o Supabase apenas por meio da API Java nas funções atuais.
 - Autorização no back-end por papel, estabelecimento, UF e tela.
-- DTO público separado; ele deve ser reduzido porque atualmente ainda inclui endereço, coordenadas e fotos originais da ocorrência.
+- DTO público separado, sem nome, CPF, e-mail, telefone ou endereço residencial. Endereço e coordenadas da ocorrência permanecem por regra do produto; fotos exigem política de moderação.
 - RLS habilitada e privilégios de `anon`/`authenticated` revogados em tabelas sensíveis.
 - Hash de descrições, endereços, solicitantes e justificativas na trilha, em vez de conteúdo aberto.
 - Limites e allowlist de formatos/referências para imagens.
@@ -362,7 +362,7 @@ Usar uma comparação curta:
 
 ### Riscos residuais que devem ser assumidos, não escondidos
 
-- As fotos originais ainda são devolvidas pela consulta pública do protocolo; endereço e coordenadas também precisam de redução de precisão.
+- As fotos originais ainda são devolvidas pela consulta pública do protocolo e precisam de política de consentimento/moderação. O local da ocorrência permanece público por decisão do produto; o endereço residencial continua separado e privado.
 - Imagens grandes corrigidas por IA podem ser gravadas em storage público; recomenda-se bucket privado e URLs assinadas com expiração.
 - O rate limiter de login é local ao processo e zera após reinicialização; uma solução distribuída seria mais robusta.
 - A serialização `synchronized` da cadeia protege uma instância, mas múltiplas instâncias exigem coordenação/constraint transacional no banco.
@@ -378,7 +378,7 @@ Retomar três resultados:
 2. O poder público consegue organizar fila, território, prioridade, custo e indicadores.
 3. A plataforma aplica controles de acesso e rastreabilidade, embora ainda existam melhorias de conformidade e escala identificadas de forma transparente.
 
-Encerrar com próximos passos objetivos: CRUD auditado, proteção privada dos anexos, expansão da auditoria, paginação, estatística descritiva ampliada e testes ponta a ponta.
+Encerrar com próximos passos objetivos: proteção privada dos anexos, auditoria de consultas/exportações, paginação, análise por categoria/região e testes ponta a ponta.
 
 ## 10. Plano da apresentação — até 10 slides
 
@@ -413,7 +413,7 @@ Usar contas de demonstração, preparar dados previamente e ensaiar para não de
 
 ## 12. Sequência de execução recomendada
 
-1. Fechar as lacunas que afetam diretamente o enunciado: CRUD/exclusão lógica, auditoria de consulta/exportação e decisão sobre a pilha.
+1. Concluído: CRUD/exclusão lógica, pilha de filtros e estatística descritiva. Próxima lacuna: auditoria de consulta/exportação.
 2. Rodar todos os testes e registrar evidências.
 3. Extrair um conjunto de dados identificado e reproduzível para os cálculos estatísticos.
 4. Produzir tabelas, gráficos e interpretações.

@@ -75,6 +75,10 @@ class GetTransparencyUseCaseTest {
         assertEquals(50, result.overview().resolutionRate());
         assertEquals(new BigDecimal("1250.50"), result.overview().totalResolutionCost());
         assertEquals(1, result.overview().completedWithCost());
+        assertEquals(1, result.statistics().resolutionTimeHours().sampleSize());
+        assertEquals(12.0, result.statistics().resolutionTimeHours().median());
+        assertEquals(1250.5, result.statistics().resolutionCostBrl().mean());
+        assertEquals(100, result.statistics().resolutionTimeCoverageRate());
         assertEquals(9, result.overview().citizens());
         assertEquals(1, result.geography().size());
         assertEquals(-21.25, result.geography().getFirst().latitude());
@@ -103,6 +107,7 @@ class GetTransparencyUseCaseTest {
                 category,
                 address,
                 createdAt,
+                status.startsWith("Conclu") ? createdAt.plusSeconds(12 * 3600) : null,
                 status,
                 resolutionCost,
                 priority,

@@ -59,6 +59,7 @@ public interface ProtocolRepository {
             String category,
             String address,
             Instant createdAt,
+            Instant resolvedAt,
             String status,
             BigDecimal resolutionCost,
             String aiPriority,

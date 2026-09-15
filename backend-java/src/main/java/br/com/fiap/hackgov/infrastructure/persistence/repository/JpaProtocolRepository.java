@@ -58,6 +58,7 @@ public interface JpaProtocolRepository extends JpaRepository<Protocol, String> {
         String getAddress();
         String getStateCode();
         Instant getCreatedAt();
+        Instant getResolvedAt();
         String getStatus();
         BigDecimal getResolutionCost();
         String getUserId();
@@ -85,6 +86,7 @@ public interface JpaProtocolRepository extends JpaRepository<Protocol, String> {
         String getCategory();
         String getAddress();
         Instant getCreatedAt();
+        Instant getResolvedAt();
         String getStatus();
         BigDecimal getResolutionCost();
         String getAiPriority();

@@ -27,6 +27,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,6 +39,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.text.Normalizer;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -207,6 +210,54 @@ public class ProtocolsController {
         }
     }
 
+    @DeleteMapping("/{id}")
+    @Transactional
+    public ResponseEntity<?> deleteProtocol(
+            @PathVariable String id,
+            Authentication authentication
+    ) {
+        if (authentication == null
+                || !(authentication.getPrincipal() instanceof AuthenticatedUser user)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ErrorResponse("Sessão inválida ou expirada."));
+        }
+        if (isAdmin(user)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ErrorResponse("A exclusão de protocolo é exclusiva do cidadão proprietário."));
+        }
+
+        Protocol protocol;
+        try {
+            protocol = findProtocol(id);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse(ex.getMessage()));
+        }
+        if (!Objects.equals(protocol.getUserId(), user.userId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ErrorResponse("Você só pode excluir os próprios protocolos."));
+        }
+        if (!isOpenStatus(protocol.getStatus())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new ErrorResponse("Somente protocolos abertos podem ser excluídos."));
+        }
+
+        Instant deletedAt = Instant.now();
+        protocol.setDeletedAt(deletedAt);
+        protocol.setDeletedBy(user.userId());
+        protocolRepository.update(protocol);
+        auditService.append(
+                protocol.getId(),
+                "PROTOCOL_LOGICALLY_DELETED",
+                user.userId(),
+                user.role(),
+                protocol.getStatus(),
+                protocol.getStatus(),
+                Map.of("deleted_at", deletedAt.toString(), "logical_delete", true)
+        );
+        return ResponseEntity.noContent().build();
+    }
+
     @PatchMapping("/{id}/status")
     @Transactional
     public ResponseEntity<?> updateStatus(
@@ -237,6 +288,7 @@ public class ProtocolsController {
                     input.resolutionCost()
             );
             String primaryProtocolId = synchronizedProtocols.getFirst().getId();
+            Instant transitionAt = Instant.now();
 
             for (Protocol member : synchronizedProtocols) {
                 String previousStatus = member.getStatus();
@@ -246,6 +298,11 @@ public class ProtocolsController {
                 if (Objects.equals(previousStatus, input.status()) && !costChanged) continue;
 
                 member.setStatus(input.status());
+                if (!isCompletedStatus(previousStatus) && isCompletedStatus(input.status())) {
+                    member.setResolvedAt(transitionAt);
+                } else if (isCompletedStatus(previousStatus) && !isCompletedStatus(input.status())) {
+                    member.setResolvedAt(null);
+                }
                 // Uma unica correcao fisica pode ter muitos denunciantes. O custo
                 // fica no protocolo principal para nao inflar os gastos agregados.
                 if (isPrimary && resolutionCost != null) member.setResolutionCost(resolutionCost);
@@ -429,6 +486,24 @@ public class ProtocolsController {
         return !RoleAccess.isPlatformOwner(user.role())
                 && user.establishmentId() != null
                 && !user.establishmentId().isBlank();
+    }
+
+    private boolean isOpenStatus(String status) {
+        String normalized = normalizeStatusKey(status);
+        return normalized.equals("aberto") || normalized.equals("open");
+    }
+
+    private boolean isCompletedStatus(String status) {
+        String normalized = normalizeStatusKey(status);
+        return normalized.contains("conclu") || normalized.equals("resolved") || normalized.equals("closed");
+    }
+
+    private String normalizeStatusKey(String status) {
+        if (status == null) return "";
+        return Normalizer.normalize(status, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .trim()
+                .toLowerCase(java.util.Locale.ROOT);
     }
 
     private ProtocolOutputDto detailsForAdmin(AuthenticatedUser user, Protocol protocol, Set<String> allowedStates) {

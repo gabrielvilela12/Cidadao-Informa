@@ -12,6 +12,7 @@ public record TransparencyOutputDto(
         List<Metric> priorityDistribution,
         List<MonthlyPoint> monthlyEvolution,
         SlaSummary sla,
+        StatisticalSummary statistics,
         AiSummary ai,
         DataQuality dataQuality,
         AuditSummary audit,
@@ -42,6 +43,25 @@ public record TransparencyOutputDto(
             long dueSoon,
             long late,
             Integer onTimeRate
+    ) {
+    }
+
+    public record StatisticalSummary(
+            SampleSummary resolutionTimeHours,
+            SampleSummary openBacklogAgeDays,
+            SampleSummary resolutionCostBrl,
+            long completedWithoutResolvedAt,
+            Integer resolutionTimeCoverageRate,
+            Integer resolutionCostCoverageRate
+    ) {
+    }
+
+    public record SampleSummary(
+            long sampleSize,
+            Double mean,
+            Double median,
+            Double p90,
+            Double standardDeviation
     ) {
     }
 

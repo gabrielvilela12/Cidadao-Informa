@@ -159,6 +159,7 @@ public class ProtocolEventService {
                 protocol.getAddress(),
                 protocol.getStateCode(),
                 protocol.getCreatedAt(),
+                protocol.getResolvedAt(),
                 protocol.getStatus(),
                 protocol.getResolutionCost(),
                 protocol.getUserId(),

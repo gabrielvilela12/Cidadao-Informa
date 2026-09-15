@@ -30,6 +30,7 @@ public record ProtocolSummaryOutputDto(
         String address,
         String stateCode,
         Instant createdAt,
+        Instant resolvedAt,
         String status,
         BigDecimal resolutionCost,
         String userId,
@@ -57,6 +58,7 @@ public record ProtocolSummaryOutputDto(
                 protocol.getAddress(),
                 protocol.getStateCode(),
                 protocol.getCreatedAt(),
+                protocol.getResolvedAt(),
                 protocol.getStatus(),
                 protocol.getResolutionCost(),
                 protocol.getUserId(),
@@ -88,7 +90,7 @@ public record ProtocolSummaryOutputDto(
         ProtocolSummaryOutputDto base = from(protocol);
         return new ProtocolSummaryOutputDto(
                 base.id(), base.category(), base.description(), base.address(), base.stateCode(),
-                base.createdAt(), base.status(), base.resolutionCost(), base.userId(), base.establishmentId(),
+                base.createdAt(), base.resolvedAt(), base.status(), base.resolutionCost(), base.userId(), base.establishmentId(),
                 base.campaignId(), base.requester(), base.phone(), base.aiPriority(), base.aiStatus(), base.latitude(), base.longitude(),
                 base.correctionStatus(), base.correctionError(), base.correctionGeneratedAt(),
                 locationGroupCount, locationGrouped, locationAlert, primaryProtocolId
@@ -104,6 +106,7 @@ public record ProtocolSummaryOutputDto(
                 protocol.address(),
                 protocol.stateCode(),
                 protocol.createdAt(),
+                protocol.resolvedAt(),
                 protocol.status(),
                 protocol.resolutionCost(),
                 protocol.userId(),

@@ -4,7 +4,7 @@ import {
   Accessibility, AlertCircle, ArrowLeft, ArrowRight, Box, Calendar, Check, CheckCircle2,
   ChevronDown, ChevronLeft, ChevronRight, CircleDollarSign, ClipboardList, Copy, ExternalLink,
   Ear, Ellipsis, Eye, FileText, Hash, Info, Link2, Loader2, LockKeyhole, MapPin, MapPinOff, MoreHorizontal,
-  Paperclip, RefreshCw, Settings, ShieldCheck, Sparkles, Tag, User, WandSparkles,
+  Paperclip, RefreshCw, Settings, ShieldCheck, Sparkles, Tag, Trash2, User, WandSparkles,
   BellRing, Users,
 } from 'lucide-react';
 import L from 'leaflet';
@@ -80,6 +80,8 @@ export function ProtocolDetails() {
   const [auditError, setAuditError] = useState('');
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [statusError, setStatusError] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const [correctionGenerating, setCorrectionGenerating] = useState(false);
   const [correctionError, setCorrectionError] = useState('');
   const [activeTab, setActiveTab] = useState<DetailsTab>('details');
@@ -167,6 +169,26 @@ export function ProtocolDetails() {
     await navigator.clipboard.writeText(protocol.id).catch(() => undefined);
   };
 
+  const handleDeleteProtocol = async () => {
+    if (!id || !protocol || isOperationalAdmin || normalizeStatus(protocol.status) !== 'Aberto') return;
+    const confirmed = window.confirm(
+      'Excluir este protocolo aberto? Ele deixará de aparecer nas suas solicitações.',
+    );
+    if (!confirmed) return;
+
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await api.deleteProtocol(id);
+      invalidateProtocols();
+      navigate('/meus-protocolos', { replace: true });
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : 'Não foi possível excluir o protocolo.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const handleGenerateCorrection = async () => {
     if (!id || !protocol || !isOperationalAdmin) return;
     setCorrectionGenerating(true);
@@ -201,7 +223,7 @@ export function ProtocolDetails() {
   const categoryLabel = category.toLocaleLowerCase('pt-BR');
   const backPath = isOperationalAdmin ? '/admin/solicitacoes' : '/meus-protocolos';
   const title = activeTab === 'blockchain' ? 'Auditoria do protocolo' : `Solicitação de acessibilidade ${categoryLabel}`;
-  const timeline = buildTimeline(normalizeStatus(protocol.status), protocol.date);
+  const timeline = buildTimeline(normalizeStatus(protocol.status), protocol.date, protocol.resolved_at);
 
   return (
     <div className="flex h-full flex-1 flex-col overflow-y-auto bg-[#F4F8FC] text-[#111827]">
@@ -213,6 +235,24 @@ export function ProtocolDetails() {
       <div className="w-full px-4 pb-8 sm:px-6 lg:px-8">
         <div className="flex justify-end md:hidden"><StatusPill status={protocol.status} /></div>
         <Link to={backPath} className="mt-4 inline-flex items-center gap-2 font-bold text-[#0758BD] hover:text-blue-800"><ArrowLeft size={18} /> Voltar</Link>
+        {!isOperationalAdmin && normalizeStatus(protocol.status) === 'Aberto' && (
+          <div className="mt-4 flex flex-col items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-bold text-red-950">Este protocolo ainda pode ser excluído</p>
+              <p className="mt-1 text-sm text-red-800">A opção fica indisponível assim que o atendimento começar.</p>
+              {deleteError && <p className="mt-2 text-sm font-semibold text-red-700" role="alert">{deleteError}</p>}
+            </div>
+            <button
+              type="button"
+              onClick={() => void handleDeleteProtocol()}
+              disabled={deleting}
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-red-700 px-4 font-bold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {deleting ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
+              {deleting ? 'Excluindo...' : 'Excluir protocolo'}
+            </button>
+          </div>
+        )}
         {isOperationalAdmin && <ProtocolTabs activeTab={activeTab} onChange={setActiveTab} auditCount={auditTrail?.blocks.length ?? 0} />}
         {isOperationalAdmin && activeTab === 'blockchain' ? (
           <BlockchainAuditPanel auditTrail={auditTrail} loading={auditLoading} error={auditError} onRefresh={loadAuditTrail} />
@@ -749,13 +789,19 @@ function TimelineCard({ events }: { events: Array<{ title: string; date: string;
   );
 }
 
-function buildTimeline(status: string, createdAt: string) {
+function buildTimeline(status: string, createdAt: string, resolvedAt?: string | null) {
   const analysis = status !== 'Aberto';
   const completed = status === 'Concluído';
   return [
     { title: 'Criado', date: createdAt, complete: true },
     { title: 'Em análise', date: analysis ? 'Etapa atualizada' : 'Pendente', complete: analysis },
-    { title: 'Concluído', date: completed ? 'Solicitação resolvida' : 'Pendente', complete: completed },
+    {
+      title: 'Concluído',
+      date: completed && resolvedAt
+        ? new Date(resolvedAt).toLocaleString('pt-BR')
+        : completed ? 'Data histórica indisponível' : 'Pendente',
+      complete: completed,
+    },
   ];
 }
 
@@ -784,6 +830,7 @@ function auditEventLabel(eventType: string) {
     RESOLUTION_COST_RECORDED: 'Custo da correção registrado',
     PRIORITY_CHANGED: 'Prioridade alterada',
     AI_PRIORITY_CLASSIFIED: 'Prioridade definida por IA',
+    PROTOCOL_LOGICALLY_DELETED: 'Protocolo excluído pelo cidadão',
   };
   return labels[eventType] ?? eventType;
 }

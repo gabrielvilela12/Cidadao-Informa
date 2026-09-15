@@ -26,7 +26,7 @@ import {
     YAxis,
 } from 'recharts';
 import { CidadaoBrand } from '../components/CidadaoBrand';
-import { api, type TransparencyData, type TransparencyMetric } from '../services/api';
+import { api, type DescriptiveStatistics, type TransparencyData, type TransparencyMetric } from '../services/api';
 import { formatCurrency } from '../utils/currency';
 
 const TransparencyMap = lazy(() =>
@@ -47,6 +47,40 @@ function formatNumber(value: number) {
 
 function formatPercent(value: number | null) {
     return value == null ? '—' : `${value}%`;
+}
+
+function formatDecimal(value: number | null) {
+    return value == null ? '—' : new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(value);
+}
+
+function StatisticalCard({
+    title,
+    statistics,
+    unit,
+}: {
+    title: string;
+    statistics: DescriptiveStatistics;
+    unit: string;
+}) {
+    return (
+        <article className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+            <h3 className="font-black text-[#071A3A]">{title}</h3>
+            <p className="mt-1 text-xs font-semibold text-slate-500">Amostra: {formatNumber(statistics.sampleSize)}</p>
+            <dl className="mt-5 grid grid-cols-2 gap-4 text-sm">
+                {[
+                    ['Média', statistics.mean],
+                    ['Mediana', statistics.median],
+                    ['Percentil 90', statistics.p90],
+                    ['Desvio-padrão', statistics.standardDeviation],
+                ].map(([label, value]) => (
+                    <div key={String(label)}>
+                        <dt className="text-xs text-slate-500">{label}</dt>
+                        <dd className="mt-1 font-black text-slate-800">{formatDecimal(value as number | null)} {value == null ? '' : unit}</dd>
+                    </div>
+                ))}
+            </dl>
+        </article>
+    );
 }
 
 function downloadFile(filename: string, content: string, type: string) {
@@ -315,6 +349,22 @@ export function Transparency() {
                             <DistributionCard title="Por prioridade" items={data.priorityDistribution} />
                         </div>
 
+                        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:p-8" aria-labelledby="statistics-title">
+                            <h2 id="statistics-title" className="text-xl font-black text-[#071A3A]">Análise estatística dos atendimentos</h2>
+                            <p className="mt-1 text-sm text-slate-500">Média, mediana, percentil 90 e dispersão calculados somente sobre registros válidos.</p>
+                            <div className="mt-6 grid gap-4 lg:grid-cols-3">
+                                <StatisticalCard title="Tempo até a conclusão" statistics={data.statistics.resolutionTimeHours} unit="h" />
+                                <StatisticalCard title="Idade do backlog ativo" statistics={data.statistics.openBacklogAgeDays} unit="dias" />
+                                <StatisticalCard title="Custo de resolução" statistics={data.statistics.resolutionCostBrl} unit="R$" />
+                            </div>
+                            <div className="mt-5 grid gap-3 text-sm sm:grid-cols-3">
+                                <p className="rounded-lg bg-blue-50 p-3 text-blue-950">Cobertura do tempo de conclusão: <strong>{formatPercent(data.statistics.resolutionTimeCoverageRate)}</strong></p>
+                                <p className="rounded-lg bg-emerald-50 p-3 text-emerald-950">Cobertura do custo: <strong>{formatPercent(data.statistics.resolutionCostCoverageRate)}</strong></p>
+                                <p className="rounded-lg bg-amber-50 p-3 text-amber-950">Concluídos legados sem data: <strong>{formatNumber(data.statistics.completedWithoutResolvedAt)}</strong></p>
+                            </div>
+                            <p className="mt-4 text-xs leading-5 text-slate-500">A data de conclusão passou a ser registrada nesta fase. Protocolos antigos sem esse histórico são excluídos apenas do cálculo de tempo e permanecem contabilizados nos demais indicadores.</p>
+                        </section>
+
                         <div className="grid gap-6 lg:grid-cols-2">
                             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
                                 <div className="flex items-center gap-3">
@@ -331,7 +381,7 @@ export function Transparency() {
                                         <div key={String(label)} className="rounded-xl bg-slate-50 p-4"><strong className="block text-2xl font-black text-[#071A3A]">{typeof value === 'number' ? formatNumber(value) : value}</strong><span className="mt-1 block text-xs font-semibold text-slate-500">{label}</span></div>
                                     ))}
                                 </div>
-                                <p className="mt-5 text-xs leading-5 text-slate-500">Prazos adotados: crítica 48h, alta 5 dias, média 15 dias e baixa 30 dias. O sistema ainda não possui a data histórica de conclusão; por isso esta seção mede somente demandas ativas.</p>
+                                <p className="mt-5 text-xs leading-5 text-slate-500">Prazos adotados: crítica 48h, alta 5 dias, média 15 dias e baixa 30 dias. Esta seção mede somente demandas ativas; o tempo de conclusão aparece na análise estatística acima.</p>
                             </section>
 
                             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:p-8">

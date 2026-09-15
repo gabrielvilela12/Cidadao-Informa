@@ -429,7 +429,7 @@ e a validação antes de virar o tráfego, está em `backend-java/DEPLOY-FLY.md`
 ## Banco e migrations
 
 O histórico completo do schema está nas migrations Flyway da API, em
-`backend-java/src/main/resources/db/migration/` (V1 a V29). Os SQLs controlados
+`backend-java/src/main/resources/db/migration/` (V1 a V33). Os SQLs controlados
 para o banco hospedado usam timestamps em `supabase/migrations/`; o histórico
 dessa pasta não é uma cópia individual de todas as migrations Flyway antigas.
 
@@ -444,10 +444,9 @@ Além do schema base, as migrations cobrem prioridade por IA e seus logs, os pro
 configuráveis dos agentes, a cadeia
 de auditoria dos protocolos, coordenadas, imagens, imagens corrigidas por IA,
 unicidade de identidade dos usuários, assinaturas, carteira pré-paga e razão de
-consumo de IA, além do fechamento de permissões/RLS do schema `public`. A V28
-atualiza as cinco faixas comerciais e a V29 permite que `plan_code` permaneça
-nulo durante a análise; o plano passa a ser definido na aprovação junto com a
-mensalidade.
+consumo de IA, relatórios diários, escopo regional e ciclo de vida do protocolo,
+além do fechamento de permissões/RLS do schema `public`. A V33 adiciona a data de
+conclusão e os campos de exclusão lógica usados pelo CRUD auditado.
 
 ## Estrutura
 
