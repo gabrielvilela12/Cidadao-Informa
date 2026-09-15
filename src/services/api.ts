@@ -146,6 +146,19 @@ export interface DescriptiveStatistics {
     standardDeviation: number | null;
 }
 
+export interface AdministrativeAuditEvent {
+    id: string;
+    actorId: string;
+    actorRole: string;
+    action: string;
+    resourceType: string;
+    resourceIdHash: string | null;
+    result: 'SUCCESS' | 'DENIED';
+    establishmentId: string | null;
+    metadata: Record<string, string | number | boolean>;
+    createdAt: string;
+}
+
 export interface DailyReportSummary {
     id: string;
     reportDate: string;
@@ -499,6 +512,18 @@ export const api = {
 
     getDailyReport(id: string) {
         return apiRequest<DailyReportDetail>(`/api/admin/reports/${encodeURIComponent(id)}`);
+    },
+
+    auditDataExport(
+        resourceType: 'PROTOCOLS_DASHBOARD' | 'PROTOCOLS_QUEUE' | 'PROTOCOLS_MAP' | 'DAILY_REPORTS' | 'DAILY_REPORT_DETAIL' | 'CITIZENS',
+        format: 'CSV' | 'XLSX' | 'PDF',
+        recordCount: number,
+        resourceId?: string,
+    ) {
+        return apiRequest<AdministrativeAuditEvent>('/api/admin/audit/exports', {
+            method: 'POST',
+            body: JSON.stringify({ resourceType, format, recordCount, resourceId: resourceId ?? null }),
+        });
     },
 
     getAdminCitizens() {

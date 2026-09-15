@@ -18,7 +18,7 @@ O corte temporal recomendado é 11/06/2026, data do resumo da Fase 4. A compara�
 | Backlog atualizado | Concluído | O backlog definitivo e os critérios prioritários estão em `entrega-fase-5/backlog-fase-5.md`. |
 | API RESTful e integração | Forte, com CRUD principal completo | O protocolo possui criação, leitura, atualização e exclusão lógica exclusiva do cidadão proprietário, integrada à interface. |
 | Estruturas e estatística | Forte | Há listas, conjuntos, mapas, fila persistente de jobs e pilha LIFO de filtros. A transparência calcula média, mediana, P90, desvio-padrão e cobertura. |
-| Governança e auditoria | Forte, com lacunas | Há perfis, escopo por prefeitura/UF/tela, JWT, rate limiting, CORS, RLS e cadeia de hashes. A exclusão lógica já é auditada; ainda é recomendável auditar consulta sensível e exportação. |
+| Governança e auditoria | Forte | Há perfis, escopo por prefeitura/UF/tela, JWT, rate limiting, CORS, RLS, cadeia de hashes e trilha administrativa de consultas sensíveis e exportações. |
 | Entregáveis finais | A produzir | Documento em Word/PDF, apresentação com até 10 slides e PDF, roteiro/vídeo de até 5 minutos, link do vídeo e ZIP validado. |
 
 ## 3. Estrutura recomendada do documento final
@@ -88,7 +88,7 @@ Manter as US01–US14 para conservar a rastreabilidade da Fase 4, atualizar seus
 | US17 | Segurança | Como gestor, quero limitar servidores por estabelecimento, UF e tela, para aplicar o menor privilégio. | Alta | Implementada |
 | US18 | Front-end/operação | Como servidor, quero receber novas solicitações e identificar ocorrências recorrentes no território, para reagir mais rapidamente. | Alta | Implementada |
 | US19 | Arquivos/relatórios | Como gestor, quero exportar fechamentos em PDF e planilha, para analisar e prestar contas. | Alta | Implementada |
-| US20 | Segurança/auditoria | Como encarregado de governança, quero registrar consultas a cadastros sensíveis e exportações, para saber quem acessou ou extraiu dados pessoais. | Alta | Pendente |
+| US20 | Segurança/auditoria | Como encarregado de governança, quero registrar consultas a cadastros sensíveis e exportações, para saber quem acessou ou extraiu dados pessoais. | Alta | Implementada |
 | US21 | CRUD/auditoria | Como cidadão, quero excluir logicamente um protocolo criado por mim, para retirá-lo das consultas e da minha área sem permitir que terceiros apaguem meus registros. | Alta | Implementada |
 | US22 | Arquivos/segurança | Como titular dos dados, quero que anexos sejam armazenados de forma privada e entregues por acesso temporário, para reduzir exposição indevida. | Alta | Parcial |
 | US23 | API | Como integrador, quero respostas de erro padronizadas e documentação OpenAPI completa, para tratar falhas de modo previsível. | Alta | Parcial |
@@ -187,6 +187,7 @@ Manter as US01–US14 para conservar a rastreabilidade da Fase 4, atualizar seus
 | Autenticação | `POST /api/auth/login`, `POST /api/auth/register`, `GET /api/auth/me`, `PATCH /api/auth/me/phone` |
 | Protocolos | `POST /api/protocols`, `GET /api/protocols`, `GET /api/protocols/{id}`, `GET /api/protocols/public/{id}`, `PATCH /api/protocols/{id}/status`, `DELETE /api/protocols/{id}` |
 | Tempo real e auditoria | `GET /api/protocols/events`, `GET /api/protocols/{id}/audit`, `GET /api/protocols/audit/verify` |
+| Auditoria administrativa | `POST /api/admin/audit/exports`, `GET /api/admin/audit/events` com filtros e paginação |
 | IA | consulta/regeneração/prioridade manual, correção de imagem, chatbot, prompts e logs |
 | Gestão | cidadãos, permissões de servidores, relatórios e alertas recorrentes |
 | Transparência | `GET /api/transparency` e `GET /api/protocols/stats` |
@@ -315,8 +316,8 @@ Evitar concluir causalidade apenas a partir de correlação ou frequência.
 | Mudança manual de prioridade | Já registrada | `PRIORITY_CHANGED` |
 | Classificação automática por IA | Já registrada pela função de classificação | `AI_PRIORITY_CLASSIFIED` |
 | Correção de imagem por IA | Já registrada | `AI_CORRECTION_GENERATED` |
-| Consulta do detalhe de cidadão | A implementar | `SENSITIVE_CITIZEN_VIEWED` |
-| Exportação administrativa | A implementar | `DATA_EXPORTED` |
+| Consulta da lista/detalhe de cidadão | Implementada | `SENSITIVE_CITIZEN_LIST_VIEWED` / `SENSITIVE_CITIZEN_VIEWED` |
+| Exportação administrativa | Implementada | `DATA_EXPORTED` |
 | Alteração de permissão/papel/UF | A implementar ou confirmar | `USER_ACCESS_CHANGED` |
 | Exclusão lógica | Implementada | `PROTOCOL_LOGICALLY_DELETED` |
 | Aprovação/rejeição de prefeitura e alteração financeira | A implementar ou confirmar | eventos próprios com ator e valores protegidos |
@@ -333,15 +334,15 @@ Usar uma comparação curta:
 | Não devem carregar segredo ou dado pessoal desnecessário | Devem minimizar dados e preservar evidência suficiente para responsabilização |
 | Podem ser reprocessados/rotacionados | Não devem ser silenciosamente alterados ou apagados |
 
-### Melhorias concretas na auditoria
+### Situação e próximos passos da auditoria
 
-1. Criar um serviço único de auditoria para ações de protocolo, cidadão, permissão, exportação, prefeitura e cobrança.
-2. Padronizar cada evento com `eventId`, data/hora, ator, papel, ação, tipo/ID do recurso, estabelecimento/UF, resultado e identificador de correlação.
-3. Registrar apenas hashes, contagens e metadados mínimos; nunca copiar CPF, telefone, descrição completa, imagem, token ou segredo.
-4. Auditar tanto sucesso quanto tentativa negada de uma operação sensível.
-5. Criar uma tela de auditoria com filtros por ator, ação, recurso, resultado e período.
-6. Definir retenção, acesso restrito e exportação própria da auditoria.
-7. Testar se cada endpoint sensível gera exatamente um evento e se falhas transacionais não deixam o dado alterado sem a respectiva trilha.
+1. Implementado: serviços separados para a cadeia do protocolo e para consultas/exportações administrativas, preservando suas finalidades distintas.
+2. Implementado parcialmente: eventos possuem ID, data/hora, ator, papel, ação, recurso, estabelecimento e resultado; identificador de correlação permanece como evolução.
+3. Implementado: a trilha administrativa registra hashes, contagens e metadados mínimos, sem copiar CPF, telefone, descrição, imagem, token ou segredo.
+4. Implementado: sucesso e tentativa negada são registrados nos fluxos sensíveis cobertos.
+5. Implementado na API: pesquisa paginada por ator, ação e período; uma tela global de auditoria permanece como evolução de front-end.
+6. Pendente: formalizar prazo de retenção e procedimento de exportação da própria auditoria.
+7. Implementado: testes verificam gravação, hash, allowlist, autorização e pesquisa.
 
 ### Medidas de redução de exposição pela API
 
@@ -366,7 +367,7 @@ Usar uma comparação curta:
 - Imagens grandes corrigidas por IA podem ser gravadas em storage público; recomenda-se bucket privado e URLs assinadas com expiração.
 - O rate limiter de login é local ao processo e zera após reinicialização; uma solução distribuída seria mais robusta.
 - A serialização `synchronized` da cadeia protege uma instância, mas múltiplas instâncias exigem coordenação/constraint transacional no banco.
-- Ainda faltam auditorias para consultas sensíveis, exportações, permissões e ações financeiras.
+- Consultas sensíveis e exportações já possuem trilha própria; permissões e ações financeiras ainda podem receber eventos administrativos específicos.
 - Listagens grandes precisam de paginação server-side.
 - A política de retenção, anonimização e atendimento aos direitos do titular deve ser formalizada.
 
@@ -378,7 +379,7 @@ Retomar três resultados:
 2. O poder público consegue organizar fila, território, prioridade, custo e indicadores.
 3. A plataforma aplica controles de acesso e rastreabilidade, embora ainda existam melhorias de conformidade e escala identificadas de forma transparente.
 
-Encerrar com próximos passos objetivos: proteção privada dos anexos, auditoria de consultas/exportações, paginação, análise por categoria/região e testes ponta a ponta.
+Encerrar com próximos passos objetivos: proteção privada dos anexos, auditoria de permissões e ações financeiras, paginação, análise por categoria/região e testes ponta a ponta.
 
 ## 10. Plano da apresentação — até 10 slides
 
@@ -413,7 +414,7 @@ Usar contas de demonstração, preparar dados previamente e ensaiar para não de
 
 ## 12. Sequência de execução recomendada
 
-1. Concluído: CRUD/exclusão lógica, pilha de filtros e estatística descritiva. Próxima lacuna: auditoria de consulta/exportação.
+1. Concluído: CRUD/exclusão lógica, pilha de filtros, estatística descritiva e auditoria de consulta/exportação.
 2. Rodar todos os testes e registrar evidências.
 3. Extrair um conjunto de dados identificado e reproduzível para os cálculos estatísticos.
 4. Produzir tabelas, gráficos e interpretações.

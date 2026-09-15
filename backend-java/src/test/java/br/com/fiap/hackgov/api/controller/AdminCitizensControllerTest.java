@@ -3,6 +3,7 @@ package br.com.fiap.hackgov.api.controller;
 import br.com.fiap.hackgov.application.usecase.admin.GetAdminCitizensUseCase;
 import br.com.fiap.hackgov.application.service.ServerStatePermissionService;
 import br.com.fiap.hackgov.application.service.AdminAccessService;
+import br.com.fiap.hackgov.application.service.AdministrativeAuditService;
 import br.com.fiap.hackgov.infrastructure.security.AuthenticatedUser;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -26,18 +27,20 @@ class AdminCitizensControllerTest {
         when(permissions.allowedStates("user-id")).thenReturn(Set.of("SP"));
         when(useCase.list(Set.of("SP"), null)).thenReturn(List.of());
         AdminAccessService access = mock(AdminAccessService.class);
-        AdminCitizensController controller = new AdminCitizensController(useCase, permissions, access);
+        AdministrativeAuditService audit = mock(AdministrativeAuditService.class);
+        AdminCitizensController controller = new AdminCitizensController(useCase, permissions, access, audit);
 
         assertEquals(HttpStatus.OK, controller.list(authentication("admin")).getStatusCode());
         verify(useCase).list(Set.of("SP"), null);
         verify(access).requireScreen("user-id", AdminAccessService.CITIZENS);
+        verify(audit).recordCitizenListViewed(org.mockito.ArgumentMatchers.any(AuthenticatedUser.class), org.mockito.ArgumentMatchers.eq(0));
     }
 
     @Test
     void blocksCitizenFromAdminCitizenData() {
         AdminCitizensController controller = new AdminCitizensController(
                 mock(GetAdminCitizensUseCase.class), mock(ServerStatePermissionService.class),
-                mock(AdminAccessService.class));
+                mock(AdminAccessService.class), mock(AdministrativeAuditService.class));
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
@@ -55,7 +58,8 @@ class AdminCitizensControllerTest {
         when(permissions.allowedStates("user-id")).thenReturn(Set.copyOf(ServerStatePermissionService.ALL_STATES));
         when(useCase.list(Set.copyOf(ServerStatePermissionService.ALL_STATES), null)).thenReturn(List.of());
 
-        AdminCitizensController controller = new AdminCitizensController(useCase, permissions, access);
+        AdminCitizensController controller = new AdminCitizensController(
+                useCase, permissions, access, mock(AdministrativeAuditService.class));
 
         assertEquals(HttpStatus.OK, controller.list(authentication("master")).getStatusCode());
         verify(access).requireScreen("user-id", AdminAccessService.CITIZENS);
@@ -67,7 +71,8 @@ class AdminCitizensControllerTest {
         ServerStatePermissionService permissions = mock(ServerStatePermissionService.class);
         AdminAccessService access = mock(AdminAccessService.class);
         when(permissions.allowedStates("user-id")).thenReturn(Set.of("SP"));
-        AdminCitizensController controller = new AdminCitizensController(useCase, permissions, access);
+        AdminCitizensController controller = new AdminCitizensController(
+                useCase, permissions, access, mock(AdministrativeAuditService.class));
         Authentication authentication = mock(Authentication.class);
         when(authentication.getPrincipal()).thenReturn(
                 new AuthenticatedUser("user-id", "Servidor", "22233344455", "admin", "est-demo-ribeirao-preto")

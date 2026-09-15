@@ -204,6 +204,15 @@ export function AdminMap() {
   const showStates = showHeat && heatMode === 'state';
   const showCities = showHeat && heatMode === 'city';
 
+  const exportVisibleProtocols = async () => {
+    try {
+      await api.auditDataExport('PROTOCOLS_MAP', 'CSV', filteredProtocols.length);
+      exportProtocolsToExcel(filteredProtocols, 'mapa_estrategico.xlsx', 'Mapa estratégico');
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Não foi possível autorizar a exportação.');
+    }
+  };
+
   useEffect(() => {
     protocols.forEach((protocol) => knownProtocolIds.current.add(protocol.id));
   }, [protocols]);
@@ -672,7 +681,7 @@ export function AdminMap() {
 
           <button
             type="button"
-            onClick={() => exportProtocolsToExcel(filteredProtocols, 'mapa_estrategico.xlsx', 'Mapa estratégico')}
+            onClick={() => void exportVisibleProtocols()}
             disabled={filteredProtocols.length === 0}
             aria-label="Exportar Excel"
             title={filteredProtocols.length === 0 ? 'Nenhuma solicitação visível nos filtros atuais' : 'Exportar Excel'}

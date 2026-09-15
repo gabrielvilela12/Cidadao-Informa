@@ -34,8 +34,8 @@ O resultado esperado é permitir que o cidadão registre e acompanhe solicitaç�
 | US16 | Transparência | Como visitante, quero consultar indicadores e protocolos públicos sem visualizar dados pessoais do cidadão, para acompanhar a atuação pública. | Alta | Implementada com risco residual nas fotos | DTO público não envia nome, CPF, e-mail, telefone nem endereço residencial; o local da ocorrência permanece visível |
 | US17 | Autorização | Como gestor, quero limitar servidores por estabelecimento, UF e tela, para aplicar o princípio do menor privilégio. | Alta | Implementada | Escopos verificados no back-end |
 | US18 | Operação | Como servidor, quero receber novas solicitações e identificar recorrência por local e causa, para reagir rapidamente. | Alta | Implementada | SSE, agrupamento e alerta de recorrência |
-| US19 | Relatórios | Como gestor, quero gerar fechamentos em PDF, XLSX e CSV, para analisar resultados e prestar contas. | Alta | Implementada; auditoria da exportação pendente | Relatórios diários e utilitários de exportação |
-| US20 | Auditoria | Como encarregado de governança, quero registrar consultas sensíveis e exportações, para saber quem acessou ou extraiu dados pessoais. | Alta | Pendente | Próxima evolução recomendada |
+| US19 | Relatórios | Como gestor, quero gerar fechamentos em PDF, XLSX e CSV, para analisar resultados e prestar contas. | Alta | Implementada | Relatórios diários, utilitários de exportação e evento `DATA_EXPORTED` |
+| US20 | Auditoria | Como encarregado de governança, quero registrar consultas sensíveis e exportações, para saber quem acessou ou extraiu dados pessoais. | Alta | Implementada | Trilha administrativa, auditoria automática, endpoint de exportação e pesquisa global |
 | US21 | CRUD | Como cidadão, quero excluir logicamente um protocolo aberto criado por mim, para retirá-lo das consultas sem apagar o histórico. | Alta | Implementada | `DELETE /api/protocols/{id}`, `deleted_at`, `deleted_by` e evento auditável |
 | US22 | Arquivos e privacidade | Como titular, quero anexos privados entregues por acesso temporário, para reduzir exposição indevida. | Alta | Parcial | Validação existe; bucket privado e URL assinada permanecem pendentes |
 | US23 | API | Como integrador, quero erros padronizados e OpenAPI completa, para tratar falhas de forma previsível. | Alta | Parcial | Status HTTP e `ErrorResponse` existem; padronização global pode evoluir |
@@ -85,7 +85,7 @@ O resultado esperado é permitir que o cidadão registre e acompanhe solicitaç�
 - O arquivo deve apresentar título, período, indicadores, datas e valores monetários em formato legível.
 - A exportação CSV deve neutralizar células que possam ser interpretadas como fórmulas.
 - Exportações que contenham dados pessoais devem exigir permissão específica.
-- A auditoria dessas exportações deve ser concluída na US20 antes de considerar o controle de governança completo.
+- A exportação deve ser precedida pelo registro `DATA_EXPORTED` da US20; se a auditoria falhar, o fluxo normal não deve iniciar o download.
 
 ### US20 — Auditoria de consulta sensível e exportação
 
@@ -123,5 +123,4 @@ O resultado esperado é permitir que o cidadão registre e acompanhe solicitaç�
 
 ## Impacto e próximos incrementos
 
-Com US21 e US24 concluídas, a fase atende o CRUD principal de protocolos e a estatística descritiva solicitada. As maiores lacunas restantes são US20, que amplia a auditoria para leitura/exportação, e US22, que move anexos para armazenamento privado. US23 e US26 completam a governança operacional e a capacidade de investigação em escala.
-
+Com US20, US21 e US24 concluídas, a fase atende a auditoria de leitura/exportação, o CRUD principal de protocolos e a estatística descritiva solicitada. A maior lacuna de segurança restante é a US22, que move anexos para armazenamento privado. US23 e US26 ainda podem ampliar a padronização dos erros e a interface de investigação; a pesquisa administrativa por ator, ação e período já está disponível pela API.

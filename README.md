@@ -429,7 +429,7 @@ e a validação antes de virar o tráfego, está em `backend-java/DEPLOY-FLY.md`
 ## Banco e migrations
 
 O histórico completo do schema está nas migrations Flyway da API, em
-`backend-java/src/main/resources/db/migration/` (V1 a V33). Os SQLs controlados
+`backend-java/src/main/resources/db/migration/` (V1 a V34). Os SQLs controlados
 para o banco hospedado usam timestamps em `supabase/migrations/`; o histórico
 dessa pasta não é uma cópia individual de todas as migrations Flyway antigas.
 
@@ -446,7 +446,8 @@ de auditoria dos protocolos, coordenadas, imagens, imagens corrigidas por IA,
 unicidade de identidade dos usuários, assinaturas, carteira pré-paga e razão de
 consumo de IA, relatórios diários, escopo regional e ciclo de vida do protocolo,
 além do fechamento de permissões/RLS do schema `public`. A V33 adiciona a data de
-conclusão e os campos de exclusão lógica usados pelo CRUD auditado.
+conclusão e os campos de exclusão lógica; a V34 cria a trilha administrativa de
+consultas sensíveis e exportações.
 
 ## Estrutura
 

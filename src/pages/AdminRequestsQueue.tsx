@@ -25,6 +25,7 @@ import { useProtocols } from '../hooks/useProtocols';
 import { exportProtocolsToExcel } from '../utils/exportUtils';
 import { countSlaLate, getSlaInfo, getSlaLabel, isSlaLate } from '../utils/sla';
 import { BoundedStack } from '../utils/boundedStack';
+import { api } from '../services/api';
 
 type RequestQueueFilterSnapshot = {
   searchTerm: string;
@@ -265,6 +266,15 @@ export function AdminRequestsQueue() {
     && !sameFilters(searchStartSnapshot.current, currentFilterSnapshot());
   const canUndoFilters = filterHistorySize > 0 || hasUncommittedSearchChange;
 
+  const exportFilteredProtocols = async () => {
+    try {
+      await api.auditDataExport('PROTOCOLS_QUEUE', 'CSV', filteredProtocols.length);
+      exportProtocolsToExcel(filteredProtocols, 'fila_solicitacoes.xlsx', 'Fila de solicitações');
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Não foi possível autorizar a exportação.');
+    }
+  };
+
   return (
     <div className="h-full flex-1 overflow-y-auto bg-[#F4F8FC] text-[#0B1B33]">
       <Header
@@ -305,7 +315,7 @@ export function AdminRequestsQueue() {
               <div className="flex flex-wrap gap-2 sm:justify-end">
                 <button
                   type="button"
-                  onClick={() => exportProtocolsToExcel(filteredProtocols, 'fila_solicitacoes.xlsx', 'Fila de solicitações')}
+                  onClick={() => void exportFilteredProtocols()}
                   disabled={filteredProtocols.length === 0}
                   title={filteredProtocols.length === 0 ? 'Nenhuma solicitação nos filtros atuais' : undefined}
                   className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"

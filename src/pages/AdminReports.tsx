@@ -30,6 +30,7 @@ export function AdminReports() {
     setExporting(format);
     setError('');
     try {
+      await api.auditDataExport('DAILY_REPORTS', format === 'pdf' ? 'PDF' : 'XLSX', reports.length);
       if (format === 'pdf') await exportDailyReportsPdf(reports);
       else await exportDailyReportsExcel(reports);
     } catch (reason) {
