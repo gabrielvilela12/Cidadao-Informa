@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   BellRing,
@@ -15,6 +15,7 @@ import {
   MessageCircle,
   Search,
   Timer,
+  Undo2,
   Users,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -23,6 +24,37 @@ import { type Protocol } from '../constants';
 import { useProtocols } from '../hooks/useProtocols';
 import { exportProtocolsToExcel } from '../utils/exportUtils';
 import { countSlaLate, getSlaInfo, getSlaLabel, isSlaLate } from '../utils/sla';
+import { BoundedStack } from '../utils/boundedStack';
+
+type RequestQueueFilterSnapshot = {
+  searchTerm: string;
+  statusFilter: string;
+  categoryFilter: string;
+  priorityFilter: string;
+  slaFilter: string;
+  startDate: string;
+  endDate: string;
+};
+
+const EMPTY_FILTERS: RequestQueueFilterSnapshot = {
+  searchTerm: '',
+  statusFilter: 'all',
+  categoryFilter: 'all',
+  priorityFilter: 'all',
+  slaFilter: 'all',
+  startDate: '',
+  endDate: '',
+};
+
+const sameFilters = (left: RequestQueueFilterSnapshot, right: RequestQueueFilterSnapshot) => (
+  left.searchTerm === right.searchTerm
+  && left.statusFilter === right.statusFilter
+  && left.categoryFilter === right.categoryFilter
+  && left.priorityFilter === right.priorityFilter
+  && left.slaFilter === right.slaFilter
+  && left.startDate === right.startDate
+  && left.endDate === right.endDate
+);
 
 const statusMatches = (status: Protocol['status'], value: string) => {
   if (value === 'all') return true;
@@ -89,6 +121,9 @@ export function AdminRequestsQueue() {
   const [endDate, setEndDate] = useState(() => localDateKey(new Date()));
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
+  const filterHistory = useRef(new BoundedStack<RequestQueueFilterSnapshot>(20));
+  const searchStartSnapshot = useRef<RequestQueueFilterSnapshot | null>(null);
+  const [filterHistorySize, setFilterHistorySize] = useState(0);
   const pageSize = 10;
 
   // A API preserva todas as linhas para mapas e indicadores. Apenas a fila
@@ -149,16 +184,56 @@ export function AdminRequestsQueue() {
   const safePage = Math.min(page, totalPages);
   const pageItems = filteredProtocols.slice((safePage - 1) * pageSize, safePage * pageSize);
 
-  const resetFilters = () => {
-    setSearchTerm('');
-    setStatusFilter('all');
-    setCategoryFilter('all');
-    setPriorityFilter('all');
-    setSlaFilter('all');
-    setStartDate('');
-    setEndDate('');
+  const currentFilterSnapshot = (): RequestQueueFilterSnapshot => ({
+    searchTerm,
+    statusFilter,
+    categoryFilter,
+    priorityFilter,
+    slaFilter,
+    startDate,
+    endDate,
+  });
+
+  const applyFilterSnapshot = (snapshot: RequestQueueFilterSnapshot) => {
+    setSearchTerm(snapshot.searchTerm);
+    setStatusFilter(snapshot.statusFilter);
+    setCategoryFilter(snapshot.categoryFilter);
+    setPriorityFilter(snapshot.priorityFilter);
+    setSlaFilter(snapshot.slaFilter);
+    setStartDate(snapshot.startDate);
+    setEndDate(snapshot.endDate);
     setPage(1);
   };
+
+  const rememberFilterSnapshot = (snapshot: RequestQueueFilterSnapshot) => {
+    filterHistory.current.push(snapshot);
+    setFilterHistorySize(filterHistory.current.size);
+  };
+
+  const updateFilters = (changes: Partial<RequestQueueFilterSnapshot>) => {
+    const current = currentFilterSnapshot();
+    const next = { ...current, ...changes };
+    if (sameFilters(current, next)) return;
+    rememberFilterSnapshot(current);
+    applyFilterSnapshot(next);
+  };
+
+  const finishSearchChange = () => {
+    const beforeSearch = searchStartSnapshot.current;
+    searchStartSnapshot.current = null;
+    if (beforeSearch && !sameFilters(beforeSearch, currentFilterSnapshot())) {
+      rememberFilterSnapshot(beforeSearch);
+    }
+  };
+
+  const undoLastFilter = () => {
+    const previous = filterHistory.current.pop();
+    if (!previous) return;
+    applyFilterSnapshot(previous);
+    setFilterHistorySize(filterHistory.current.size);
+  };
+
+  const resetFilters = () => updateFilters(EMPTY_FILTERS);
 
   const openWhatsApp = (phone?: string) => {
     if (!phone) return;
@@ -186,6 +261,9 @@ export function AdminRequestsQueue() {
 
   const startIndex = filteredProtocols.length ? (safePage - 1) * pageSize + 1 : 0;
   const endIndex = Math.min(safePage * pageSize, filteredProtocols.length);
+  const hasUncommittedSearchChange = searchStartSnapshot.current !== null
+    && !sameFilters(searchStartSnapshot.current, currentFilterSnapshot());
+  const canUndoFilters = filterHistorySize > 0 || hasUncommittedSearchChange;
 
   return (
     <div className="h-full flex-1 overflow-y-auto bg-[#F4F8FC] text-[#0B1B33]">
@@ -218,11 +296,13 @@ export function AdminRequestsQueue() {
                   type="search"
                   value={searchTerm}
                   onChange={(event) => { setSearchTerm(event.target.value); setPage(1); }}
+                  onFocus={() => { searchStartSnapshot.current = currentFilterSnapshot(); }}
+                  onBlur={finishSearchChange}
                   placeholder="Pesquisar protocolo, solicitante ou endereço..."
                   className="h-11 w-full rounded-lg border border-[#CDD8E7] bg-white pl-10 pr-3 text-sm outline-none focus:border-[#0758BD] focus:ring-2 focus:ring-blue-100"
                 />
               </label>
-              <div className="flex gap-2 sm:justify-end">
+              <div className="flex flex-wrap gap-2 sm:justify-end">
                 <button
                   type="button"
                   onClick={() => exportProtocolsToExcel(filteredProtocols, 'fila_solicitacoes.xlsx', 'Fila de solicitações')}
@@ -234,6 +314,15 @@ export function AdminRequestsQueue() {
                 </button>
                 <button
                   type="button"
+                  onClick={undoLastFilter}
+                  disabled={!canUndoFilters}
+                  title={canUndoFilters ? 'Restaurar filtros anteriores' : 'Nenhuma alteração de filtro para desfazer'}
+                  className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+                >
+                  <Undo2 size={17} /> Desfazer filtro
+                </button>
+                <button
+                  type="button"
                   onClick={resetFilters}
                   className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-[#CDD8E7] bg-white px-4 text-sm font-bold text-slate-700 hover:bg-slate-50 sm:flex-none"
                 >
@@ -242,30 +331,30 @@ export function AdminRequestsQueue() {
               </div>
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <FilterSelect label="Status" value={statusFilter} onChange={(value) => { setStatusFilter(value); setPage(1); }} options={[
+              <FilterSelect label="Status" value={statusFilter} onChange={(value) => updateFilters({ statusFilter: value })} options={[
                 // Sem opcao 'Atrasado': atraso e condicao de prazo, filtrada no seletor de SLA.
                 ['all', 'Status'], ['open', 'Aberto'], ['analysis', 'Em análise'], ['resolved', 'Concluído'],
               ]} />
-              <FilterSelect label="Categoria" value={categoryFilter} onChange={(value) => { setCategoryFilter(value); setPage(1); }} options={[
+              <FilterSelect label="Categoria" value={categoryFilter} onChange={(value) => updateFilters({ categoryFilter: value })} options={[
                 ['all', 'Categoria'], ['Física', 'Física'], ['Visual', 'Visual'], ['Auditiva', 'Auditiva'], ['Outros', 'Outros'],
               ]} />
-              <FilterSelect label="Prioridade" value={priorityFilter} onChange={(value) => { setPriorityFilter(value); setPage(1); }} options={[
+              <FilterSelect label="Prioridade" value={priorityFilter} onChange={(value) => updateFilters({ priorityFilter: value })} options={[
                 ['all', 'Prioridade'], ['baixa', 'Baixa'], ['media', 'Média'], ['alta', 'Alta'], ['critica', 'Crítica'], ['processing', 'Processando'],
               ]} />
-              <FilterSelect label="SLA" value={slaFilter} onChange={(value) => { setSlaFilter(value); setPage(1); }} options={[
+              <FilterSelect label="SLA" value={slaFilter} onChange={(value) => updateFilters({ slaFilter: value })} options={[
                 ['all', 'SLA'], ['on-time', 'Em dia'], ['late', 'Vencido'],
               ]} />
               <DateFilter
                 label="Data inicial"
                 value={startDate}
                 max={endDate || undefined}
-                onChange={(value) => { setStartDate(value); setPage(1); }}
+                onChange={(value) => updateFilters({ startDate: value })}
               />
               <DateFilter
                 label="Data final"
                 value={endDate}
                 min={startDate || undefined}
-                onChange={(value) => { setEndDate(value); setPage(1); }}
+                onChange={(value) => updateFilters({ endDate: value })}
               />
             </div>
           </div>
