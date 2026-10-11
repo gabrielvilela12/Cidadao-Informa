@@ -32,6 +32,7 @@ import { exportProtocolsToExcel } from '../utils/exportUtils';
 import { countSlaLate } from '../utils/sla';
 import { extractNeighborhood, listNeighborhoods } from '../utils/address';
 import { api } from '../services/api';
+import { OperationalAnalyticsPanel } from '../components/admin/OperationalAnalyticsPanel';
 
 const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -325,6 +326,8 @@ export function AdminDashboard() {
             </div>
           </article>
         </section>
+
+        <OperationalAnalyticsPanel />
 
         <section className="grid grid-cols-1 divide-y divide-[#D8E1ED] rounded-lg border border-[#CDD8E7] bg-white px-5 py-4 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           <OperationalIndicator icon={<Users size={23} />} value={counts.open} label="aguardando triagem" />

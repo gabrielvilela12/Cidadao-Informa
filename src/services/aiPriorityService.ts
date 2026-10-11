@@ -14,6 +14,18 @@ interface ApiAuditLog {
 }
 
 export const aiPriorityService = {
+  getPriority(protocolId: string): Promise<{
+    priority: Priority | null;
+    aiStatus: 'success' | 'failed' | 'pending';
+    reason: string | null;
+    source: string | null;
+  }> {
+    return apiRequest(`/api/ai-priority/${encodeURIComponent(protocolId)}`);
+  },
+
+  async regeneratePriority(protocolId: string): Promise<void> {
+    await apiRequest(`/api/ai-priority/regenerate/${encodeURIComponent(protocolId)}`, { method: 'POST' });
+  },
   async setManualPriority(
     protocolId: string,
     priority: string,

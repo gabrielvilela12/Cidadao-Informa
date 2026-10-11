@@ -12,6 +12,7 @@ import java.util.UUID;
 
 @Repository
 public interface AiJobLogRepository extends JpaRepository<AiJobLog, UUID> {
+    java.util.Optional<AiJobLog> findFirstByProtocolIdOrderByCreatedAtDescIdDesc(String protocolId);
     List<AiJobLog> findByProtocolId(String protocolId);
 
     @Query("SELECT l FROM AiJobLog l WHERE l.createdAt >= :startDate ORDER BY l.createdAt DESC")

@@ -81,6 +81,15 @@ public class AiPriorityService {
                     job.getId(),
                     exception.getMessage()
             );
+            job.setStatus("failed");
+            job.setErrorMessage("Não foi possível concluir a chamada ao serviço de classificação.");
+            job.setCompletedAt(LocalDateTime.now());
+            job.setUpdatedAt(LocalDateTime.now());
+            jobRepository.save(job);
+            protocolRepository.getById(job.getProtocolId()).ifPresent(protocol -> {
+                protocol.setAiStatus("failed");
+                protocolRepository.update(protocol);
+            });
         }
     }
 
@@ -144,9 +153,13 @@ public class AiPriorityService {
 
     public PriorityStatus getPriority(String protocolId) {
         Protocol protocol = getProtocol(protocolId);
+        var latestLog = logRepository.findFirstByProtocolIdOrderByCreatedAtDescIdDesc(protocolId)
+                .filter(log -> java.util.Objects.equals(log.getPriority(), protocol.getAiPriority()));
         return new PriorityStatus(
                 protocol.getAiPriority(),
-                protocol.getAiStatus() == null ? "pending" : protocol.getAiStatus()
+                protocol.getAiStatus() == null ? "pending" : protocol.getAiStatus(),
+                latestLog.map(AiJobLog::getReason).orElse(null),
+                latestLog.map(AiJobLog::getSource).orElse(null)
         );
     }
 
@@ -201,6 +214,6 @@ public class AiPriorityService {
     record ClassificationRequest(String protocol_id, String description, String category) {
     }
 
-    public record PriorityStatus(String priority, String aiStatus) {
+    public record PriorityStatus(String priority, String aiStatus, String reason, String source) {
     }
 }

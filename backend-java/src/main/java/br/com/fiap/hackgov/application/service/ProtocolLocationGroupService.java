@@ -119,15 +119,16 @@ public class ProtocolLocationGroupService {
     }
 
     private GroupMetadata metadata(List<Protocol> members) {
-        List<Protocol> ordered = members.stream()
-                .sorted(Comparator.comparing(Protocol::getCreatedAt).thenComparing(Protocol::getId))
-                .toList();
-        int count = ordered.size();
+        // Apenas o menor elemento e necessario: O(m), sem ordenar/copiar o grupo.
+        Protocol primary = members.stream()
+                .min(Comparator.comparing(Protocol::getCreatedAt).thenComparing(Protocol::getId))
+                .orElseThrow();
+        int count = members.size();
         return new GroupMetadata(
                 count,
                 count >= GROUP_THRESHOLD,
                 count > ALERT_THRESHOLD,
-                ordered.getFirst().getId()
+                primary.getId()
         );
     }
 

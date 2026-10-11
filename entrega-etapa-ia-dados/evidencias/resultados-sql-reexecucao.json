@@ -1,0 +1,171 @@
+{
+  "executadoEm": "2026-10-10T23:41:28-03:00",
+  "origem": "PostgreSQL do projeto HackGov; base fictícia de demonstração de São Paulo.",
+  "parametros": {
+    "establishmentId": "est-demo-sao-paulo",
+    "startDate": "2026-08-01",
+    "endDate": "2026-10-10",
+    "timezone": "America/Sao_Paulo"
+  },
+  "modo": "Somente SELECT; quatro consultas reunidas em uma instrução para compartilhar a mesma fotografia dos dados.",
+  "verificacoes": {
+    "totalDistribuicaoConfere": true,
+    "concluidosDistribuicaoConferem": true,
+    "entradasMensaisConferem": true
+  },
+  "resultados": {
+    "monthly": [
+      {
+        "month": "2026-08",
+        "opened": 150,
+        "completed": 0
+      },
+      {
+        "month": "2026-09",
+        "opened": 202,
+        "completed": 0
+      },
+      {
+        "month": "2026-10",
+        "opened": 0,
+        "completed": 0
+      }
+    ],
+    "summary": [
+      {
+        "total": 352,
+        "completed": 102,
+        "total_cost": 29520,
+        "average_cost": 307.5,
+        "completion_rate": 28.98,
+        "timed_completions": 0,
+        "costed_completions": 96,
+        "average_resolution_days": null
+      }
+    ],
+    "recurrence": [
+      {
+        "address": "Praça da Sé, 100 - Sé, São Paulo - SP",
+        "reports": 8,
+        "category": "Auditiva",
+        "position": 1
+      },
+      {
+        "address": "Avenida Ipiranga, 100 - República, São Paulo - SP",
+        "reports": 5,
+        "category": "Visual",
+        "position": 2
+      },
+      {
+        "address": "Avenida Paulista, 100 - Bela Vista, São Paulo - SP",
+        "reports": 5,
+        "category": "Física",
+        "position": 2
+      },
+      {
+        "address": "Rua Augusta, 100 - Consolação, São Paulo - SP",
+        "reports": 5,
+        "category": "Visual",
+        "position": 2
+      },
+      {
+        "address": "Rua da Consolação, 100 - Consolação, São Paulo - SP",
+        "reports": 5,
+        "category": "Física",
+        "position": 2
+      },
+      {
+        "address": "Rua Vergueiro, 100 - Liberdade, São Paulo - SP",
+        "reports": 5,
+        "category": "Física",
+        "position": 2
+      },
+      {
+        "address": "Avenida Ipiranga, 1090 - República, São Paulo - SP",
+        "reports": 4,
+        "category": "Visual",
+        "position": 3
+      },
+      {
+        "address": "Avenida Ipiranga, 210 - República, São Paulo - SP",
+        "reports": 4,
+        "category": "Visual",
+        "position": 3
+      },
+      {
+        "address": "Avenida Ipiranga, 320 - República, São Paulo - SP",
+        "reports": 4,
+        "category": "Visual",
+        "position": 3
+      },
+      {
+        "address": "Avenida Ipiranga, 430 - República, São Paulo - SP",
+        "reports": 4,
+        "category": "Visual",
+        "position": 3
+      }
+    ],
+    "distribution": [
+      {
+        "total": 17,
+        "status": "Aberto",
+        "category": "Auditiva"
+      },
+      {
+        "total": 15,
+        "status": "Concluído",
+        "category": "Auditiva"
+      },
+      {
+        "total": 12,
+        "status": "Em Análise",
+        "category": "Auditiva"
+      },
+      {
+        "total": 74,
+        "status": "Aberto",
+        "category": "Física"
+      },
+      {
+        "total": 51,
+        "status": "Concluído",
+        "category": "Física"
+      },
+      {
+        "total": 51,
+        "status": "Em Análise",
+        "category": "Física"
+      },
+      {
+        "total": 19,
+        "status": "Aberto",
+        "category": "Outros"
+      },
+      {
+        "total": 12,
+        "status": "Concluído",
+        "category": "Outros"
+      },
+      {
+        "total": 12,
+        "status": "Em Análise",
+        "category": "Outros"
+      },
+      {
+        "total": 35,
+        "status": "Aberto",
+        "category": "Visual"
+      },
+      {
+        "total": 24,
+        "status": "Concluído",
+        "category": "Visual"
+      },
+      {
+        "total": 30,
+        "status": "Em Análise",
+        "category": "Visual"
+      }
+    ]
+  }
+}

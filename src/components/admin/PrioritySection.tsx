@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, Pencil, Star } from 'lucide-react';
+import { Loader2, Pencil, RefreshCw, Star } from 'lucide-react';
 import { ChangePriorityModal } from './ChangePriorityModal';
 import { aiPriorityService } from '../../services/aiPriorityService';
 
@@ -24,9 +24,32 @@ export const PrioritySection: React.FC<PrioritySectionProps> = ({ protocolId, in
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState('');
+  const [explanation, setExplanation] = useState<{ reason: string | null; source: string | null }>({ reason: null, source: null });
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => setPriority(initialPriority), [initialPriority]);
   useEffect(() => setStatus(initialStatus), [initialStatus]);
+
+  useEffect(() => {
+    let disposed = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    setExplanation({ reason: null, source: null });
+    const refresh = async () => {
+      try {
+        const result = await aiPriorityService.getPriority(protocolId);
+        if (disposed) return;
+        setPriority(result.priority);
+        setStatus(result.aiStatus);
+        setExplanation({ reason: result.reason, source: result.source });
+        setError('');
+        if (result.aiStatus === 'pending') timer = setTimeout(refresh, 5000);
+      } catch {
+        if (!disposed) setError('Não foi possível consultar a justificativa.');
+      }
+    };
+    void refresh();
+    return () => { disposed = true; if (timer) clearTimeout(timer); };
+  }, [protocolId, initialPriority, initialStatus, refreshKey]);
 
   const handleChangePriority = async (newPriority: Priority, reason?: string) => {
     setLoading(true);
@@ -36,6 +59,7 @@ export const PrioritySection: React.FC<PrioritySectionProps> = ({ protocolId, in
       setPriority(newPriority);
       setStatus('success');
       setShowModal(false);
+      setRefreshKey((key) => key + 1);
     } catch {
       setError('Não foi possível alterar a prioridade.');
     } finally {
@@ -44,6 +68,20 @@ export const PrioritySection: React.FC<PrioritySectionProps> = ({ protocolId, in
   };
 
   const config = priority ? PRIORITY_STYLE[priority] : null;
+
+  const handleRegenerate = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      await aiPriorityService.regeneratePriority(protocolId);
+      setStatus('pending');
+      setRefreshKey((key) => key + 1);
+    } catch {
+      setError('Não foi possível reprocessar a prioridade.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <section className="rounded-lg border border-[#CDD8E7] bg-white p-4 shadow-sm">
@@ -65,14 +103,23 @@ export const PrioritySection: React.FC<PrioritySectionProps> = ({ protocolId, in
         )}
       </div>
 
+      {status === 'success' && (
+        <div className="mt-3 text-sm leading-6 text-slate-700">
+          <p className="font-bold">{explanation.source === 'admin_manual' ? 'Justificativa do servidor' : explanation.source === 'ia' ? 'Justificativa da IA' : 'Justificativa da prioridade'}</p>
+          <p>{explanation.reason || 'Este registro ainda não possui justificativa disponível.'}</p>
+          {explanation.source === 'ia' && <p className="mt-1 text-xs text-slate-500">Sugestão sujeita à revisão do servidor.</p>}
+        </div>
+      )}
+
       <p className="mt-3 text-xs text-slate-500">
         {status === 'pending' ? 'A classificação está sendo analisada.' : status === 'failed' ? 'Defina a prioridade manualmente.' : 'Prioridade registrada para a triagem.'}
       </p>
 
-      <div className="mt-3">
+      <div className="mt-3 flex flex-wrap gap-2">
         <button type="button" onClick={() => setShowModal(true)} disabled={loading} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#0758BD] bg-white px-4 whitespace-nowrap text-xs font-bold text-[#0758BD] disabled:opacity-50">
           <Pencil size={16} /> Definir manualmente
         </button>
+        {(status === 'failed' || error) && <button type="button" onClick={() => void handleRegenerate()} disabled={loading} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-300 px-3 text-xs font-bold disabled:opacity-50"><RefreshCw size={16} /> Reprocessar IA</button>}
       </div>
       {error && <p className="mt-3 text-xs font-semibold text-red-600">{error}</p>}
 

@@ -220,7 +220,7 @@ Deno.serve(async (req) => {
     );
     const completedAt = new Date().toISOString();
 
-    await supabase
+    const { error: jobError } = await supabase
       .from("ai_priority_jobs")
       .update({
         status: "success",
@@ -229,16 +229,18 @@ Deno.serve(async (req) => {
         updated_at: completedAt,
       })
       .eq("protocol_id", protocol_id);
+    if (jobError) throw new Error("Não foi possível registrar o resultado da classificação.");
 
-    await supabase
+    const { error: protocolError } = await supabase
       .from("protocols")
       .update({
         ai_priority: result.priority,
         ai_status: "success",
       })
       .eq("id", protocol_id);
+    if (protocolError) throw new Error("Não foi possível atualizar a prioridade do protocolo.");
 
-    await supabase.from("ai_job_logs").insert({
+    const { error: logError } = await supabase.from("ai_job_logs").insert({
       protocol_id,
       priority: result.priority,
       source: "ia",
@@ -246,6 +248,7 @@ Deno.serve(async (req) => {
       // classificacoes como "Sem justificativa", o que anula a auditabilidade.
       reason: result.reason,
     });
+    if (logError) throw new Error("Não foi possível registrar a justificativa da classificação.");
 
     const protocolBefore = firstRow(existingProtocol as { status?: string; ai_priority?: string | null }[]);
     try {
@@ -267,7 +270,7 @@ Deno.serve(async (req) => {
       console.error("Audit chain append failed:", auditError);
     }
 
-    return jsonResponse({ success: true, priority: result.priority });
+    return jsonResponse({ success: true, priority: result.priority, reason: result.reason });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Classification error:", errorMessage);

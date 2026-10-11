@@ -1,0 +1,177 @@
+{
+  "dataColeta": "2026-10-10",
+  "origem": "Base de demonstração do projeto HackGov no PostgreSQL; não representa operação real de prefeitura.",
+  "parametros": {
+    "establishmentId": "est-demo-sao-paulo",
+    "startDate": "2026-08-01",
+    "endDate": "2026-10-10",
+    "timezone": "America/Sao_Paulo"
+  },
+  "resultados": [
+    {
+      "consulta": "distribution",
+      "linhas": [
+        {
+          "category": "Auditiva",
+          "status": "Aberto",
+          "total": 17
+        },
+        {
+          "category": "Auditiva",
+          "status": "Concluído",
+          "total": 15
+        },
+        {
+          "category": "Auditiva",
+          "status": "Em Análise",
+          "total": 12
+        },
+        {
+          "category": "Física",
+          "status": "Aberto",
+          "total": 74
+        },
+        {
+          "category": "Física",
+          "status": "Concluído",
+          "total": 51
+        },
+        {
+          "category": "Física",
+          "status": "Em Análise",
+          "total": 51
+        },
+        {
+          "category": "Outros",
+          "status": "Aberto",
+          "total": 19
+        },
+        {
+          "category": "Outros",
+          "status": "Concluído",
+          "total": 12
+        },
+        {
+          "category": "Outros",
+          "status": "Em Análise",
+          "total": 12
+        },
+        {
+          "category": "Visual",
+          "status": "Aberto",
+          "total": 35
+        },
+        {
+          "category": "Visual",
+          "status": "Concluído",
+          "total": 24
+        },
+        {
+          "category": "Visual",
+          "status": "Em Análise",
+          "total": 30
+        }
+      ]
+    },
+    {
+      "consulta": "monthly",
+      "linhas": [
+        {
+          "month": "2026-08",
+          "opened": 150,
+          "completed": 0
+        },
+        {
+          "month": "2026-09",
+          "opened": 202,
+          "completed": 0
+        },
+        {
+          "month": "2026-10",
+          "opened": 0,
+          "completed": 0
+        }
+      ]
+    },
+    {
+      "consulta": "recurrence",
+      "linhas": [
+        {
+          "position": 1,
+          "address": "Praça da Sé, 100 - Sé, São Paulo - SP",
+          "category": "Auditiva",
+          "reports": 8
+        },
+        {
+          "position": 2,
+          "address": "Avenida Ipiranga, 100 - República, São Paulo - SP",
+          "category": "Visual",
+          "reports": 5
+        },
+        {
+          "position": 2,
+          "address": "Avenida Paulista, 100 - Bela Vista, São Paulo - SP",
+          "category": "Física",
+          "reports": 5
+        },
+        {
+          "position": 2,
+          "address": "Rua Augusta, 100 - Consolação, São Paulo - SP",
+          "category": "Visual",
+          "reports": 5
+        },
+        {
+          "position": 2,
+          "address": "Rua da Consolação, 100 - Consolação, São Paulo - SP",
+          "category": "Física",
+          "reports": 5
+        },
+        {
+          "position": 2,
+          "address": "Rua Vergueiro, 100 - Liberdade, São Paulo - SP",
+          "category": "Física",
+          "reports": 5
+        },
+        {
+          "position": 3,
+          "address": "Avenida Ipiranga, 1090 - República, São Paulo - SP",
+          "category": "Visual",
+          "reports": 4
+        },
+        {
+          "position": 3,
+          "address": "Avenida Ipiranga, 210 - República, São Paulo - SP",
+          "category": "Visual",
+          "reports": 4
+        },
+        {
+          "position": 3,
+          "address": "Avenida Ipiranga, 320 - República, São Paulo - SP",
+          "category": "Visual",
+          "reports": 4
+        },
+        {
+          "position": 3,
+          "address": "Avenida Ipiranga, 430 - República, São Paulo - SP",
+          "category": "Visual",
+          "reports": 4
+        }
+      ]
+    },
+    {
+      "consulta": "summary",
+      "linhas": [
+        {
+          "total": 352,
+          "completed": 102,
+          "completion_rate": "28.98",
+          "average_resolution_days": null,
+          "timed_completions": 0,
+          "total_cost": "29520.00",
+          "average_cost": "307.50",
+          "costed_completions": 96
+        }
+      ]
+    }
+  ]
+}

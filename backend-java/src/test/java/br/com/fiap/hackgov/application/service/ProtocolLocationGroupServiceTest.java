@@ -58,6 +58,18 @@ class ProtocolLocationGroupServiceTest {
         assertTrue(summaries.stream().noneMatch(ProtocolSummaryOutputDto::locationGrouped));
     }
 
+    @Test
+    void selectsOldestRegardlessOfInputOrderAndBreaksTiesById() {
+        List<Protocol> members = protocols(3);
+        members.get(1).setCreatedAt(members.getFirst().getCreatedAt());
+        List<ProtocolSummaryOutputDto> summaries = service.summarizeForAdmin(
+                List.of(members.get(2), members.get(1), members.get(0)));
+
+        assertTrue(summaries.stream().allMatch(item -> "protocol-0".equals(item.primaryProtocolId())));
+        assertTrue(summaries.stream().allMatch(item -> item.locationGroupCount() == 3));
+        assertEquals("protocol-2", summaries.getFirst().id());
+    }
+
     private List<Protocol> protocols(int count) {
         return IntStream.range(0, count).mapToObj(index -> {
             Protocol protocol = new Protocol();
