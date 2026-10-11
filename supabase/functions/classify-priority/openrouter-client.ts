@@ -48,7 +48,9 @@ export async function classifyPriority(
         },
       ],
       temperature: 0.3,
-      max_tokens: 256,
+      // O limite inclui raciocínio interno e o JSON final nos modelos Gemini.
+      reasoning: { effort: "low", exclude: true },
+      max_tokens: 2048,
     }),
   });
 

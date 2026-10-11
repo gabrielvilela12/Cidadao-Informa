@@ -45,7 +45,7 @@ Usar agrupamentos e agregações e incluir subconsulta e/ou função de janela. 
 
 Melhorar o retorno estruturado de prioridade e justificativa, validar a resposta e apresentar a explicação ao servidor. Manter a possibilidade de revisão humana e tratar falhas sem impedir o acompanhamento do protocolo.
 
-Achado inicial: o classificador solicitava prioridade e motivo, mas limitava a resposta a `max_tokens: 10`, o que podia truncar a justificativa. Em 10/10/2026, foi implementado contrato JSON validado, limite de 256 tokens, consulta do motivo pela API e exibição no detalhe. A nova função ainda não foi publicada nem comprovada por chamada real ao modelo.
+Achado inicial: o classificador solicitava prioridade e motivo, mas limitava a resposta a `max_tokens: 10`, o que podia truncar a justificativa. Em 10/10/2026, foi implementado contrato JSON validado, consulta do motivo pela API e exibição no detalhe. A chamada real mostrou que o limite intermediário de 256 tokens era insuficiente para o raciocínio interno do Gemini. Foi ajustado para 2048 tokens com esforço baixo. A versão 13 foi publicada no Supabase e comprovada por uma classificação real sobre protocolo demonstrativo.
 
 Dados previstos para a classificação: categoria e descrição do chamado. Documentar dependência do provedor, custo e possibilidade de erro de interpretação. Revisar os dados enviados para não incluir informações pessoais desnecessárias.
 
@@ -90,7 +90,7 @@ Não registrar senhas, tokens, chaves de API ou dados pessoais reais nos documen
 - `main` atualizada por pull; já estava na revisão mais recente `5e933f3`. Arquivos locais preservados.
 - Indicadores, distribuição, evolução mensal e ranking implementados com SQL parametrizado e exibidos no Dashboard Executivo.
 - Seleção do protocolo principal alterada para busca do mínimo com desempate por ID, preservando as regras existentes.
-- IA com saída estruturada, justificativa, tratamento de erro e reprocessamento na interface; validação real da nova classificação remota permanece pendente.
+- IA com saída estruturada, justificativa, tratamento de erro e reprocessamento na interface; classificação real remota validada sobre protocolo demonstrativo.
 - Consultas executadas sobre a base de demonstração existente e sobre uma fixture temporária isolada no PostgreSQL.
 - 111 testes Java, 118 testes frontend e 3 testes Deno aprovados; compilação TypeScript e build verificados.
 - Fluxo dos indicadores validado no navegador, incluindo alteração de período e ausência de dados. HTTP de autorização também conferido.

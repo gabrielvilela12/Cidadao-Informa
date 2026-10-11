@@ -2,13 +2,13 @@
 
 Data inicial: 10/10/2026.
 
-IDs dão continuidade à sequência do backlog da Fase 5. Atualização em 10/10/2026: os incrementos locais foram implementados e verificados; a nova classificação real no ambiente remoto permanece pendente.
+IDs dão continuidade à sequência do backlog da Fase 5. Atualização em 10/10/2026: os incrementos foram implementados e verificados; a nova classificação foi publicada no Supabase e comprovada por chamada real.
 
 | ID | User story | Prioridade | Estado |
 | --- | --- | --- | --- |
 | US27 | Como gestor, quero consultar indicadores calculados no banco por período, para avaliar volume, conclusão, tempo de atendimento e custos. | Alta | Implementada; SQL, JDBC, HTTP e navegador verificados |
 | US28 | Como gestor, quero consultar rankings de recorrência e evolução mensal, para direcionar ações com base nos relatos recebidos. | Alta | Implementada; consultas e resultados documentados |
-| US29 | Como servidor, quero entender a prioridade sugerida pela IA, para revisar a triagem com uma justificativa clara. | Alta | Implementada localmente; testes simulados aprovados; publicação e chamada real pendentes |
+| US29 | Como servidor, quero entender a prioridade sugerida pela IA, para revisar a triagem com uma justificativa clara. | Alta | Implementada; testes aprovados; Edge Function publicada e chamada real validada |
 | US30 | Como servidor, quero consultar agrupamentos com processamento eficiente, para manter a resposta do sistema conforme o volume de relatos aumenta. | Alta | Implementada e testada |
 | US31 | Como integrante do grupo, quero reunir consultas, resultados, testes e demonstrações reproduzíveis, para comprovar as evoluções na entrega acadêmica. | Alta | Evidências técnicas registradas; PDFs, slides, vídeo e ZIP pendentes |
 

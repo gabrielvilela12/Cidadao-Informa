@@ -6,7 +6,7 @@ Verificações realizadas em 10/10/2026.
 
 Foi executado `git pull --ff-only origin main`. Resultado: `Already up to date`, na revisão `5e933f3`. As alterações locais de apresentação, PDF, ZIP e contexto foram preservadas por stash temporário e restauradas sem conflitos.
 
-Não houve commit, push, publicação da aplicação ou deployment da Edge Function neste incremento.
+As verificações locais abaixo precederam a publicação. Em 10/10/2026, foi enviado o commit `a282e9f` para `main`, iniciado o deployment de produção na Vercel e publicada a Edge Function de classificação. O registro atualizado está em `publicacao-producao.md`.
 
 ## Verificações automatizadas
 
@@ -69,4 +69,4 @@ Ambiente: API local em `http://localhost:5210`, frontend local em `http://localh
 
 Foi validado o contrato enviado ao provedor com `fetch` simulado, incluindo schema, exigência de suporte a parâmetros e limite de saída. Foram testados retorno válido, motivo ausente, campos extras, prioridade inválida, JSON incompleto e truncamento informado pelo provedor. O backend foi testado para devolver motivo compatível com a prioridade atual e registrar falha de chamada para reprocessamento.
 
-A nova Edge Function não foi publicada. A chave OpenRouter não está configurada no ambiente local inspecionado, e não houve uma nova classificação real pelo modelo. Assim, não se declara validada a nova geração completa no ambiente remoto. Essa evidência permanece pendente para o vídeo e a entrega.
+A Edge Function versão 13 foi publicada com JWT habilitado e comprovada por chamada real sobre o protocolo demonstrativo `demo-bulk-protocol-rp-193`. Retornou HTTP 200, prioridade `alta` e justificativa persistida em `ai_job_logs`. A primeira tentativa, com 256 tokens, falhou por truncamento; foi corrigida para 2048 tokens com esforço baixo, e os três testes Deno passaram novamente. Não foram alterados relatos de cidadãos reais. A chave OpenRouter permanece somente no servidor remoto.

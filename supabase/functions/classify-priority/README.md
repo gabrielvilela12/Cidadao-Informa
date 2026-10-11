@@ -4,7 +4,7 @@ A função recebe categoria e descrição e retorna prioridade e motivo. O model
 
 O cliente solicita JSON Schema com duas propriedades obrigatórias: `priority` e `reason`. A prioridade deve ser `baixa`, `media`, `alta` ou `critica`, e a justificativa deve possuir entre 1 e 200 caracteres após remoção de espaços externos. Mesmo com schema no provedor, o retorno passa por validação local. Respostas truncadas, JSON inválido, campos extras e motivos vazios são rejeitados.
 
-O limite de saída passou de 10 para 256 tokens. Provedores precisam suportar o formato estruturado; `require_parameters` impede encaminhamento a um endpoint que ignore os parâmetros. Falhas continuam seguindo o fluxo de jobs e reprocessamento; não concluem o protocolo.
+O limite de saída passou de 10 para 2048 tokens, com `reasoning.effort: low`. A primeira chamada real mostrou que 256 tokens ainda truncavam a resposta: o modelo também utiliza esse limite para raciocínio interno. Provedores precisam suportar o formato estruturado; `require_parameters` impede encaminhamento a um endpoint que ignore os parâmetros. Falhas continuam seguindo o fluxo de jobs e reprocessamento; não concluem o protocolo.
 
 ## Configuração no ambiente da Edge Function
 
@@ -32,6 +32,8 @@ O valor `test-only` serve exclusivamente ao teste com `fetch` simulado. Os teste
 
 Uma explicação do modelo não comprova que a decisão está correta. É necessário manter revisão humana e avaliar exemplos representativos. O serviço tem custo e depende da disponibilidade e do suporte do provedor escolhido.
 
-Nesta etapa, o código e os testes locais foram preparados. A nova versão não foi publicada no Supabase e ainda não foi comprovada por uma chamada real ao modelo. Registros antigos sem motivo continuam exibindo ausência de justificativa, sem explicações fabricadas.
+Em 10/10/2026, a versão 13 foi publicada no Supabase com verificação JWT habilitada. Uma chamada real sobre o protocolo demonstrativo `demo-bulk-protocol-rp-193` retornou HTTP 200, prioridade `alta` e justificativa. O job, o protocolo e o log foram conferidos no banco. Registros antigos sem motivo continuam exibindo ausência de justificativa, sem explicações fabricadas.
 
 Referência: [saídas estruturadas no OpenRouter](https://openrouter.ai/docs/guides/features/structured-outputs).
+
+Referência sobre o orçamento compartilhado de tokens: [raciocínio e max_tokens](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens).
