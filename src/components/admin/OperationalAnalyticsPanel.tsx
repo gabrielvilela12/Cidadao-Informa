@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getOperationalAnalytics, type OperationalAnalytics } from '../../services/operationalAnalyticsService';
 import { formatCurrency } from '../../utils/currency';
+import { downloadOperationalAnalyticsCsv } from '../../utils/operationalAnalyticsCsv';
 
 function localToday() {
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
@@ -16,6 +17,7 @@ export function OperationalAnalyticsPanel() {
   const [data, setData] = useState<OperationalAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [validationError, setValidationError] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -36,13 +38,19 @@ export function OperationalAnalyticsPanel() {
       <p className="mt-1 text-sm text-slate-600">Indicadores do seu escopo de acesso. O período abaixo é independente dos filtros dos demais cartões.</p>
       <form className="mt-4 flex flex-wrap items-end gap-3" onSubmit={(event) => {
         event.preventDefault();
-        if (startDate > endDate) { setError('A data inicial deve ser anterior ou igual à final.'); return; }
+        if (startDate > endDate) { setValidationError('A data inicial deve ser anterior ou igual à final.'); return; }
+        const days = (Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86_400_000 + 1;
+        if (!Number.isFinite(days) || days > 731) { setValidationError('Selecione um período de até 731 dias, incluindo as duas datas.'); return; }
+        setValidationError('');
         setPeriod({ startDate, endDate });
       }}>
         <label className="text-sm font-semibold">De<input type="date" required value={startDate} onChange={(event) => setStartDate(event.target.value)} className="mt-1 block rounded border border-slate-300 p-2" /></label>
         <label className="text-sm font-semibold">Até<input type="date" required value={endDate} onChange={(event) => setEndDate(event.target.value)} className="mt-1 block rounded border border-slate-300 p-2" /></label>
         <button type="submit" disabled={loading} className="min-h-10 rounded bg-blue-700 px-4 font-bold text-white disabled:opacity-50">Aplicar período</button>
+        <button type="button" disabled={!data || loading || Boolean(error) || Boolean(validationError)} onClick={() => { if (data) downloadOperationalAnalyticsCsv(data); }} className="min-h-10 rounded border border-blue-700 px-4 font-bold text-blue-700 disabled:opacity-50">Exportar indicadores CSV</button>
       </form>
+      <p className="mt-2 text-xs text-slate-500">Até 731 dias. A exportação usa o período aplicado e os dados exibidos, com cobertura e regras de cálculo.</p>
+      {validationError && <p className="mt-3 text-sm text-red-700" role="alert">{validationError}</p>}
       {loading && <p className="mt-4 text-sm" role="status">Carregando análise...</p>}
       {error && <div className="mt-4 text-sm text-red-700" role="alert">{error} <button type="button" className="underline" onClick={() => setRefreshKey((key) => key + 1)}>Tentar novamente</button></div>}
       {data && !loading && <>

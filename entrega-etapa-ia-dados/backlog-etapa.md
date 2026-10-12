@@ -11,6 +11,7 @@ IDs dão continuidade à sequência do backlog da Fase 5. Atualização em 10/10
 | US29 | Como servidor, quero entender a prioridade sugerida pela IA, para revisar a triagem com uma justificativa clara. | Alta | Implementada; testes aprovados; Edge Function publicada e chamada real validada |
 | US30 | Como servidor, quero consultar agrupamentos com processamento eficiente, para manter a resposta do sistema conforme o volume de relatos aumenta. | Alta | Implementada e testada |
 | US31 | Como integrante do grupo, quero reunir consultas, resultados, testes e demonstrações reproduzíveis, para comprovar as evoluções na entrega acadêmica. | Alta | Evidências técnicas registradas; PDFs, slides, vídeo e ZIP pendentes |
+| US32 | Como gestor, quero exportar os indicadores do período aplicado em CSV, para compartilhar resultados sem perder as regras e a cobertura dos dados. | Alta | Implementada e verificada localmente em 12/10/2026 |
 
 ## US27 — Indicadores integrados
 
@@ -67,3 +68,14 @@ IDs dão continuidade à sequência do backlog da Fase 5. Atualização em 10/10
 3. Consultas SQL, API e integração dos indicadores à interface.
 4. Execução, interpretação e registro das evidências.
 5. Consolidação da documentação e materiais de entrega.
+
+## US32 — Exportação dos indicadores
+
+- O CSV usa a mesma resposta autorizada apresentada no painel, com período aplicado, fuso e momento da geração.
+- Inclui resumo, distribuição, evolução mensal, recorrência, regras e cobertura das datas e custos.
+- Ausência permanece `Sem dados`; custo zero continua zero.
+- Usa UTF-8 com BOM, separador ponto e vírgula e escape de aspas e quebras de linha.
+- Campos textuais que poderiam ser interpretados como fórmulas são neutralizados.
+- O botão fica indisponível enquanto carrega, quando há falha ou período inválido.
+- A tela valida o período inclusivo máximo de 731 dias antes de consultar a API.
+- O arquivo baixado é conferido por parser CSV e comparado com os indicadores da tela.

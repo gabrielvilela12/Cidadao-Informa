@@ -1,0 +1,168 @@
+{
+  "analytics": {
+    "startDate": "2026-08-01",
+    "endDate": "2026-10-10",
+    "timezone": "America/Sao_Paulo",
+    "generatedAt": "2026-10-12T14:19:57.038388336Z",
+    "summary": {
+      "total": 351,
+      "completed": 102,
+      "completionRate": 29.06,
+      "averageResolutionDays": null,
+      "timedCompletions": 0,
+      "totalCost": 29520.0,
+      "averageCost": 307.5,
+      "costedCompletions": 96
+    },
+    "distribution": [
+      {
+        "category": "Auditiva",
+        "status": "Aberto",
+        "total": 17
+      },
+      {
+        "category": "Auditiva",
+        "status": "Concluído",
+        "total": 15
+      },
+      {
+        "category": "Auditiva",
+        "status": "Em Análise",
+        "total": 12
+      },
+      {
+        "category": "Física",
+        "status": "Aberto",
+        "total": 74
+      },
+      {
+        "category": "Física",
+        "status": "Concluído",
+        "total": 51
+      },
+      {
+        "category": "Física",
+        "status": "Em Análise",
+        "total": 51
+      },
+      {
+        "category": "Outros",
+        "status": "Aberto",
+        "total": 19
+      },
+      {
+        "category": "Outros",
+        "status": "Concluído",
+        "total": 12
+      },
+      {
+        "category": "Outros",
+        "status": "Em Análise",
+        "total": 12
+      },
+      {
+        "category": "Visual",
+        "status": "Aberto",
+        "total": 34
+      },
+      {
+        "category": "Visual",
+        "status": "Concluído",
+        "total": 24
+      },
+      {
+        "category": "Visual",
+        "status": "Em Análise",
+        "total": 30
+      }
+    ],
+    "monthly": [
+      {
+        "month": "2026-08",
+        "opened": 150,
+        "completed": 0
+      },
+      {
+        "month": "2026-09",
+        "opened": 201,
+        "completed": 0
+      },
+      {
+        "month": "2026-10",
+        "opened": 0,
+        "completed": 0
+      }
+    ],
+    "recurrence": [
+      {
+        "position": 1,
+        "address": "Av. Independência, 100 - Jardim Sumaré, Ribeirão Preto - SP",
+        "category": "Física",
+        "reports": 5
+      },
+      {
+        "position": 1,
+        "address": "Av. Nove de Julho, 100 - Jardim América, Ribeirão Preto - SP",
+        "category": "Auditiva",
+        "reports": 5
+      },
+      {
+        "position": 1,
+        "address": "Av. Presidente Vargas, 100 - Jardim Califórnia, Ribeirão Preto - SP",
+        "category": "Visual",
+        "reports": 5
+      },
+      {
+        "position": 1,
+        "address": "Rua Álvares Cabral, 100 - Centro, Ribeirão Preto - SP",
+        "category": "Física",
+        "reports": 5
+      },
+      {
+        "position": 1,
+        "address": "Rua General Osório, 100 - Centro, Ribeirão Preto - SP",
+        "category": "Visual",
+        "reports": 5
+      },
+      {
+        "position": 1,
+        "address": "Rua São José, 100 - Centro, Ribeirão Preto - SP",
+        "category": "Física",
+        "reports": 5
+      },
+      {
+        "position": 2,
+        "address": "Av. Independência, 1090 - Jardim Sumaré, Ribeirão Preto - SP",
+        "category": "Física",
+        "reports": 4
+      },
+      {
+        "position": 2,
+        "address": "Av. Independência, 210 - Jardim Sumaré, Ribeirão Preto - SP",
+        "category": "Física",
+        "reports": 4
+      },
+      {
+        "position": 2,
+        "address": "Av. Independência, 320 - Jardim Sumaré, Ribeirão Preto - SP",
+        "category": "Física",
+        "reports": 4
+      },
+      {
+        "position": 2,
+        "address": "Av. Independência, 430 - Jardim Sumaré, Ribeirão Preto - SP",
+        "category": "Física",
+        "reports": 4
+      }
+    ]
+  },
+  "priority": {
+    "priority": "alta",
+    "aiStatus": "success",
+    "reason": "A ausência de rampa de acessibilidade impede a locomoção de cadeirantes e pessoas com mobilidade reduzida, gerando impacto operacional relevante no direito de ir e vir.",
+    "source": "ia"
+  },
+  "source": "API de produção",
+  "scope": "Ribeirão Preto demonstrativo",
+  "collectedOn": "2026-10-12"
+}
