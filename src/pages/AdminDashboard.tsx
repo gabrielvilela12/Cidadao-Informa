@@ -30,7 +30,6 @@ import { exportProtocolsToExcel } from '../utils/exportUtils';
 import { countSlaLate } from '../utils/sla';
 import { extractNeighborhood, listNeighborhoods } from '../utils/address';
 import { api } from '../services/api';
-import { OperationalAnalyticsPanel } from '../components/admin/OperationalAnalyticsPanel';
 
 const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -324,8 +323,6 @@ export function AdminDashboard() {
             </div>
           </article>
         </section>
-
-        <OperationalAnalyticsPanel />
       </div>
     </div>
   );
