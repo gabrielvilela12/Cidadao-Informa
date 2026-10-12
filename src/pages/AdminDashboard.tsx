@@ -9,9 +9,7 @@ import {
   Inbox,
   MapPin,
   Menu,
-  Search,
   Timer,
-  Users,
 } from 'lucide-react';
 import {
   Area,
@@ -328,25 +326,8 @@ export function AdminDashboard() {
         </section>
 
         <OperationalAnalyticsPanel />
-
-        <section className="grid grid-cols-1 divide-y divide-[#D8E1ED] rounded-lg border border-[#CDD8E7] bg-white px-5 py-4 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-          <OperationalIndicator icon={<Users size={23} />} value={counts.open} label="aguardando triagem" />
-          <OperationalIndicator icon={<Search size={23} />} value={counts.analysis} label="em análise" />
-          <OperationalIndicator icon={<AlertCircle size={23} />} value={counts.late} label="em atraso" danger />
-        </section>
       </div>
     </div>
   );
 }
 
-function OperationalIndicator({ icon, value, label, danger = false }: { icon: React.ReactNode; value: number; label: string; danger?: boolean }) {
-  return (
-    <div className="flex items-center justify-center gap-4 px-4 py-3">
-      <span className={`flex size-11 items-center justify-center rounded-full ${danger ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-700'}`}>{icon}</span>
-      <div>
-        <p className="text-2xl font-black">{value}</p>
-        <p className="text-xs text-slate-600">{label}</p>
-      </div>
-    </div>
-  );
-}
